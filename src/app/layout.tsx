@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { LEGAL_DISCLAIMER } from "@/lib/types";
-import { SealMark, Wordmark } from "@/components/Wordmark";
+import { LogoMark, Wordmark } from "@/components/Wordmark";
+import { HeaderNav } from "@/components/HeaderNav";
 
 export const metadata: Metadata = {
   title: "Iltzam — Compliance readiness platform",
   description:
-    "Assess, evidence and manage privacy-compliance obligations across EG-PDPL and EU-GDPR.",
+    "Turn privacy obligations into accountable control work across EG-PDPL and EU-GDPR.",
 };
 
 export default function RootLayout({
@@ -18,28 +19,23 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col antialiased">
-        {/* Gold seal-line: the brand ribbon across the whole product */}
-        <div aria-hidden className="print-hidden h-[3px] bg-gold" />
-
         <header className="band print-hidden sticky top-0 z-40 border-b border-brand-line">
-          <div className="shell flex h-16 items-center justify-between">
+          <div className="shell flex h-16 items-center gap-6">
             <Link
               href="/"
-              className="rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-bright"
+              className="shrink-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-bright"
             >
-              <Wordmark subtitle="Compliance readiness" />
+              <Wordmark />
             </Link>
-            <nav aria-label="Primary" className="flex items-center gap-1 sm:gap-2">
+            <div className="ml-auto flex items-center gap-4">
+              <HeaderNav />
               <Link
-                href="/"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-brand-muted transition-colors hover:bg-brand2 hover:text-brand-ink"
+                href="/assessments/new"
+                className="btn btn-gold-on-band !py-1.5 !text-[13px] whitespace-nowrap"
               >
-                Assessments
+                Start review
               </Link>
-              <Link href="/assessments/new" className="btn btn-gold-on-band !py-1.5 !text-[13px]">
-                New assessment
-              </Link>
-            </nav>
+            </div>
           </div>
         </header>
 
@@ -58,7 +54,7 @@ export default function RootLayout({
               <p className="eyebrow text-gold-bright">A note on scope</p>
               <p className="mt-3 text-[13px] leading-6 text-brand-muted">{LEGAL_DISCLAIMER}</p>
               <p className="mt-4 flex items-center gap-2 text-[12px] text-brand-muted/80">
-                <SealMark className="h-4 w-4 text-gold-bright/70" />
+                <LogoMark className="h-5 w-5" />
                 Readiness scores describe self-assessed posture — never legal certification.
               </p>
             </div>

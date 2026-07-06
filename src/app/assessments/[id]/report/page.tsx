@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAssessmentBundle } from "@/lib/assessments";
 import { SeverityBadge, TierBadge, ANSWER_STATE_LABELS } from "@/components/badges";
-import { SealMark } from "@/components/Wordmark";
+import { LogoMark } from "@/components/Wordmark";
 import { gapTierFor } from "@/lib/gaps";
 import { buildManagementSummary } from "@/lib/summary";
 import { formatDate, formatScorePrecise } from "@/lib/format";
@@ -59,7 +59,7 @@ export default async function AuditReportPage({ params }: { params: Promise<{ id
                   {assessment.companyName}
                 </h1>
               </div>
-              <SealMark className="mt-1 h-12 w-12 shrink-0 text-gold" />
+              <LogoMark className="mt-1 h-12 w-12 shrink-0" />
             </div>
             <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-4">
               <div>
@@ -267,7 +267,7 @@ export default async function AuditReportPage({ params }: { params: Promise<{ id
           <footer className="mt-10 border-t-2 border-ink pt-5">
             <p className="text-xs leading-5 text-ink3">{LEGAL_DISCLAIMER}</p>
             <p className="mt-2 flex items-center gap-2 text-xs text-ink3">
-              <SealMark className="h-4 w-4 text-gold" />
+              <LogoMark className="h-4 w-4" />
               Prepared with Iltzam on {formatDate(new Date())}. Scores reflect self-reported
               answers and indicate readiness, not legal certification.
             </p>

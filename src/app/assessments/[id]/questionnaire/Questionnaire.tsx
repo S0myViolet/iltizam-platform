@@ -23,8 +23,8 @@ export interface AnswerPatch {
 }
 
 const SHOW_FILTERS = [
-  { value: "all", label: "Control library" },
-  { value: "unanswered", label: "Awaiting answer" },
+  { value: "all", label: "Full control library" },
+  { value: "unanswered", label: "Decision pending" },
   { value: "gaps", label: "Marked as gap" },
   { value: "missing_evidence", label: "Evidence required" },
 ] as const;
@@ -235,17 +235,20 @@ export function Questionnaire({
           </div>
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="eyebrow text-gold-bright">Guided control review</p>
+              <p className="eyebrow text-gold-bright">Control review</p>
               <h1 className="display mt-2 text-[26px] leading-tight font-semibold sm:text-3xl">
-                Work through your control library
+                Review your control position
               </h1>
+              <p className="mt-2 max-w-xl text-[14px] leading-6 text-brand-muted">
+                Decide each control, assign its owner, and build the evidence record as you go.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 md:hidden">
               <Link href={`/assessments/${assessment.id}/gaps`} className="btn btn-on-band !py-1.5 !text-[13px]">
-                Review control gaps
+                Gap analysis
               </Link>
               <Link href={`/assessments/${assessment.id}`} className="btn btn-gold-on-band !py-1.5 !text-[13px]">
-                Command center
+                Dashboard
               </Link>
             </div>
           </div>
@@ -280,61 +283,76 @@ export function Questionnaire({
         <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[270px_minmax(0,1fr)]">
           {/* ── Domain stepper / filters ─────────────────────────────────────── */}
           <aside className="min-w-0 lg:sticky lg:top-32 lg:max-h-[calc(100vh-9.5rem)] lg:self-start lg:overflow-y-auto lg:pb-6">
-            <nav aria-label="Assessment areas">
-              <p className="eyebrow text-gold-text">Areas</p>
-              <ul className="mt-3 flex gap-1.5 overflow-x-auto pb-2 lg:flex-col lg:gap-0 lg:overflow-visible lg:pb-0">
+            <nav aria-label="Assessment domains">
+              <p className="eyebrow text-gold-text">Domains</p>
+              <ul className="mt-3 flex gap-1.5 overflow-x-auto pb-2 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
                 <li className="shrink-0 lg:shrink">
                   <button
                     type="button"
                     onClick={() => selectDomain("all")}
                     aria-current={domainFilter === "all" ? "true" : undefined}
-                    className={`w-full rounded-lg px-3 py-2 text-left text-[13px] font-medium whitespace-nowrap transition-colors lg:whitespace-normal ${
+                    className={`w-full rounded-md border-l-2 px-3 py-2 text-left text-[13px] font-semibold whitespace-nowrap transition-colors lg:whitespace-normal ${
                       domainFilter === "all"
-                        ? "bg-brand text-brand-ink"
-                        : "text-ink2 hover:bg-surface2 hover:text-ink"
+                        ? "border-l-gold bg-surface text-ink shadow-[var(--shadow-card)]"
+                        : "border-l-transparent text-ink2 hover:bg-surface hover:text-ink"
                     }`}
                   >
-                    All areas
+                    All domains
                   </button>
                 </li>
                 {domains.map((d) => {
                   const s = domainStats.get(d.name);
                   const active = domainFilter === d.name;
                   const complete = s && s.answered === s.total;
+                  const pct = s && s.total > 0 ? (s.answered / s.total) * 100 : 0;
                   return (
-                    <li key={d.name} className="shrink-0 lg:shrink">
+                    <li key={d.name} className="w-56 shrink-0 lg:w-auto lg:shrink">
                       <button
                         type="button"
                         onClick={() => selectDomain(d.name)}
                         aria-current={active ? "true" : undefined}
-                        className={`w-full rounded-lg px-3 py-2 text-left transition-colors ${
-                          active ? "bg-brand text-brand-ink" : "hover:bg-surface2"
+                        className={`w-full rounded-md border-l-2 px-3 py-2 text-left transition-colors ${
+                          active
+                            ? "border-l-gold bg-surface shadow-[var(--shadow-card)]"
+                            : "border-l-transparent hover:bg-surface"
                         }`}
                       >
-                        <span className="flex items-center justify-between gap-3">
-                          <span
-                            className={`truncate text-[13px] font-medium whitespace-nowrap lg:whitespace-normal ${
-                              active ? "" : "text-ink2"
-                            }`}
-                          >
-                            {d.name}
+                        <span className="flex items-baseline justify-between gap-3">
+                          <span className="flex min-w-0 items-baseline gap-2">
+                            <span className="font-mono text-[10px] font-semibold text-ink3">
+                              {String(d.order).padStart(2, "0")}
+                            </span>
+                            <span
+                              className={`truncate text-[13px] font-medium whitespace-nowrap lg:whitespace-normal ${
+                                active ? "text-ink" : "text-ink2"
+                              }`}
+                            >
+                              {d.name}
+                            </span>
                           </span>
                           <span
                             className={`shrink-0 text-[11px] tabular-nums ${
-                              active ? "text-brand-muted" : complete ? "text-good-text" : "text-ink3"
+                              complete ? "text-good-text" : "text-ink3"
                             }`}
                           >
                             {complete ? "✓ " : ""}
                             {s?.answered}/{s?.total}
                           </span>
                         </span>
-                        {s && s.gaps > 0 ? (
-                          <span
-                            className={`mt-0.5 block text-[11px] ${active ? "text-brand-muted" : "text-crit-text"}`}
-                          >
-                            {s.gaps} gap{s.gaps === 1 ? "" : "s"} marked
+                        <span className="mt-1.5 flex items-center gap-2">
+                          <span className="h-[3px] w-full max-w-24 overflow-hidden rounded-full bg-surface2">
+                            <span
+                              className={`block h-full rounded-full ${complete ? "bg-good" : "bg-accent"}`}
+                              style={{ width: `${pct}%` }}
+                            />
                           </span>
-                        ) : null}
+                          {s && s.gaps > 0 ? (
+                            <span className="flex items-center gap-1 text-[10.5px] font-medium text-crit-text">
+                              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-crit" />
+                              {s.gaps} gap{s.gaps === 1 ? "" : "s"}
+                            </span>
+                          ) : null}
+                        </span>
                       </button>
                     </li>
                   );
@@ -343,7 +361,7 @@ export function Questionnaire({
             </nav>
 
             <div className="mt-6 border-t-2 border-line pt-4">
-              <p className="eyebrow text-gold-text">Focus</p>
+              <p className="eyebrow text-gold-text">View</p>
               <div className="mt-3 flex flex-wrap gap-1.5 lg:flex-col lg:gap-1">
                 {SHOW_FILTERS.map((f) => (
                   <button
@@ -388,8 +406,8 @@ export function Questionnaire({
                     : showFilter === "missing_evidence"
                       ? "Every Yes in this view has supporting evidence attached."
                       : showFilter === "unanswered"
-                        ? "Every control in this view has an answer recorded."
-                        : "Try a different area or legal-weight filter."}
+                        ? "Every control in this view has a decision recorded."
+                        : "No controls match this view. Clear the view or switch domain to continue the review."}
                 </p>
                 <button
                   type="button"
@@ -463,11 +481,11 @@ export function Questionnaire({
                     )}
                     {nextDomain ? (
                       <button type="button" className="btn btn-primary" onClick={() => selectDomain(nextDomain.name)}>
-                        Next area: {nextDomain.name} →
+                        Next domain: {nextDomain.name} →
                       </button>
                     ) : (
                       <Link href={`/assessments/${assessment.id}`} className="btn btn-primary">
-                        Finish — open the command center
+                        Finish — open the dashboard
                       </Link>
                     )}
                   </div>

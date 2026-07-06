@@ -1,25 +1,42 @@
 "use client";
 
-// One control as a review item, not a survey row. Severity anchors the left
-// rail, the question is the title, a one-line "why this matters" gives every
-// control its meaning at a glance, and "Open control review" expands the
-// full workspace: requirement on the left, your response on the right.
+// A control record — the questionnaire's unit of work. The record reads top
+// to bottom like an audit entry: reference line (code · regimes · state),
+// the question, why it matters, then the decision input and a status ledger
+// (owner / evidence / review). Severity anchors the left rail; the record's
+// state changes its treatment — a No earns the gap rail and wash, a
+// complete Yes earns the settled rail.
 
 import { useId } from "react";
 import type { AnswerRow, EvidenceItem } from "@/lib/assessments";
 import type { AnswerValue } from "@/lib/types";
 import { REMEDIATION_STATUSES, REMEDIATION_STATUS_LABELS } from "@/lib/types";
-import { AnswerBadge, EvidenceBadge, RegimeBadge, SeverityBadge } from "@/components/badges";
+import { AnswerBadge, SeverityBadge } from "@/components/badges";
 import { formatDate, toDateInputValue } from "@/lib/format";
 import type { AnswerPatch } from "./Questionnaire";
 import { EvidencePanel } from "./EvidencePanel";
 
-const ANSWER_OPTIONS: { value: AnswerValue; label: string; activeClass: string }[] = [
-  { value: "yes", label: "Yes", activeClass: "!bg-good/10 !text-good-text" },
-  { value: "no", label: "No", activeClass: "!bg-crit/10 !text-crit-text" },
-  { value: "not_applicable", label: "Not applicable", activeClass: "!bg-brand !text-brand-ink" },
-  { value: "not_answered", label: "Not answered", activeClass: "!bg-brand !text-brand-ink" },
+const DECISIONS: { value: AnswerValue; label: string; glyph: string; activeClass: string }[] = [
+  { value: "yes", label: "Yes", glyph: "✓", activeClass: "border-good/60 bg-good/10 text-good-text" },
+  { value: "no", label: "No", glyph: "✕", activeClass: "border-crit/60 bg-crit/10 text-crit-text" },
+  { value: "not_applicable", label: "Not applicable", glyph: "—", activeClass: "border-brand bg-brand text-brand-ink" },
+  { value: "not_answered", label: "Not answered", glyph: "○", activeClass: "border-dashed border-line2 bg-surface2 text-ink" },
 ];
+
+function LedgerItem({ label, value, tone = "default" }: { label: string; value: string; tone?: "default" | "warn" | "good" }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[10px] font-semibold tracking-[0.08em] text-ink3 uppercase">{label}</dt>
+      <dd
+        className={`mt-0.5 truncate text-[13px] font-medium ${
+          tone === "warn" ? "text-warn-text" : tone === "good" ? "text-good-text" : "text-ink"
+        }`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
 
 export function ControlCard({
   row,
@@ -37,78 +54,110 @@ export function ControlCard({
   const detailId = useId();
   const mandatory = row.severity === "legally_mandatory";
   const isGap = row.answer === "no";
+  const evidenceRequired = row.answer === "yes" && row.requiresEvidence && row.evidence.length === 0;
+  const settled = row.answer === "yes" && !evidenceRequired;
+
+  const railClass = isGap
+    ? "border-l-crit"
+    : settled
+      ? "border-l-good/60"
+      : mandatory
+        ? "border-l-crit/45"
+        : "border-l-warn/55";
+
+  const evidenceValue =
+    row.evidence.length > 0
+      ? `${row.evidence.length} item${row.evidence.length === 1 ? "" : "s"} attached`
+      : evidenceRequired
+        ? "Evidence required"
+        : row.answer === "yes"
+          ? "Not required"
+          : "None attached";
 
   return (
     <article
-      className={`card overflow-hidden border-l-4 transition-shadow ${
-        isGap ? "border-l-crit" : mandatory ? "border-l-crit/45" : "border-l-warn/55"
-      } ${expanded ? "shadow-[var(--shadow-sheet)]" : ""}`}
+      className={`record overflow-hidden ${railClass} ${isGap ? "bg-crit/[0.025]" : ""} ${
+        expanded ? "shadow-[var(--shadow-sheet)]" : ""
+      }`}
     >
       <div className="p-4 sm:p-5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="font-mono text-[11px] font-semibold tracking-wide text-ink3">
+        {/* Reference line */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className="font-mono text-[11.5px] font-bold tracking-wide text-ink">
             {row.controlCode}
           </span>
           <SeverityBadge severity={row.severity} />
-          {row.regimes.map((m) => (
-            <RegimeBadge key={m.code} code={m.code} provisional={m.provisional} />
-          ))}
-          <span className="ml-auto flex items-center gap-1.5">
+          <span className="font-mono text-[10.5px] tracking-wide text-ink3">
+            {row.regimes.map((m) => `${m.code}${m.provisional ? "*" : ""}`).join(" · ")}
+          </span>
+          <span className="ml-auto">
             <AnswerBadge answer={row.answer} />
           </span>
         </div>
 
-        <h3 className="mt-3 max-w-3xl text-[16px] font-semibold leading-6 text-ink">
+        <h3 className="mt-3 max-w-3xl text-[16px] leading-6 font-semibold text-ink">
           {row.question}
         </h3>
         <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-ink2">{row.whyItMatters}</p>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-          <div
-            role="group"
-            aria-label={`Answer for ${row.controlCode}`}
-            className="seg"
-          >
-            {ANSWER_OPTIONS.map((opt) => {
-              const active = row.answer === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => {
-                    if (!active) onPatch(row.answerId, { answer: opt.value });
-                  }}
-                  className={`seg-item !py-2 ${active ? `seg-item-active ${opt.activeClass}` : ""}`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
+        {/* Decision input */}
+        <div
+          role="group"
+          aria-label={`Decision for ${row.controlCode}`}
+          className="mt-4 flex flex-wrap gap-1.5"
+        >
+          {DECISIONS.map((d) => {
+            const active = row.answer === d.value;
+            return (
+              <button
+                key={d.value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => {
+                  if (!active) onPatch(row.answerId, { answer: d.value });
+                }}
+                className={`decision ${active ? d.activeClass : "decision-idle"}`}
+              >
+                <span aria-hidden className={active ? "" : "text-ink3"}>
+                  {d.glyph}
+                </span>
+                {d.label}
+              </button>
+            );
+          })}
+        </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-            <EvidenceBadge
-              count={row.evidence.length}
-              required={row.answer === "yes" && row.requiresEvidence}
+        {/* Status ledger */}
+        <div className="mt-4 flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-t border-line pt-3.5">
+          <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-8 gap-y-2 sm:grid-cols-3 sm:gap-x-10 lg:max-w-lg">
+            <LedgerItem
+              label="Owner"
+              value={row.ownerName ?? "Owner unassigned"}
+              tone={row.ownerName ? "default" : "warn"}
             />
-            <span className="text-xs text-ink3">
-              {row.ownerName ? `Owner: ${row.ownerName}` : "No owner"}
-              {row.dueDate ? ` · Due ${formatDate(row.dueDate)}` : ""}
-            </span>
-            <button
-              type="button"
-              className="text-[13px] font-semibold text-accent-strong hover:underline"
-              aria-expanded={expanded}
-              aria-controls={detailId}
-              onClick={onToggleExpand}
-            >
-              {expanded ? "Close review" : "Open control review"}
-              <span aria-hidden className="ml-1">
-                {expanded ? "↑" : "↓"}
-              </span>
-            </button>
-          </div>
+            <LedgerItem
+              label="Evidence"
+              value={evidenceValue}
+              tone={evidenceRequired ? "warn" : row.evidence.length > 0 ? "good" : "default"}
+            />
+            <LedgerItem
+              label="Review"
+              value={
+                row.dueDate
+                  ? `${REMEDIATION_STATUS_LABELS[row.remediationStatus]} · due ${formatDate(row.dueDate)}`
+                  : REMEDIATION_STATUS_LABELS[row.remediationStatus]
+              }
+            />
+          </dl>
+          <button
+            type="button"
+            className="text-[13px] font-semibold whitespace-nowrap text-accent-strong hover:underline"
+            aria-expanded={expanded}
+            aria-controls={detailId}
+            onClick={onToggleExpand}
+          >
+            {expanded ? "Close record ↑" : "Review control record ↓"}
+          </button>
         </div>
       </div>
 

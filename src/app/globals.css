@@ -1,89 +1,52 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Iltzam design system.
+   Iltzam design system — single designed appearance.
 
-   Identity: legal confidence, regulatory structure, audit readiness.
-   Foundation is deep ink (charcoal-navy) used as full-bleed brand bands;
-   content sits on warm ivory/parchment sheets that overlap the band, so the
-   product reads as composed layers rather than a centered card grid.
-   Copper-gold is the identity accent (seal, eyebrows, hero moments); dark
-   teal is the action/progress hue; red/amber are reserved for risk and are
-   always paired with a text label. All pairs below are WCAG-AA checked.
+   The product has one canonical look: a deep-ink shell (header, hero bands,
+   report covers) over a warm parchment workspace. There is deliberately no
+   OS-driven dark theme — an accidental dark mode is how compliance software
+   ends up looking like a developer dashboard. Copper-gold is the identity
+   accent; dark teal is the action/progress hue; red/amber are reserved for
+   risk and always travel with a text label. Every text/surface pair is
+   WCAG-AA checked.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --page: #f3efe6; /* parchment */
-  --surface: #fbfaf5; /* ivory sheet */
-  --surface-2: #ede9dd; /* inset wash */
-  --ink: #1c212e;
-  --ink-2: #4c5160;
-  --ink-3: #5f6470;
-  --line: #ddd7c8;
-  --line-2: #c2bcab;
+  color-scheme: light;
 
-  --brand: #171c28; /* deep ink band */
-  --brand-2: #222939; /* raised layer on band */
-  --brand-line: #323a4d;
-  --brand-ink: #f2efe4;
-  --brand-muted: #a8adbd;
+  --page: #efeadf; /* parchment */
+  --surface: #faf8f1; /* ivory sheet */
+  --surface-2: #e6e1d1; /* inset wash */
+  --ink: #191e2a;
+  --ink-2: #494e5b;
+  --ink-3: #5d6270;
+  --line: #d8d1bd;
+  --line-2: #b4ad97;
 
-  --gold: #b08a3e;
-  --gold-text: #8a6a28; /* on light surfaces */
-  --gold-bright: #d8b96a; /* on brand/dark */
+  --brand: #141927; /* deep ink shell */
+  --brand-2: #1f2636;
+  --brand-line: #2e364a;
+  --brand-ink: #f0ecdf;
+  --brand-muted: #a6abba;
 
-  --accent: #0e7a6e; /* dark teal — actions & progress */
-  --accent-strong: #0b6157;
+  --gold: #ab8434;
+  --gold-text: #82632a; /* on light surfaces */
+  --gold-bright: #d3b464; /* on the ink shell */
+
+  --accent: #0d6f64; /* dark teal — actions & progress */
+  --accent-strong: #0a5850;
   --accent-ink: #ffffff;
-  --accent-wash: rgba(14, 122, 110, 0.08);
 
   --good: #0ca30c;
   --good-text: #1d6b1d;
   --warn: #d99a1b;
   --warn-text: #7b5200;
-  --crit: #c23b3b;
-  --crit-text: #a83232;
+  --crit: #bf3939;
+  --crit-text: #a33030;
 
-  --shadow-sheet: 0 1px 2px rgba(23, 28, 40, 0.05), 0 8px 24px -12px rgba(23, 28, 40, 0.18);
-  --shadow-card: 0 1px 2px rgba(23, 28, 40, 0.05);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --page: #0f121a; /* deep ink */
-    --surface: #171b26;
-    --surface-2: #202636;
-    --ink: #ece9db;
-    --ink-2: #b7bac3;
-    --ink-3: #8e919b;
-    --line: #2a3040;
-    --line-2: #3c4254;
-
-    --brand: #0b0e15;
-    --brand-2: #161b27;
-    --brand-line: #262d3d;
-    --brand-ink: #ece9db;
-    --brand-muted: #9aa0af;
-
-    --gold: #c9a962;
-    --gold-text: #d8b96a;
-    --gold-bright: #d8b96a;
-
-    --accent: #2aa392;
-    --accent-strong: #4fc2b0;
-    --accent-ink: #06211d;
-    --accent-wash: rgba(42, 163, 146, 0.12);
-
-    --good: #0ca30c;
-    --good-text: #5abf5a;
-    --warn: #d99a1b;
-    --warn-text: #e9b44c;
-    --crit: #d34a4a;
-    --crit-text: #e57373;
-
-    --shadow-sheet: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px -12px rgba(0, 0, 0, 0.55);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
-  }
+  --shadow-sheet: 0 1px 2px rgba(20, 25, 39, 0.05), 0 10px 28px -14px rgba(20, 25, 39, 0.22);
+  --shadow-card: 0 1px 2px rgba(20, 25, 39, 0.05);
 }
 
 @theme inline {
@@ -152,16 +115,22 @@ body {
 
   /* Surfaces */
   .card {
-    @apply rounded-xl border border-line bg-surface;
+    @apply rounded-lg border border-line bg-surface;
     box-shadow: var(--shadow-card);
   }
   .panel {
     @apply border-t-2 border-line pt-4;
   }
+  /* A control record — the questionnaire's unit of work. State rails and
+     washes are applied per-record; not every element needs its own border. */
+  .record {
+    @apply rounded-md border border-line border-l-[3px] bg-surface;
+    box-shadow: var(--shadow-card);
+  }
 
   /* Buttons */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line2 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-line2 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
     @apply border-transparent bg-accent text-accent-ink hover:bg-accent-strong;
@@ -176,25 +145,47 @@ body {
     @apply border-gold/60 bg-transparent text-gold-bright hover:bg-brand2;
   }
 
+  /* Header section tabs (workspace navigation) */
+  .navtab {
+    @apply relative px-3 py-[21px] text-[13px] font-medium text-brand-muted transition-colors hover:text-brand-ink;
+  }
+  .navtab-active {
+    @apply text-brand-ink;
+  }
+  .navtab-active::after {
+    content: "";
+    @apply absolute inset-x-3 bottom-0 h-[2px] bg-gold-bright;
+  }
+
   /* Forms */
   .field-label {
     @apply mb-1 block text-xs font-medium tracking-wide text-ink2;
   }
   .input {
-    @apply w-full rounded-lg border border-line2 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink3 focus:border-accent focus:outline-2 focus:outline-offset-0 focus:outline-accent/40;
+    @apply w-full rounded-md border border-line2 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink3 focus:border-accent focus:outline-2 focus:outline-offset-0 focus:outline-accent/40;
   }
 
-  /* Tags & badges: rectangular, quiet, always labelled */
+  /* Tags: squared, quiet, always labelled */
   .tag {
-    @apply inline-flex items-center gap-1.5 rounded-[5px] px-1.5 py-[3px] text-[11px] font-medium leading-none whitespace-nowrap;
+    @apply inline-flex items-center gap-1.5 rounded-[4px] px-1.5 py-[3px] text-[10.5px] font-semibold tracking-wide whitespace-nowrap;
   }
   .tag-outline {
     @apply border border-line2 bg-transparent text-ink2;
   }
 
-  /* Segmented controls (filters, answer selectors) */
+  /* Decision input — the answer control. Not a form segmented control:
+     discrete, tactile options whose selected state carries the compliance
+     meaning (gap, complete, pending). */
+  .decision {
+    @apply inline-flex items-center gap-1.5 rounded-md border px-3.5 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent;
+  }
+  .decision-idle {
+    @apply border-line bg-surface text-ink2 hover:border-line2 hover:text-ink;
+  }
+
+  /* View filters */
   .seg {
-    @apply inline-flex overflow-hidden rounded-lg border border-line2 bg-surface;
+    @apply inline-flex overflow-hidden rounded-md border border-line2 bg-surface;
   }
   .seg-item {
     @apply border-l border-line px-3 py-1.5 text-xs font-medium text-ink2 transition-colors first:border-l-0 hover:bg-surface2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent;
@@ -218,10 +209,12 @@ body {
     color: #14181f !important;
   }
   .sheet,
-  .card {
+  .card,
+  .record {
     box-shadow: none !important;
   }
-  .card {
+  .card,
+  .record {
     border-color: #ddd;
     break-inside: avoid;
   }

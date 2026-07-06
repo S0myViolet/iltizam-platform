@@ -59,7 +59,7 @@ export function RegimeBadge({ code, provisional }: { code: string; provisional?:
 export const ANSWER_STATE_LABELS: Record<AnswerValue, string> = {
   yes: "Answered Yes",
   no: "Marked as gap",
-  not_answered: "Awaiting answer",
+  not_answered: "Decision pending",
   not_applicable: "Not applicable",
 };
 

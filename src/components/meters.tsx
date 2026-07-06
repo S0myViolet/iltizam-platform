@@ -78,8 +78,12 @@ export function RadialScore({
           className="stroke-[var(--accent)] transition-[stroke-dashoffset] duration-700"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-        <span className="text-[40px] leading-none font-semibold tracking-tight tabular-nums">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-ink">
+        <span
+          className={`leading-none font-semibold tracking-tight tabular-nums ${
+            size < 150 ? "text-[26px]" : "text-[40px]"
+          }`}
+        >
           {value === null ? "—" : `${Math.round(value)}%`}
         </span>
         <span className="mt-1.5 max-w-[70%] text-[11px] leading-4 font-medium text-ink2">

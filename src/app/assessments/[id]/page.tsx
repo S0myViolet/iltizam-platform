@@ -50,7 +50,7 @@ export default async function AssessmentDashboardPage({
               {started ? "Continue the review" : "Begin the review"}
             </Link>
             <Link href={`/assessments/${assessment.id}/gaps`} className="btn btn-on-band">
-              Review control gaps
+              Open gap analysis
             </Link>
             <Link href={`/assessments/${assessment.id}/report`} className="btn btn-on-band">
               Audit report
@@ -202,7 +202,7 @@ export default async function AssessmentDashboardPage({
                 href={`/assessments/${assessment.id}/gaps`}
                 className="mt-3 inline-block text-sm font-medium text-accent-strong hover:underline"
               >
-                Review all {gaps.length} potential gaps →
+                Open the full gap analysis — {gaps.length} items →
               </Link>
             ) : null}
 
