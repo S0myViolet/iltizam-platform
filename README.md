@@ -22,7 +22,7 @@ report.
 npm install
 npx prisma migrate dev   # creates prisma/dev.db and applies migrations
 npx prisma db seed       # loads the 64-control library + regulations
-npm run dev              # http://localhost:3000
+npm run dev              # http://localhost:4040
 ```
 
 `.env` needs `DATABASE_URL="file:./dev.db"` (see `.env.example`).
