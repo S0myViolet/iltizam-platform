@@ -1,0 +1,145 @@
+// Iltzam compliance platform — data model
+//
+// Layering (see docs/Iltzam_GDPR_Control_Framework):
+//   Regulation (versioned law)  ←  RegulationControlMapping  →  Control (law-agnostic library)
+//   Assessment (one per company run)  →  ControlAnswer (one per applicable control)  →  Evidence
+//
+// SQLite does not support native enums or string arrays, so:
+//   - enum-like fields are strings validated by the typed constants in src/lib/types.ts
+//   - list fields (regimes, evidence examples) are stored as JSON strings
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Regulation layer — laws are versioned so controls are never hard-coded to
+// one legal text. When a law changes, add a new Regulation row (or bump the
+// version) and remap controls; client assessments keep pointing at controls.
+// ---------------------------------------------------------------------------
+
+model Regulation {
+  id            String   @id @default(cuid())
+  code          String   @unique // "EU-GDPR", "EG-PDPL"
+  name          String
+  version       String // "2016/679", "provisional"
+  effectiveDate DateTime?
+  status        String // RegulationStatus: in_force | provisional | draft | superseded
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  controlMappings RegulationControlMapping[]
+}
+
+// One control ↔ many regulations ("one control, many laws" crosswalk).
+model RegulationControlMapping {
+  id           String  @id @default(cuid())
+  regulationId String
+  controlId    String
+  // Citation into this regulation's text, e.g. "Art. 33(1)". Null while a
+  // mapping is provisional (PDPL articles pending legal confirmation).
+  articleReference String?
+  provisional  Boolean @default(false)
+
+  regulation Regulation @relation(fields: [regulationId], references: [id], onDelete: Cascade)
+  control    Control    @relation(fields: [controlId], references: [id], onDelete: Cascade)
+
+  @@unique([regulationId, controlId])
+  @@index([controlId])
+}
+
+// ---------------------------------------------------------------------------
+// Control library — the master questionnaire. Seeded from the Iltzam Control
+// Library document (64 controls across 14 domains).
+// ---------------------------------------------------------------------------
+
+model Control {
+  id               String   @id @default(cuid())
+  controlCode      String   @unique // "GOV-01" … "TRA-02"
+  question         String // plain-language yes/no question (exact library wording)
+  description      String // formal control statement from the framework document
+  domain           String // domain name, e.g. "Governance & Accountability"
+  domainOrder      Int // order of the domain as the platform presents it
+  orderInDomain    Int // order of the control within its domain
+  severity         String // Severity: legally_mandatory | important
+  isMandatory      Boolean
+  evidenceExamples String // JSON string[] — artifacts that prove the control
+  whyItMatters     String // plain-language rationale shown in gap report
+  recommendedAction String // plain-language next step shown in gap report
+  sourceReference  String // e.g. "GDPR Art. 33(1) · framework BRE-02"
+  requiresEvidence Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  regulationMappings RegulationControlMapping[]
+  answers            ControlAnswer[]
+
+  @@index([domain])
+}
+
+// ---------------------------------------------------------------------------
+// Assessment layer — each company gets its own instance of every applicable
+// control, created when the assessment starts.
+// ---------------------------------------------------------------------------
+
+model Assessment {
+  id              String    @id @default(cuid())
+  companyName     String
+  companySize     String? // CompanySize bucket
+  industry        String?
+  country         String?
+  selectedRegimes String // JSON string[] of regulation codes, e.g. ["EG-PDPL","EU-GDPR"]
+  status          String    @default("not_started") // AssessmentStatus
+  readinessScore  Float? // cached last-computed scores (recomputed on read)
+  mandatoryScore  Float?
+  importantScore  Float?
+  completedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  answers ControlAnswer[]
+}
+
+model ControlAnswer {
+  id                String    @id @default(cuid())
+  assessmentId      String
+  controlId         String
+  answer            String    @default("not_answered") // AnswerValue: yes | no | not_answered | not_applicable
+  ownerName         String?
+  ownerEmail        String?
+  notes             String?
+  dueDate           DateTime?
+  remediationStatus String    @default("not_started") // RemediationStatus
+  lastReviewedAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  control    Control    @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  evidence   Evidence[]
+
+  @@unique([assessmentId, controlId])
+  @@index([assessmentId])
+}
+
+model Evidence {
+  id           String   @id @default(cuid())
+  answerId     String
+  kind         String // EvidenceKind: file | link
+  fileName     String // display name (file name or link title)
+  fileUrl      String // public URL for links; storage path for uploaded files
+  storageKey   String? // relative key under the upload root for uploaded files
+  evidenceType String // EvidenceType: policy_document | signed_agreement | register | ...
+  uploadedBy   String?
+  uploadedAt   DateTime @default(now())
+
+  answer ControlAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@index([answerId])
+}

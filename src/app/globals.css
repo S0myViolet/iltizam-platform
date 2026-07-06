@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Iltzam design tokens.
+   Values follow the validated reference dataviz palette: warm-neutral
+   surfaces, ink text tokens, one accent hue (blue) for progress/magnitude,
+   and a reserved status palette (never used for decoration).
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --page: #f7f7f4;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --line: #e1e0d9;
+  --line-2: #c3c2b7;
+
+  --accent: #2a78d6;
+  --accent-strong: #1c5cab;
+  --accent-ink: #ffffff;
+
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warn: #fab219;
+  --warn-text: #7b5200;
+  --crit: #d03b3b;
+  --crit-text: #b02f2f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --surface-2: #232322;
+    --ink: #f4f4f0;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --line: #2c2c2a;
+    --line-2: #383835;
+
+    --accent: #3987e5;
+    --accent-strong: #6da7ec;
+    --accent-ink: #08213d;
+
+    --good: #0ca30c;
+    --good-text: #3fbf3f;
+    --warn: #fab219;
+    --warn-text: #fabf4d;
+    --crit: #d03b3b;
+    --crit-text: #e66767;
+  }
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink2: var(--ink-2);
+  --color-ink3: var(--ink-3);
+  --color-line: var(--line);
+  --color-line2: var(--line-2);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-good: var(--good);
+  --color-good-text: var(--good-text);
+  --color-warn: var(--warn);
+  --color-warn-text: var(--warn-text);
+  --color-crit: var(--crit);
+  --color-crit-text: var(--crit-text);
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply border-transparent bg-accent text-accent-ink hover:bg-accent-strong;
+  }
+  .field-label {
+    @apply mb-1 block text-xs font-medium tracking-wide text-ink2;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink3 focus:border-accent focus:outline-2 focus:outline-offset-0 focus:outline-accent/40;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 whitespace-nowrap;
+  }
+}
+
+/* Printable report: hide chrome, flatten cards, keep things on one page run. */
+@media print {
+  body {
+    background: #fff;
+    color: #0b0b0b;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+  .card {
+    border-color: #ddd;
+    break-inside: avoid;
+  }
+  .avoid-break {
+    break-inside: avoid;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+}
