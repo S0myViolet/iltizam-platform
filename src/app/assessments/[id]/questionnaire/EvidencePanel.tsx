@@ -94,8 +94,9 @@ export function EvidencePanel({
       <h4 className="text-xs font-semibold tracking-wide text-ink2">Evidence</h4>
 
       {evidence.length === 0 ? (
-        <p className="mt-1.5 text-sm text-ink3">
-          No evidence attached yet. Add a link to an existing document, or upload a file.
+        <p className="mt-1.5 text-sm leading-6 text-ink3">
+          No evidence uploaded yet. Add a policy, register, screenshot, or signed agreement to
+          support this control — link to where it lives, or upload the file.
         </p>
       ) : (
         <ul className="mt-2 flex flex-col gap-1.5">
@@ -133,17 +134,16 @@ export function EvidencePanel({
 
       <div className="mt-3 rounded-lg border border-line bg-surface p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label="Evidence input mode" className="flex gap-1">
+          <div role="group" aria-label="Evidence input mode" className="seg">
             {(["link", "file"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => setMode(m)}
-                className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                  mode === m ? "bg-accent text-accent-ink" : "bg-surface2 text-ink2 hover:text-ink"
-                }`}
+                aria-pressed={mode === m}
+                className={`seg-item ${mode === m ? "seg-item-active" : ""}`}
               >
-                {m === "link" ? "Add link" : "Upload file"}
+                {m === "link" ? "Link a document" : "Upload a file"}
               </button>
             ))}
           </div>

@@ -1,5 +1,6 @@
-// Small labelled chips. Status colors always travel with a visible text label
-// (never color alone), per the accessibility rules of the design method.
+// The Iltzam tag system. Rectangular, quiet, systematic: severity anchors on
+// a vertical risk bar, regimes read as statute references, statuses pair a
+// dot with an explicit label (state is never conveyed by colour alone).
 
 import type {
   AnswerValue,
@@ -8,12 +9,14 @@ import type {
   Severity,
 } from "@/lib/types";
 import {
-  ANSWER_LABELS,
   ASSESSMENT_STATUS_LABELS,
   REMEDIATION_STATUS_LABELS,
-  SEVERITY_LABELS,
 } from "@/lib/types";
 import type { GapTier } from "@/lib/gaps";
+
+function RiskBar({ className }: { className: string }) {
+  return <span aria-hidden className={`h-3 w-[3px] rounded-full ${className}`} />;
+}
 
 function Dot({ className }: { className: string }) {
   return <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${className}`} />;
@@ -22,16 +25,16 @@ function Dot({ className }: { className: string }) {
 export function SeverityBadge({ severity }: { severity: Severity }) {
   if (severity === "legally_mandatory") {
     return (
-      <span className="badge bg-crit/10 text-crit-text">
-        <Dot className="bg-crit" />
-        {SEVERITY_LABELS.legally_mandatory}
+      <span className="tag border border-crit/25 bg-crit/[0.06] text-crit-text">
+        <RiskBar className="bg-crit" />
+        Legally mandatory
       </span>
     );
   }
   return (
-    <span className="badge bg-warn/15 text-warn-text">
-      <Dot className="bg-warn" />
-      {SEVERITY_LABELS.important}
+    <span className="tag border border-warn/30 bg-warn/[0.07] text-warn-text">
+      <RiskBar className="bg-warn" />
+      Important
     </span>
   );
 }
@@ -39,72 +42,119 @@ export function SeverityBadge({ severity }: { severity: Severity }) {
 export function RegimeBadge({ code, provisional }: { code: string; provisional?: boolean }) {
   return (
     <span
-      className="badge border border-line bg-surface2 text-ink2"
-      title={provisional ? `${code} mapping is provisional pending legal confirmation` : code}
+      className="tag tag-outline font-mono text-[10.5px] tracking-wide"
+      title={
+        provisional
+          ? `${code} mapping is provisional pending legal confirmation`
+          : `Mapped to ${code}`
+      }
     >
       {code}
-      {provisional ? <span className="text-ink3">·&nbsp;provisional</span> : null}
+      {provisional ? <span className="text-gold-text">*</span> : null}
     </span>
   );
 }
 
+/** Client-facing answer state (distinct from the Yes/No selector labels). */
+export const ANSWER_STATE_LABELS: Record<AnswerValue, string> = {
+  yes: "Answered Yes",
+  no: "Marked as gap",
+  not_answered: "Awaiting answer",
+  not_applicable: "Not applicable",
+};
+
 const ANSWER_STYLES: Record<AnswerValue, { chip: string; dot: string }> = {
-  yes: { chip: "bg-good/10 text-good-text", dot: "bg-good" },
-  no: { chip: "bg-crit/10 text-crit-text", dot: "bg-crit" },
-  not_answered: { chip: "bg-surface2 text-ink2 border border-line", dot: "bg-ink3" },
-  not_applicable: { chip: "bg-surface2 text-ink3 border border-line", dot: "bg-line2" },
+  yes: { chip: "border border-good/25 bg-good/[0.07] text-good-text", dot: "bg-good" },
+  no: { chip: "border border-crit/25 bg-crit/[0.06] text-crit-text", dot: "bg-crit" },
+  not_answered: { chip: "tag-outline", dot: "bg-ink3" },
+  not_applicable: { chip: "tag-outline opacity-80", dot: "bg-line2" },
 };
 
 export function AnswerBadge({ answer }: { answer: AnswerValue }) {
   const s = ANSWER_STYLES[answer];
   return (
-    <span className={`badge ${s.chip}`}>
+    <span className={`tag ${s.chip}`}>
       <Dot className={s.dot} />
-      {ANSWER_LABELS[answer]}
+      {ANSWER_STATE_LABELS[answer]}
+    </span>
+  );
+}
+
+export function EvidenceBadge({
+  count,
+  required,
+}: {
+  count: number;
+  /** Whether this control still expects evidence for a Yes to stand in audit. */
+  required: boolean;
+}) {
+  if (count > 0) {
+    return (
+      <span className="tag border border-good/25 bg-good/[0.07] text-good-text">
+        <Dot className="bg-good" />
+        Evidence collected · {count}
+      </span>
+    );
+  }
+  if (required) {
+    return (
+      <span className="tag border border-warn/30 bg-warn/[0.07] text-warn-text">
+        <Dot className="bg-warn" />
+        Evidence required
+      </span>
+    );
+  }
+  return (
+    <span className="tag tag-outline">
+      <Dot className="bg-line2" />
+      No evidence expected
     </span>
   );
 }
 
 const REMEDIATION_STYLES: Record<RemediationStatus, string> = {
-  not_started: "bg-surface2 text-ink2 border border-line",
-  in_progress: "bg-accent/10 text-accent-strong",
-  evidence_needed: "bg-warn/15 text-warn-text",
-  ready_for_review: "bg-accent/10 text-accent-strong",
-  closed: "bg-good/10 text-good-text",
+  not_started: "tag-outline",
+  in_progress: "border border-accent/30 bg-accent/[0.07] text-accent-strong",
+  evidence_needed: "border border-warn/30 bg-warn/[0.07] text-warn-text",
+  ready_for_review: "border border-accent/30 bg-accent/[0.07] text-accent-strong",
+  closed: "border border-good/25 bg-good/[0.07] text-good-text",
 };
 
 export function RemediationBadge({ status }: { status: RemediationStatus }) {
   return (
-    <span className={`badge ${REMEDIATION_STYLES[status]}`}>
+    <span className={`tag ${REMEDIATION_STYLES[status]}`}>
       {REMEDIATION_STATUS_LABELS[status]}
     </span>
   );
 }
 
-const ASSESSMENT_STATUS_STYLES: Record<AssessmentStatus, string> = {
-  not_started: "bg-surface2 text-ink2 border border-line",
-  in_progress: "bg-accent/10 text-accent-strong",
-  completed: "bg-good/10 text-good-text",
-  needs_review: "bg-warn/15 text-warn-text",
+const ASSESSMENT_STATUS_STYLES: Record<AssessmentStatus, { chip: string; dot: string }> = {
+  not_started: { chip: "tag-outline", dot: "bg-ink3" },
+  in_progress: { chip: "border border-accent/30 bg-accent/[0.07] text-accent-strong", dot: "bg-accent" },
+  completed: { chip: "border border-good/25 bg-good/[0.07] text-good-text", dot: "bg-good" },
+  needs_review: { chip: "border border-warn/30 bg-warn/[0.07] text-warn-text", dot: "bg-warn" },
 };
 
 export function AssessmentStatusBadge({ status }: { status: AssessmentStatus }) {
+  const s = ASSESSMENT_STATUS_STYLES[status];
   return (
-    <span className={`badge ${ASSESSMENT_STATUS_STYLES[status]}`}>
+    <span className={`tag ${s.chip}`}>
+      <Dot className={s.dot} />
       {ASSESSMENT_STATUS_LABELS[status]}
     </span>
   );
 }
 
+/** Gap priority, in management language. Tier 1 is the only solid chip. */
 const TIER_STYLES: Record<GapTier, { label: string; chip: string }> = {
-  1: { label: "Priority 1", chip: "bg-crit text-white" },
-  2: { label: "Priority 2", chip: "bg-crit/10 text-crit-text" },
-  3: { label: "Priority 3", chip: "bg-warn/20 text-warn-text" },
-  4: { label: "Priority 4", chip: "bg-warn/10 text-warn-text" },
-  5: { label: "Priority 5", chip: "bg-surface2 text-ink2 border border-line" },
+  1: { label: "Critical", chip: "bg-crit text-white" },
+  2: { label: "High", chip: "border border-crit/30 bg-crit/[0.06] text-crit-text" },
+  3: { label: "Medium", chip: "border border-warn/35 bg-warn/[0.08] text-warn-text" },
+  4: { label: "Low", chip: "tag-outline" },
+  5: { label: "Evidence required", chip: "border border-gold/40 bg-gold/[0.08] text-gold-text" },
 };
 
 export function TierBadge({ tier }: { tier: GapTier }) {
   const s = TIER_STYLES[tier];
-  return <span className={`badge ${s.chip}`}>{s.label}</span>;
+  return <span className={`tag ${s.chip}`}>{s.label}</span>;
 }

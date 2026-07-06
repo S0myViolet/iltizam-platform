@@ -1,55 +1,88 @@
 @import "tailwindcss";
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Iltzam design tokens.
-   Values follow the validated reference dataviz palette: warm-neutral
-   surfaces, ink text tokens, one accent hue (blue) for progress/magnitude,
-   and a reserved status palette (never used for decoration).
+   Iltzam design system.
+
+   Identity: legal confidence, regulatory structure, audit readiness.
+   Foundation is deep ink (charcoal-navy) used as full-bleed brand bands;
+   content sits on warm ivory/parchment sheets that overlap the band, so the
+   product reads as composed layers rather than a centered card grid.
+   Copper-gold is the identity accent (seal, eyebrows, hero moments); dark
+   teal is the action/progress hue; red/amber are reserved for risk and are
+   always paired with a text label. All pairs below are WCAG-AA checked.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --page: #f7f7f4;
-  --surface: #fcfcfb;
-  --surface-2: #f0efec;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-3: #898781;
-  --line: #e1e0d9;
-  --line-2: #c3c2b7;
+  --page: #f3efe6; /* parchment */
+  --surface: #fbfaf5; /* ivory sheet */
+  --surface-2: #ede9dd; /* inset wash */
+  --ink: #1c212e;
+  --ink-2: #4c5160;
+  --ink-3: #5f6470;
+  --line: #ddd7c8;
+  --line-2: #c2bcab;
 
-  --accent: #2a78d6;
-  --accent-strong: #1c5cab;
+  --brand: #171c28; /* deep ink band */
+  --brand-2: #222939; /* raised layer on band */
+  --brand-line: #323a4d;
+  --brand-ink: #f2efe4;
+  --brand-muted: #a8adbd;
+
+  --gold: #b08a3e;
+  --gold-text: #8a6a28; /* on light surfaces */
+  --gold-bright: #d8b96a; /* on brand/dark */
+
+  --accent: #0e7a6e; /* dark teal — actions & progress */
+  --accent-strong: #0b6157;
   --accent-ink: #ffffff;
+  --accent-wash: rgba(14, 122, 110, 0.08);
 
   --good: #0ca30c;
-  --good-text: #006300;
-  --warn: #fab219;
+  --good-text: #1d6b1d;
+  --warn: #d99a1b;
   --warn-text: #7b5200;
-  --crit: #d03b3b;
-  --crit-text: #b02f2f;
+  --crit: #c23b3b;
+  --crit-text: #a83232;
+
+  --shadow-sheet: 0 1px 2px rgba(23, 28, 40, 0.05), 0 8px 24px -12px rgba(23, 28, 40, 0.18);
+  --shadow-card: 0 1px 2px rgba(23, 28, 40, 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-2: #232322;
-    --ink: #f4f4f0;
-    --ink-2: #c3c2b7;
-    --ink-3: #898781;
-    --line: #2c2c2a;
-    --line-2: #383835;
+    --page: #0f121a; /* deep ink */
+    --surface: #171b26;
+    --surface-2: #202636;
+    --ink: #ece9db;
+    --ink-2: #b7bac3;
+    --ink-3: #8e919b;
+    --line: #2a3040;
+    --line-2: #3c4254;
 
-    --accent: #3987e5;
-    --accent-strong: #6da7ec;
-    --accent-ink: #08213d;
+    --brand: #0b0e15;
+    --brand-2: #161b27;
+    --brand-line: #262d3d;
+    --brand-ink: #ece9db;
+    --brand-muted: #9aa0af;
+
+    --gold: #c9a962;
+    --gold-text: #d8b96a;
+    --gold-bright: #d8b96a;
+
+    --accent: #2aa392;
+    --accent-strong: #4fc2b0;
+    --accent-ink: #06211d;
+    --accent-wash: rgba(42, 163, 146, 0.12);
 
     --good: #0ca30c;
-    --good-text: #3fbf3f;
-    --warn: #fab219;
-    --warn-text: #fabf4d;
-    --crit: #d03b3b;
-    --crit-text: #e66767;
+    --good-text: #5abf5a;
+    --warn: #d99a1b;
+    --warn-text: #e9b44c;
+    --crit: #d34a4a;
+    --crit-text: #e57373;
+
+    --shadow-sheet: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px -12px rgba(0, 0, 0, 0.55);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -62,6 +95,14 @@
   --color-ink3: var(--ink-3);
   --color-line: var(--line);
   --color-line2: var(--line-2);
+  --color-brand: var(--brand);
+  --color-brand2: var(--brand-2);
+  --color-brand-line: var(--brand-line);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-muted: var(--brand-muted);
+  --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
+  --color-gold-bright: var(--gold-bright);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-ink: var(--accent-ink);
@@ -72,6 +113,7 @@
   --color-crit: var(--crit);
   --color-crit-text: var(--crit-text);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 body {
@@ -79,37 +121,105 @@ body {
   color: var(--ink);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 @layer components {
+  /* Layout layers */
+  .band {
+    @apply bg-brand text-brand-ink;
+  }
+  .shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10;
+  }
+  .sheet {
+    @apply rounded-t-2xl bg-surface;
+    box-shadow: var(--shadow-sheet);
+  }
+
+  /* Typography */
+  .display {
+    font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    letter-spacing: -0.01em;
+  }
+  .eyebrow {
+    @apply flex items-center gap-2 text-[11px] font-semibold tracking-[0.14em] uppercase;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply inline-block h-px w-5 bg-gold;
+  }
+
+  /* Surfaces */
   .card {
     @apply rounded-xl border border-line bg-surface;
+    box-shadow: var(--shadow-card);
   }
+  .panel {
+    @apply border-t-2 border-line pt-4;
+  }
+
+  /* Buttons */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line2 bg-surface px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-surface2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
     @apply border-transparent bg-accent text-accent-ink hover:bg-accent-strong;
   }
+  .btn-ink {
+    @apply border-transparent bg-brand text-brand-ink hover:bg-brand2;
+  }
+  .btn-on-band {
+    @apply border-brand-line bg-transparent text-brand-ink hover:bg-brand2;
+  }
+  .btn-gold-on-band {
+    @apply border-gold/60 bg-transparent text-gold-bright hover:bg-brand2;
+  }
+
+  /* Forms */
   .field-label {
     @apply mb-1 block text-xs font-medium tracking-wide text-ink2;
   }
   .input {
-    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink3 focus:border-accent focus:outline-2 focus:outline-offset-0 focus:outline-accent/40;
+    @apply w-full rounded-lg border border-line2 bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink3 focus:border-accent focus:outline-2 focus:outline-offset-0 focus:outline-accent/40;
   }
-  .badge {
-    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium leading-4 whitespace-nowrap;
+
+  /* Tags & badges: rectangular, quiet, always labelled */
+  .tag {
+    @apply inline-flex items-center gap-1.5 rounded-[5px] px-1.5 py-[3px] text-[11px] font-medium leading-none whitespace-nowrap;
+  }
+  .tag-outline {
+    @apply border border-line2 bg-transparent text-ink2;
+  }
+
+  /* Segmented controls (filters, answer selectors) */
+  .seg {
+    @apply inline-flex overflow-hidden rounded-lg border border-line2 bg-surface;
+  }
+  .seg-item {
+    @apply border-l border-line px-3 py-1.5 text-xs font-medium text-ink2 transition-colors first:border-l-0 hover:bg-surface2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent;
+  }
+  .seg-item-active {
+    @apply bg-brand text-brand-ink hover:bg-brand;
   }
 }
 
-/* Printable report: hide chrome, flatten cards, keep things on one page run. */
+/* Printable report: hide chrome, flatten layers, keep document structure. */
 @media print {
   body {
     background: #fff;
-    color: #0b0b0b;
+    color: #14181f;
   }
   .print-hidden {
     display: none !important;
+  }
+  .band {
+    background: #fff !important;
+    color: #14181f !important;
+  }
+  .sheet,
+  .card {
+    box-shadow: none !important;
   }
   .card {
     border-color: #ddd;

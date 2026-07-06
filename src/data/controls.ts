@@ -5,9 +5,11 @@
 // severity and regime taken verbatim from the document. Formal control
 // statements, GDPR article citations and evidence artifacts are cross-mapped
 // from "GDPR → Control Framework" (same date), which defines the 62-control
-// extraction this questionnaire is phrased from. Two library questions have
-// no 1:1 framework row (consent withdrawal, data accuracy) and cite the GDPR
-// article directly.
+// extraction this questionnaire is phrased from. The 64↔62 difference: the
+// library splits framework LAW-02 into two questions (CON-01 consent quality,
+// CON-03 withdrawal — CON-03's description is derived from LAW-02's
+// withdrawal clause), and adds a data-accuracy control (RET-04, Art. 5(1)(d))
+// that has no framework row.
 //
 // Per the library document, every control currently maps to both EG-PDPL and
 // EU-GDPR because the PDPL is closely based on the GDPR. The PDPL mappings

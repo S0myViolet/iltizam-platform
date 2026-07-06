@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { PageBand } from "@/components/PageBand";
 import { NewAssessmentForm } from "./NewAssessmentForm";
 
 export const dynamic = "force-dynamic";
@@ -10,21 +11,25 @@ export default async function NewAssessmentPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Start a new assessment</h1>
-      <p className="mt-1 text-sm leading-6 text-ink2">
-        Tell us who this assessment is for and which regulations apply. We&apos;ll set up your
-        copy of every applicable control — you can answer them in any order and save as you go.
-      </p>
-      <NewAssessmentForm
-        regulations={regulations.map((r) => ({
-          code: r.code,
-          name: r.name,
-          version: r.version,
-          status: r.status,
-          controlCount: r._count.controlMappings,
-        }))}
+    <main className="pb-16">
+      <PageBand
+        eyebrow="New compliance review"
+        title="Open an assessment"
+        lead="Tell us who this review is for and which regulations apply. Iltzam prepares your copy of every applicable control — answer in any order, progress saves as you go."
       />
+      <div className="shell relative -mt-14 max-w-3xl">
+        <div className="sheet px-5 py-6 sm:px-8 sm:py-8">
+          <NewAssessmentForm
+            regulations={regulations.map((r) => ({
+              code: r.code,
+              name: r.name,
+              version: r.version,
+              status: r.status,
+              controlCount: r._count.controlMappings,
+            }))}
+          />
+        </div>
+      </div>
     </main>
   );
 }

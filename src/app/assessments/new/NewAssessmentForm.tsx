@@ -66,7 +66,10 @@ export function NewAssessmentForm({ regulations }: { regulations: RegulationOpti
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card mt-6 flex flex-col gap-5 p-5 sm:p-6">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="panel">
+        <p className="eyebrow text-gold-text">The company</p>
+      </div>
       <div>
         <label htmlFor="companyName" className="field-label">
           Company name <span className="text-crit-text">*</span>
@@ -130,7 +133,10 @@ export function NewAssessmentForm({ regulations }: { regulations: RegulationOpti
       </div>
 
       <fieldset>
-        <legend className="field-label">Which regulations apply?</legend>
+        <div className="panel mb-4">
+          <p className="eyebrow text-gold-text">Regulatory scope</p>
+        </div>
+        <legend className="sr-only">Which regulations apply?</legend>
         <div className="mt-1 grid gap-2 sm:grid-cols-2">
           {regulations.map((r) => {
             const checked = selectedRegimes.includes(r.code);
@@ -171,9 +177,13 @@ export function NewAssessmentForm({ regulations }: { regulations: RegulationOpti
         </p>
       ) : null}
 
-      <div className="flex items-center justify-end gap-2">
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? "Setting up…" : "Create assessment"}
+      <div className="flex items-center justify-between gap-4 border-t-2 border-line pt-5">
+        <p className="text-xs leading-5 text-ink3">
+          You can refine company details later. The control set follows the regulations you
+          select.
+        </p>
+        <button type="submit" className="btn btn-primary shrink-0" disabled={submitting}>
+          {submitting ? "Preparing your controls…" : "Open the review"}
         </button>
       </div>
     </form>

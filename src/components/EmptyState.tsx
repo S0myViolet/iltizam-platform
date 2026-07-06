@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SealMark } from "@/components/Wordmark";
 
 export function EmptyState({
   title,
@@ -10,16 +11,11 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="card flex flex-col items-center gap-2 px-6 py-12 text-center">
-      <div
-        aria-hidden
-        className="mb-1 flex h-10 w-10 items-center justify-center rounded-full bg-surface2 text-lg text-ink3"
-      >
-        ◎
-      </div>
-      <h3 className="text-sm font-semibold text-ink">{title}</h3>
-      {body ? <p className="max-w-md text-sm leading-6 text-ink2">{body}</p> : null}
-      {action ? <div className="mt-3">{action}</div> : null}
+    <div className="flex flex-col items-center gap-2 border-y-2 border-line bg-surface2/40 px-6 py-14 text-center">
+      <SealMark className="mb-2 h-9 w-9 text-gold" />
+      <h3 className="display text-lg font-semibold text-ink">{title}</h3>
+      {body ? <p className="max-w-lg text-sm leading-6 text-ink2">{body}</p> : null}
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
 }
