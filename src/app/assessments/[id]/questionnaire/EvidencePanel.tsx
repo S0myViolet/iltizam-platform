@@ -108,8 +108,12 @@ export function EvidencePanel({
               <div className="min-w-0">
                 <a
                   href={e.fileUrl}
-                  target={e.kind === "link" ? "_blank" : undefined}
-                  rel={e.kind === "link" ? "noopener noreferrer" : undefined}
+                  target={e.kind === "link" || e.fileUrl.startsWith("http") ? "_blank" : undefined}
+                  rel={
+                    e.kind === "link" || e.fileUrl.startsWith("http")
+                      ? "noopener noreferrer"
+                      : undefined
+                  }
                   className="block truncate text-sm font-medium text-accent-strong hover:underline"
                 >
                   {e.fileName}
@@ -194,7 +198,7 @@ export function EvidencePanel({
               }}
               disabled={busy}
             />
-            <p className="mt-1 text-[11px] text-ink3">Up to 10 MB. Stored with this assessment.</p>
+            <p className="mt-1 text-[11px] text-ink3">Up to 4 MB. Stored with this assessment.</p>
           </div>
         )}
 

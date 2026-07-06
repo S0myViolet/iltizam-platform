@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const evidenceType = isEvidenceType(evidenceTypeRaw) ? evidenceTypeRaw : "other";
     const uploadedBy = typeof form.get("uploadedBy") === "string" ? String(form.get("uploadedBy")).trim() || null : null;
 
-    const { storageKey, fileName } = await saveEvidenceFile(id, file);
+    const { storageKey, fileName, publicUrl } = await saveEvidenceFile(id, file);
     const evidenceId = randomUUID();
     const evidence = await prisma.evidence.create({
       data: {
@@ -43,7 +43,9 @@ export async function POST(request: NextRequest, { params }: Params) {
         answerId: id,
         kind: "file",
         fileName,
-        fileUrl: `/api/evidence/${evidenceId}/download`,
+        // Blob objects are served from their public URL; local files stream
+        // through the download route.
+        fileUrl: publicUrl ?? `/api/evidence/${evidenceId}/download`,
         storageKey,
         evidenceType,
         uploadedBy,

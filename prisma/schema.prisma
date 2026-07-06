@@ -4,17 +4,22 @@
 //   Regulation (versioned law)  ←  RegulationControlMapping  →  Control (law-agnostic library)
 //   Assessment (one per company run)  →  ControlAnswer (one per applicable control)  →  Evidence
 //
-// SQLite does not support native enums or string arrays, so:
-//   - enum-like fields are strings validated by the typed constants in src/lib/types.ts
-//   - list fields (regimes, evidence examples) are stored as JSON strings
+// Enum-like fields are strings validated by the typed constants in
+// src/lib/types.ts, and list fields (regimes, evidence examples) are stored
+// as JSON strings — a deliberate portability choice kept from the SQLite
+// original so the schema works unchanged across databases.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
+  // Pooled connection string (e.g. Neon's -pooler host) for the app at
+  // runtime; DIRECT_URL is the unpooled connection Prisma Migrate needs.
+  // For local development both can be the same plain connection string.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------

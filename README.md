@@ -12,7 +12,8 @@ report.
 ## Stack
 
 - **Next.js 15** (App Router) + **React 19** + **TypeScript**
-- **Prisma 6** + **SQLite** (file database, swappable for Postgres later)
+- **Prisma 6** + **PostgreSQL** (Neon or any hosted Postgres; Vercel-ready)
+- **Vercel Blob** for evidence uploads in production (local disk in dev)
 - **Tailwind CSS 4**
 - **Vitest** for unit tests
 
@@ -20,12 +21,14 @@ report.
 
 ```bash
 npm install
-npx prisma migrate dev   # creates prisma/dev.db and applies migrations
+cp .env.example .env     # then point DATABASE_URL / DIRECT_URL at a Postgres
+npx prisma migrate dev   # creates the schema
 npx prisma db seed       # loads the 64-control library + regulations
 npm run dev              # http://localhost:4040
 ```
 
-`.env` needs `DATABASE_URL="file:./dev.db"` (see `.env.example`).
+Any Postgres works for development — a free [Neon](https://neon.tech) database
+is the quickest, or a local install. To deploy on Vercel, see **DEPLOY.md**.
 
 ## Scripts
 
@@ -49,7 +52,7 @@ src/
   lib/gaps.ts             ← pure gap prioritisation (5 tiers)
   lib/csv.ts              ← audit CSV builder
   lib/assessments.ts      ← service layer (only module that queries the DB for pages)
-  lib/storage.ts          ← evidence file storage (local disk; swap point for S3)
+  lib/storage.ts          ← evidence storage (Vercel Blob in prod, local disk in dev)
   app/                    ← pages + API route handlers
 prisma/
   schema.prisma           ← Regulation ⇄ Control crosswalk, Assessment, Answer, Evidence

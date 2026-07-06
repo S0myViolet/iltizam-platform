@@ -1,6 +1,6 @@
-// Enum-like domain vocabulary. SQLite (via Prisma) has no native enums, so
-// these constants are the single source of truth for every string-typed
-// status field in the schema. Import from here — never inline the literals.
+// Enum-like domain vocabulary. Kept as strings (not DB enums) for
+// portability; these constants are the single source of truth for every
+// string-typed status field. Import from here — never inline the literals.
 
 export const ANSWER_VALUES = ["yes", "no", "not_answered", "not_applicable"] as const;
 export type AnswerValue = (typeof ANSWER_VALUES)[number];
@@ -108,6 +108,12 @@ export function isAssessmentStatus(v: unknown): v is AssessmentStatus {
 export function isEvidenceType(v: unknown): v is EvidenceType {
   return typeof v === "string" && (EVIDENCE_TYPES as readonly string[]).includes(v);
 }
+
+/**
+ * Evidence upload ceiling. 4 MB keeps uploads within Vercel's serverless
+ * request-body limit (~4.5 MB); shared here so client copy stays truthful.
+ */
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 /** Product guardrail: shown wherever scores or reports are rendered. */
 export const LEGAL_DISCLAIMER =
