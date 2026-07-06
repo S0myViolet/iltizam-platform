@@ -1,13 +1,15 @@
 "use client";
 
-// The guided control review workspace: a domain stepper on the left, the
-// control review feed on the right, autosave throughout. Filters are part of
-// the stepper — reviewing an area and navigating to it are the same gesture.
+// The control review — the working surface of the assessment. Lives inside
+// the workspace frame (sidebar = sections + work queues); this component
+// owns the working state: a sticky progress rail, a domain strip, two
+// densities (cards for deciding, register for scanning), and autosave.
 
 import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { AnswerRow, AssessmentSummary, EvidenceItem } from "@/lib/assessments";
 import type { AnswerValue } from "@/lib/types";
+import { gapTierFor } from "@/lib/gaps";
 import { formatScore } from "@/lib/format";
 import { ControlCard } from "./ControlCard";
 
@@ -22,19 +24,32 @@ export interface AnswerPatch {
   remediationStatus?: string;
 }
 
-const SHOW_FILTERS = [
-  { value: "all", label: "Full control library" },
-  { value: "unanswered", label: "Decision pending" },
+export const SHOW_FILTERS = [
+  { value: "all", label: "All controls" },
+  { value: "unanswered", label: "Decisions pending" },
   { value: "gaps", label: "Marked as gap" },
   { value: "missing_evidence", label: "Evidence required" },
+  { value: "no_owner", label: "Owner unassigned" },
+  { value: "overdue", label: "Overdue" },
 ] as const;
-type ShowFilter = (typeof SHOW_FILTERS)[number]["value"];
+export type ShowFilter = (typeof SHOW_FILTERS)[number]["value"];
 
 const SEVERITY_FILTERS = [
   { value: "all", label: "All" },
   { value: "legally_mandatory", label: "Mandatory" },
   { value: "important", label: "Important" },
 ] as const;
+
+function isOpenItem(row: AnswerRow): boolean {
+  return (
+    gapTierFor({
+      severity: row.severity,
+      answer: row.answer,
+      evidenceCount: row.evidence.length,
+      requiresEvidence: row.requiresEvidence,
+    }) !== null
+  );
+}
 
 function matchesShow(row: AnswerRow, show: ShowFilter): boolean {
   switch (show) {
@@ -44,6 +59,14 @@ function matchesShow(row: AnswerRow, show: ShowFilter): boolean {
       return row.answer === "no";
     case "missing_evidence":
       return row.answer === "yes" && row.requiresEvidence && row.evidence.length === 0;
+    case "no_owner":
+      return isOpenItem(row) && !row.ownerName;
+    case "overdue":
+      return (
+        !!row.dueDate &&
+        row.remediationStatus !== "closed" &&
+        new Date(row.dueDate).getTime() < Date.now()
+      );
     default:
       return true;
   }
@@ -69,6 +92,7 @@ export function Questionnaire({
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [density, setDensity] = useState<"cards" | "register">("cards");
   const listTopRef = useRef<HTMLDivElement>(null);
 
   const domains = useMemo(() => {
@@ -128,7 +152,6 @@ export function Questionnaire({
 
   const queuePatch = useCallback(
     (answerId: string, patch: AnswerPatch, options: { debounce?: number } = {}) => {
-      // optimistic local update
       setRows((prev) =>
         prev.map((r) => {
           if (r.answerId !== answerId) return r;
@@ -152,13 +175,12 @@ export function Questionnaire({
       setSaveError(null);
       const existing = timers.current.get(answerId);
       if (existing) clearTimeout(existing);
-      const delay = options.debounce ?? 0;
       timers.current.set(
         answerId,
         setTimeout(() => {
           timers.current.delete(answerId);
           void flush(answerId);
-        }, delay)
+        }, options.debounce ?? 0)
       );
     },
     [flush]
@@ -209,6 +231,7 @@ export function Questionnaire({
     listTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  const activeShow = SHOW_FILTERS.find((f) => f.value === showFilter);
   const saveLabel = saveError
     ? `Couldn't save — ${saveError}`
     : saveState === "saving"
@@ -218,283 +241,250 @@ export function Questionnaire({
         : "Progress saves automatically";
 
   return (
-    <main className="pb-16">
-      {/* ── Band header ────────────────────────────────────────────────────── */}
-      <div className="band">
-        <div className="shell pt-6 pb-10 sm:pt-8">
-          <div className="mb-4 text-[13px] text-brand-muted">
-            <Link href="/" className="hover:text-brand-ink">
-              Assessments
-            </Link>
-            <span aria-hidden> › </span>
-            <Link href={`/assessments/${assessment.id}`} className="hover:text-brand-ink">
-              {assessment.companyName}
-            </Link>
-            <span aria-hidden> › </span>
-            <span className="text-brand-ink">Control review</span>
-          </div>
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="eyebrow text-gold-bright">Control review</p>
-              <h1 className="display mt-2 text-[26px] leading-tight font-semibold sm:text-3xl">
-                Review your control position
-              </h1>
-              <p className="mt-2 max-w-xl text-[14px] leading-6 text-brand-muted">
-                Decide each control, assign its owner, and build the evidence record as you go.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 md:hidden">
-              <Link href={`/assessments/${assessment.id}/gaps`} className="btn btn-on-band !py-1.5 !text-[13px]">
-                Gap analysis
-              </Link>
-              <Link href={`/assessments/${assessment.id}`} className="btn btn-gold-on-band !py-1.5 !text-[13px]">
-                Dashboard
-              </Link>
-            </div>
-          </div>
+    <main ref={listTopRef} className="scroll-mt-24">
+      {/* Section header */}
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-line pb-4">
+        <div>
+          <h1 className="display text-2xl font-semibold tracking-tight">Control review</h1>
+          <p className="mt-0.5 text-[13px] text-ink3">
+            Decide each control, assign its owner, and build the evidence record as you go.
+          </p>
         </div>
-      </div>
+        <span
+          aria-live="polite"
+          className={`text-xs ${saveError ? "text-crit-text" : saveState === "saving" ? "text-ink2" : "text-ink3"}`}
+        >
+          {saveLabel}
+        </span>
+      </header>
 
-      {/* ── Sticky progress rail ───────────────────────────────────────────── */}
-      <div className="sticky top-16 z-30 border-b border-line bg-page/95 backdrop-blur">
-        <div className="shell flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-2.5">
+      {/* Sticky working rail: progress, queue context, filters, density */}
+      <div className="sticky top-16 z-30 -mx-2 border-b border-line bg-page/95 px-2 py-2.5 backdrop-blur">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="h-1.5 w-32 overflow-hidden rounded-full bg-surface2 sm:w-48">
+            <div className="h-1.5 w-28 overflow-hidden rounded-full bg-surface2 sm:w-40">
               <div
                 className="h-full rounded-full bg-accent transition-[width] duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
             <span className="text-xs whitespace-nowrap text-ink2">
-              <strong className="text-ink">{answeredCount}</strong> of {rows.length} answered ·
-              readiness <strong className="text-ink">{formatScore(readinessScore)}</strong>
+              <strong className="text-ink">{answeredCount}</strong>/{rows.length} decided ·{" "}
+              <strong className="text-ink">{formatScore(readinessScore)}</strong>
             </span>
           </div>
-          <span
-            aria-live="polite"
-            className={`text-xs ${saveError ? "text-crit-text" : saveState === "saving" ? "text-ink2" : "text-ink3"}`}
-          >
-            {saveLabel}
-          </span>
-        </div>
-      </div>
 
-      <div ref={listTopRef} className="shell scroll-mt-32 pt-8">
-        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[270px_minmax(0,1fr)]">
-          {/* ── Domain stepper / filters ─────────────────────────────────────── */}
-          <aside className="min-w-0 lg:sticky lg:top-32 lg:max-h-[calc(100vh-9.5rem)] lg:self-start lg:overflow-y-auto lg:pb-6">
-            <nav aria-label="Assessment domains">
-              <p className="eyebrow text-gold-text">Domains</p>
-              <ul className="mt-3 flex gap-1.5 overflow-x-auto pb-2 lg:flex-col lg:gap-0.5 lg:overflow-visible lg:pb-0">
-                <li className="shrink-0 lg:shrink">
-                  <button
-                    type="button"
-                    onClick={() => selectDomain("all")}
-                    aria-current={domainFilter === "all" ? "true" : undefined}
-                    className={`w-full rounded-md border-l-2 px-3 py-2 text-left text-[13px] font-semibold whitespace-nowrap transition-colors lg:whitespace-normal ${
-                      domainFilter === "all"
-                        ? "border-l-gold bg-surface text-ink shadow-[var(--shadow-card)]"
-                        : "border-l-transparent text-ink2 hover:bg-surface hover:text-ink"
-                    }`}
-                  >
-                    All domains
-                  </button>
-                </li>
-                {domains.map((d) => {
-                  const s = domainStats.get(d.name);
-                  const active = domainFilter === d.name;
-                  const complete = s && s.answered === s.total;
-                  const pct = s && s.total > 0 ? (s.answered / s.total) * 100 : 0;
-                  return (
-                    <li key={d.name} className="w-56 shrink-0 lg:w-auto lg:shrink">
-                      <button
-                        type="button"
-                        onClick={() => selectDomain(d.name)}
-                        aria-current={active ? "true" : undefined}
-                        className={`w-full rounded-md border-l-2 px-3 py-2 text-left transition-colors ${
-                          active
-                            ? "border-l-gold bg-surface shadow-[var(--shadow-card)]"
-                            : "border-l-transparent hover:bg-surface"
-                        }`}
-                      >
-                        <span className="flex items-baseline justify-between gap-3">
-                          <span className="flex min-w-0 items-baseline gap-2">
-                            <span className="font-mono text-[10px] font-semibold text-ink3">
-                              {String(d.order).padStart(2, "0")}
-                            </span>
-                            <span
-                              className={`truncate text-[13px] font-medium whitespace-nowrap lg:whitespace-normal ${
-                                active ? "text-ink" : "text-ink2"
-                              }`}
-                            >
-                              {d.name}
-                            </span>
-                          </span>
-                          <span
-                            className={`shrink-0 text-[11px] tabular-nums ${
-                              complete ? "text-good-text" : "text-ink3"
-                            }`}
-                          >
-                            {complete ? "✓ " : ""}
-                            {s?.answered}/{s?.total}
-                          </span>
-                        </span>
-                        <span className="mt-1.5 flex items-center gap-2">
-                          <span className="h-[3px] w-full max-w-24 overflow-hidden rounded-full bg-surface2">
-                            <span
-                              className={`block h-full rounded-full ${complete ? "bg-good" : "bg-accent"}`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </span>
-                          {s && s.gaps > 0 ? (
-                            <span className="flex items-center gap-1 text-[10.5px] font-medium text-crit-text">
-                              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-crit" />
-                              {s.gaps} gap{s.gaps === 1 ? "" : "s"}
-                            </span>
-                          ) : null}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </nav>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <label htmlFor="queue-filter" className="sr-only">
+              Work queue
+            </label>
+            <select
+              id="queue-filter"
+              className="input !w-auto !py-1.5 !text-xs"
+              value={showFilter}
+              onChange={(e) => setShowFilter(e.target.value as ShowFilter)}
+            >
+              {SHOW_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
 
-            <div className="mt-6 border-t-2 border-line pt-4">
-              <p className="eyebrow text-gold-text">View</p>
-              <div className="mt-3 flex flex-wrap gap-1.5 lg:flex-col lg:gap-1">
-                {SHOW_FILTERS.map((f) => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    onClick={() => setShowFilter(f.value)}
-                    aria-pressed={showFilter === f.value}
-                    className={`rounded-lg px-3 py-1.5 text-left text-[13px] font-medium transition-colors ${
-                      showFilter === f.value
-                        ? "bg-accent/10 text-accent-strong"
-                        : "text-ink2 hover:bg-surface2 hover:text-ink"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-              <div className="seg mt-4" role="group" aria-label="Filter by legal weight">
-                {SEVERITY_FILTERS.map((f) => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    onClick={() => setSeverityFilter(f.value)}
-                    aria-pressed={severityFilter === f.value}
-                    className={`seg-item flex-1 ${severityFilter === f.value ? "seg-item-active" : ""}`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </aside>
-
-          {/* ── Control feed ─────────────────────────────────────────────────── */}
-          <div className="min-w-0">
-            {visibleRows.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 border-y-2 border-line bg-surface2/40 px-6 py-14 text-center">
-                <h3 className="display text-lg font-semibold">Nothing matches this view</h3>
-                <p className="max-w-md text-sm leading-6 text-ink2">
-                  {showFilter === "gaps"
-                    ? "No controls are marked as gaps in this view — review evidence quality before treating the area as audit-ready."
-                    : showFilter === "missing_evidence"
-                      ? "Every Yes in this view has supporting evidence attached."
-                      : showFilter === "unanswered"
-                        ? "Every control in this view has a decision recorded."
-                        : "No controls match this view. Clear the view or switch domain to continue the review."}
-                </p>
+            <div className="seg" role="group" aria-label="Filter by legal weight">
+              {SEVERITY_FILTERS.map((f) => (
                 <button
+                  key={f.value}
                   type="button"
-                  className="btn mt-3"
-                  onClick={() => {
-                    setDomainFilter("all");
-                    setSeverityFilter("all");
-                    setShowFilter("all");
-                  }}
+                  onClick={() => setSeverityFilter(f.value)}
+                  aria-pressed={severityFilter === f.value}
+                  className={`seg-item ${severityFilter === f.value ? "seg-item-active" : ""}`}
                 >
-                  Show the full control library
+                  {f.label}
                 </button>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-12">
-                {visibleDomains.map((domain) => {
-                  const domainRows = visibleRows.filter((r) => r.domain === domain.name);
-                  const s = domainStats.get(domain.name);
-                  return (
-                    <section
-                      key={domain.name}
-                      id={`domain-${domain.order}`}
-                      aria-label={domain.name}
-                      className="scroll-mt-36"
-                    >
-                      <div className="border-b-2 border-line pb-3">
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                          <h2 className="display text-[22px] font-semibold tracking-tight">
-                            <span className="mr-2 text-line2">
-                              {String(domain.order).padStart(2, "0")}
-                            </span>
-                            {domain.name}
-                          </h2>
-                          <span className="text-xs text-ink3 tabular-nums">
-                            {s?.answered}/{s?.total} answered
-                          </span>
-                        </div>
-                        {domainBlurbs[domain.name] ? (
-                          <p className="mt-1 text-sm leading-6 text-ink2">
-                            {domainBlurbs[domain.name]}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="mt-5 flex flex-col gap-4">
-                        {domainRows.map((row) => (
-                          <ControlCard
-                            key={row.answerId}
-                            row={row}
-                            expanded={expandedId === row.answerId}
-                            onToggleExpand={() =>
-                              setExpandedId((cur) => (cur === row.answerId ? null : row.answerId))
-                            }
-                            onPatch={queuePatch}
-                            onEvidenceChange={setEvidence}
-                          />
-                        ))}
-                      </div>
-                    </section>
-                  );
-                })}
+              ))}
+            </div>
 
-                {/* Prev / next area navigation when reviewing one area */}
-                {domainFilter !== "all" ? (
-                  <div className="flex items-center justify-between border-t-2 border-line pt-5">
-                    {prevDomain ? (
-                      <button type="button" className="btn" onClick={() => selectDomain(prevDomain.name)}>
-                        ← {prevDomain.name}
-                      </button>
-                    ) : (
-                      <span />
-                    )}
-                    {nextDomain ? (
-                      <button type="button" className="btn btn-primary" onClick={() => selectDomain(nextDomain.name)}>
-                        Next domain: {nextDomain.name} →
-                      </button>
-                    ) : (
-                      <Link href={`/assessments/${assessment.id}`} className="btn btn-primary">
-                        Finish — open the dashboard
-                      </Link>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            )}
+            <div className="seg" role="group" aria-label="List density">
+              {(["cards", "register"] as const).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDensity(d)}
+                  aria-pressed={density === d}
+                  className={`seg-item ${density === d ? "seg-item-active" : ""}`}
+                >
+                  {d === "cards" ? "Cards" : "Register"}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Domain strip */}
+        <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto pb-0.5" role="tablist" aria-label="Domains">
+          <button
+            type="button"
+            onClick={() => selectDomain("all")}
+            aria-pressed={domainFilter === "all"}
+            className={`shrink-0 rounded-md px-2.5 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-colors ${
+              domainFilter === "all" ? "bg-brand text-brand-ink" : "text-ink2 hover:bg-surface"
+            }`}
+          >
+            All domains
+          </button>
+          {domains.map((d) => {
+            const s = domainStats.get(d.name);
+            const active = domainFilter === d.name;
+            const complete = s && s.answered === s.total;
+            return (
+              <button
+                key={d.name}
+                type="button"
+                onClick={() => selectDomain(d.name)}
+                aria-pressed={active}
+                className={`flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap transition-colors ${
+                  active ? "bg-brand text-brand-ink" : "text-ink2 hover:bg-surface"
+                }`}
+              >
+                {d.name}
+                <span
+                  className={`text-[10.5px] tabular-nums ${
+                    active ? "text-brand-muted" : complete ? "text-good-text" : "text-ink3"
+                  }`}
+                >
+                  {complete ? "✓" : `${s?.answered}/${s?.total}`}
+                </span>
+                {s && s.gaps > 0 ? (
+                  <span aria-label={`${s.gaps} gaps`} className="h-1.5 w-1.5 rounded-full bg-crit" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Queue context line */}
+      {showFilter !== "all" || severityFilter !== "all" ? (
+        <p className="mt-4 flex flex-wrap items-center gap-2 text-[13px] text-ink2">
+          <span>
+            Working through <strong className="text-ink">{activeShow?.label.toLowerCase()}</strong>
+            {severityFilter !== "all"
+              ? ` · ${severityFilter === "legally_mandatory" ? "legally mandatory" : "important"} only`
+              : ""}{" "}
+            — {visibleRows.length} item{visibleRows.length === 1 ? "" : "s"}
+          </span>
+          <button
+            type="button"
+            className="font-medium text-accent-strong hover:underline"
+            onClick={() => {
+              setShowFilter("all");
+              setSeverityFilter("all");
+            }}
+          >
+            Clear
+          </button>
+        </p>
+      ) : null}
+
+      {/* Control list */}
+      {visibleRows.length === 0 ? (
+        <div className="mt-6 flex flex-col items-center gap-2 border-y-2 border-line bg-surface2/40 px-6 py-14 text-center">
+          <h3 className="display text-lg font-semibold">This queue is clear</h3>
+          <p className="max-w-md text-sm leading-6 text-ink2">
+            {showFilter === "gaps"
+              ? "No controls are marked as gaps in this view — review evidence quality before treating the area as audit-ready."
+              : showFilter === "missing_evidence"
+                ? "Every Yes in this view has supporting evidence attached."
+                : showFilter === "unanswered"
+                  ? "Every control in this view has a decision recorded."
+                  : showFilter === "no_owner"
+                    ? "Every open item in this view has an accountable owner."
+                    : showFilter === "overdue"
+                      ? "Nothing in this view is past its due date."
+                      : "No controls match this view. Clear the view or switch domain to continue the review."}
+          </p>
+          <button
+            type="button"
+            className="btn mt-3"
+            onClick={() => {
+              setDomainFilter("all");
+              setSeverityFilter("all");
+              setShowFilter("all");
+            }}
+          >
+            Show all controls
+          </button>
+        </div>
+      ) : (
+        <div className="mt-5 flex flex-col gap-10">
+          {visibleDomains.map((domain) => {
+            const domainRows = visibleRows.filter((r) => r.domain === domain.name);
+            const s = domainStats.get(domain.name);
+            return (
+              <section
+                key={domain.name}
+                id={`domain-${domain.order}`}
+                aria-label={domain.name}
+                className="scroll-mt-40"
+              >
+                <div className="border-b-2 border-line pb-2.5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 className="display text-[19px] font-semibold tracking-tight">
+                      <span className="mr-2 text-line2">{String(domain.order).padStart(2, "0")}</span>
+                      {domain.name}
+                    </h2>
+                    <span className="text-xs text-ink3 tabular-nums">
+                      {s?.answered}/{s?.total} decided
+                    </span>
+                  </div>
+                  {domainBlurbs[domain.name] ? (
+                    <p className="mt-0.5 text-[13px] leading-6 text-ink2">
+                      {domainBlurbs[domain.name]}
+                    </p>
+                  ) : null}
+                </div>
+                <div className={density === "cards" ? "mt-4 flex flex-col gap-4" : "mt-3 flex flex-col gap-1.5"}>
+                  {domainRows.map((row) => (
+                    <ControlCard
+                      key={row.answerId}
+                      row={row}
+                      variant={density === "register" ? "row" : "card"}
+                      expanded={expandedId === row.answerId}
+                      onToggleExpand={() =>
+                        setExpandedId((cur) => (cur === row.answerId ? null : row.answerId))
+                      }
+                      onPatch={queuePatch}
+                      onEvidenceChange={setEvidence}
+                    />
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+
+          {domainFilter !== "all" ? (
+            <div className="flex items-center justify-between border-t-2 border-line pt-4">
+              {prevDomain ? (
+                <button type="button" className="btn !py-1.5 !text-[13px]" onClick={() => selectDomain(prevDomain.name)}>
+                  ← {prevDomain.name}
+                </button>
+              ) : (
+                <span />
+              )}
+              {nextDomain ? (
+                <button type="button" className="btn btn-primary !py-1.5 !text-[13px]" onClick={() => selectDomain(nextDomain.name)}>
+                  Next domain: {nextDomain.name} →
+                </button>
+              ) : (
+                <Link href={`/assessments/${assessment.id}`} className="btn btn-primary !py-1.5 !text-[13px]">
+                  Finish — open the dashboard
+                </Link>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
     </main>
   );
 }

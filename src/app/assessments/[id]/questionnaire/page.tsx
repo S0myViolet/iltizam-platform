@@ -21,6 +21,9 @@ export default async function QuestionnairePage({
 
   return (
     <Questionnaire
+      // Re-key on queue/domain navigation so clicking a sidebar work queue
+      // re-initialises the working state (rows re-read from the server).
+      key={`${filters.domain ?? "all"}|${filters.severity ?? "all"}|${filters.show ?? "all"}`}
       assessment={bundle.assessment}
       initialRows={bundle.rows}
       domainBlurbs={domainBlurbs}

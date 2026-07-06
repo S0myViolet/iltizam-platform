@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAssessmentBundle } from "@/lib/assessments";
 import { SeverityBadge, TierBadge, ANSWER_STATE_LABELS } from "@/components/badges";
@@ -21,32 +20,29 @@ export default async function AuditReportPage({ params }: { params: Promise<{ id
   const summary = buildManagementSummary(assessment.companyName, scores, gaps);
 
   return (
-    <main className="pb-16">
-      {/* Screen-only action band */}
-      <div className="band print-hidden">
-        <div className="shell flex flex-wrap items-center justify-between gap-3 py-5">
-          <div className="text-[13px] text-brand-muted">
-            <Link href="/" className="hover:text-brand-ink">
-              Assessments
-            </Link>
-            <span aria-hidden> › </span>
-            <Link href={`/assessments/${assessment.id}`} className="hover:text-brand-ink">
-              {assessment.companyName}
-            </Link>
-            <span aria-hidden> › </span>
-            <span className="text-brand-ink">Audit report</span>
-          </div>
-          <div className="flex gap-2">
-            <a href={`/api/assessments/${assessment.id}/export`} className="btn btn-on-band" download>
-              Export CSV
-            </a>
-            <PrintButton />
-          </div>
+    <main>
+      {/* Section header */}
+      <header className="print-hidden flex flex-wrap items-center justify-between gap-3 border-b-2 border-line pb-4">
+        <div>
+          <h1 className="display text-2xl font-semibold tracking-tight">Audit report</h1>
+          <p className="mt-0.5 text-[13px] text-ink3">
+            A document of your position — print it, export it, or hand it to counsel as-is.
+          </p>
         </div>
-      </div>
+        <div className="flex gap-2">
+          <a
+            href={`/api/assessments/${assessment.id}/export`}
+            className="btn !py-1.5 !text-[13px]"
+            download
+          >
+            Export CSV
+          </a>
+          <PrintButton />
+        </div>
+      </header>
 
       {/* The document */}
-      <div className="shell mt-8 max-w-4xl">
+      <div className="mt-6 max-w-4xl">
         <div className="sheet px-6 py-8 sm:px-10 sm:py-10 print:px-0 print:py-0">
           {/* Letterhead */}
           <header className="border-b-2 border-ink pb-6">

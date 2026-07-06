@@ -44,12 +44,15 @@ export function ControlCard({
   onToggleExpand,
   onPatch,
   onEvidenceChange,
+  variant = "card",
 }: {
   row: AnswerRow;
   expanded: boolean;
   onToggleExpand: () => void;
   onPatch: (answerId: string, patch: AnswerPatch, options?: { debounce?: number }) => void;
   onEvidenceChange: (answerId: string, updater: (prev: EvidenceItem[]) => EvidenceItem[]) => void;
+  /** "card" = full decision card; "row" = compact register row until expanded. */
+  variant?: "card" | "row";
 }) {
   const detailId = useId();
   const mandatory = row.severity === "legally_mandatory";
@@ -73,6 +76,44 @@ export function ControlCard({
         : row.answer === "yes"
           ? "Not required"
           : "None attached";
+
+  // Register density: a scannable ledger row until opened.
+  if (variant === "row" && !expanded) {
+    return (
+      <article className={`record ${railClass} ${isGap ? "bg-crit/[0.025]" : ""}`}>
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          aria-expanded={false}
+          aria-controls={detailId}
+          className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-1 px-3.5 py-2.5 text-left transition-colors hover:bg-surface2/50 sm:grid-cols-[64px_minmax(0,1fr)_130px_minmax(90px,150px)_120px_16px]"
+        >
+          <span className="font-mono text-[11px] font-bold tracking-wide text-ink max-sm:order-1">
+            {row.controlCode}
+          </span>
+          <span className="col-span-2 truncate text-[13.5px] font-medium text-ink sm:col-span-1">
+            {row.question}
+          </span>
+          <span className="max-sm:order-2 max-sm:justify-self-end">
+            <AnswerBadge answer={row.answer} />
+          </span>
+          <span className={`hidden truncate text-[12px] sm:block ${row.ownerName ? "text-ink2" : "text-warn-text"}`}>
+            {row.ownerName ?? "Owner unassigned"}
+          </span>
+          <span
+            className={`hidden truncate text-[12px] sm:block ${
+              evidenceRequired ? "text-warn-text" : row.evidence.length > 0 ? "text-good-text" : "text-ink3"
+            }`}
+          >
+            {evidenceValue}
+          </span>
+          <span aria-hidden className="hidden text-ink3 sm:block">
+            ↓
+          </span>
+        </button>
+      </article>
+    );
+  }
 
   return (
     <article
