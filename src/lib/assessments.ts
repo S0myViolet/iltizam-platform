@@ -42,6 +42,12 @@ export interface AnswerRow {
   orderInDomain: number;
   severity: Severity;
   isMandatory: boolean;
+  /** The regulation this control belongs to ("EU-GDPR", "EG-PDPL"). */
+  sourceRegulationCode: string;
+  /** Display citation, e.g. "GDPR Art. 33(1)" or "PDPL Art. 4(10), 26". */
+  legalBasis: string;
+  /** True where the source document marks this control provisional. */
+  provisional: boolean;
   regimes: RegimeRef[];
   evidenceExamples: string[];
   whyItMatters: string;
@@ -149,16 +155,20 @@ export async function createAssessment(input: {
   country?: string | null;
   selectedRegimes: string[];
 }): Promise<AssessmentSummary> {
-  // Instantiate one answer per control applicable to the selected regimes —
+  // Instantiate one answer per control whose source regulation is selected —
   // "each client gets their own instance of every applicable control".
+  // Selecting EG-PDPL creates the PDPL instances, EU-GDPR the GDPR ones,
+  // both creates both sets (separate controls; crosswalk unification later).
   const controls = await prisma.control.findMany({
-    where: {
-      regulationMappings: { some: { regulation: { code: { in: input.selectedRegimes } } } },
-    },
-    select: { id: true },
+    where: { sourceRegulationCode: { in: input.selectedRegimes } },
+    select: { id: true, sourceRegulationCode: true },
   });
-  if (controls.length === 0) {
-    throw new Error("No controls are mapped to the selected regimes.");
+  for (const code of input.selectedRegimes) {
+    if (!controls.some((c) => c.sourceRegulationCode === code)) {
+      throw new Error(
+        `The ${code} control library is not seeded yet — it cannot be selected for an assessment.`
+      );
+    }
   }
   const created = await prisma.assessment.create({
     data: {
@@ -196,6 +206,9 @@ function toAnswerRow(ans: AnswerRecord): AnswerRow {
     orderInDomain: c.orderInDomain,
     severity: c.severity as Severity,
     isMandatory: c.isMandatory,
+    sourceRegulationCode: c.sourceRegulationCode,
+    legalBasis: c.legalBasis,
+    provisional: c.provisional,
     regimes: c.regulationMappings
       .map((m) => ({
         code: m.regulation.code,
@@ -248,6 +261,8 @@ export function toGapInputs(rows: AnswerRow[]): GapInput[] {
     domainOrder: r.domainOrder,
     orderInDomain: r.orderInDomain,
     severity: r.severity,
+    sourceRegulationCode: r.sourceRegulationCode,
+    legalBasis: r.legalBasis,
     regimes: r.regimes.map((m) => m.code),
     answer: r.answer,
     whyItMatters: r.whyItMatters,
@@ -260,6 +275,29 @@ export function toGapInputs(rows: AnswerRow[]): GapInput[] {
     remediationStatus: r.remediationStatus,
     answerId: r.answerId,
   }));
+}
+
+export interface RegulationScore {
+  code: string;
+  scores: ScoreSummary;
+  gaps: Gap[];
+}
+
+/**
+ * Per-regulation readiness: score each selected regulation's controls
+ * separately (the combined bundle-level scores stay the blended view).
+ */
+export function summarizeByRegulation(rows: AnswerRow[], gaps: Gap[]): RegulationScore[] {
+  const codes = [...new Set(rows.map((r) => r.sourceRegulationCode))].sort();
+  if (codes.length <= 1) return [];
+  return codes.map((code) => {
+    const regRows = rows.filter((r) => r.sourceRegulationCode === code);
+    return {
+      code,
+      scores: computeScores(toScorable(regRows)),
+      gaps: gaps.filter((g) => g.sourceRegulationCode === code),
+    };
+  });
 }
 
 export async function getAssessmentBundle(id: string): Promise<AssessmentBundle | null> {

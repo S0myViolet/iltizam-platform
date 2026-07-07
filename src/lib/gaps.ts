@@ -28,6 +28,10 @@ export interface GapInput {
   domainOrder: number;
   orderInDomain: number;
   severity: Severity;
+  /** The regulation this control belongs to ("EU-GDPR", "EG-PDPL"). */
+  sourceRegulationCode: string;
+  /** Display citation, e.g. "PDPL Art. 4(10), 26". */
+  legalBasis: string;
   regimes: string[];
   answer: AnswerValue;
   whyItMatters: string;

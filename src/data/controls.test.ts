@@ -59,9 +59,9 @@ describe("control library seed data", () => {
     }
   });
 
-  it("maps every control to both EG-PDPL and EU-GDPR, per the document", () => {
+  it("cites a GDPR article on every control (the library's source regulation)", () => {
     for (const c of CONTROLS) {
-      expect(c.regimes, c.code).toEqual(["EG-PDPL", "EU-GDPR"]);
+      expect(c.gdprArticles, c.code).toMatch(/^Art\./);
     }
   });
 
@@ -76,12 +76,17 @@ describe("control library seed data", () => {
     }
   });
 
-  it("seeds both regulations with versioning fields", () => {
+  it("seeds both regulations with full legal identity", () => {
     expect(REGULATIONS.map((r) => r.code).sort()).toEqual(["EG-PDPL", "EU-GDPR"]);
     const gdpr = REGULATIONS.find((r) => r.code === "EU-GDPR")!;
     expect(gdpr.version).toBe("2016/679");
     expect(gdpr.status).toBe("in_force");
+    expect(gdpr.jurisdiction).toBe("European Union");
     const pdpl = REGULATIONS.find((r) => r.code === "EG-PDPL")!;
-    expect(pdpl.status).toBe("provisional");
+    expect(pdpl.status).toBe("implementation_period");
+    expect(pdpl.jurisdiction).toBe("Egypt");
+    expect(pdpl.version).toBe("Law 151/2020 + Executive Regulations 816/2025");
+    expect(pdpl.regulator).toContain("PDPC");
+    expect(pdpl.complianceDeadline).toBe("2026-11-01");
   });
 });

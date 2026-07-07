@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAssessmentBundle } from "@/lib/assessments";
+import { getAssessmentBundle, summarizeByRegulation } from "@/lib/assessments";
+import { prisma } from "@/lib/db";
 import { topRiskDomains } from "@/lib/gaps";
 import { buildManagementSummary, buildPriorityActions, nextReviewDate } from "@/lib/summary";
 import { TierBadge } from "@/components/badges";
@@ -19,6 +20,12 @@ export default async function AssessmentDashboardPage({
   const bundle = await getAssessmentBundle(id);
   if (!bundle) notFound();
   const { assessment, scores, gaps } = bundle;
+
+  const regulations = await prisma.regulation.findMany({
+    where: { code: { in: assessment.selectedRegimes } },
+    orderBy: { code: "asc" },
+  });
+  const regulationScores = summarizeByRegulation(bundle.rows, gaps);
 
   const started = scores.answeredControls > 0;
   const remaining = scores.totalControls - scores.answeredControls;
@@ -124,6 +131,81 @@ export default async function AssessmentDashboardPage({
             </dl>
           </div>
         </div>
+
+        {/* Regulation coverage */}
+        <div className="mt-6 border-t-2 border-line pt-4">
+          <p className="eyebrow text-gold-text">Regulation coverage</p>
+          <ul className="mt-3 grid gap-x-10 gap-y-3 sm:grid-cols-2">
+            {regulations.map((r) => (
+              <li key={r.code} className="text-[13px] leading-6">
+                <span className="font-mono text-[12px] font-bold tracking-wide">{r.code}</span>{" "}
+                <span className="font-semibold">{r.name}</span>
+                <span className="block text-ink2">
+                  {[r.legalInstrument, r.regulator].filter(Boolean).join(" · ")}
+                </span>
+                {r.complianceDeadline ? (
+                  <span className="mt-1 inline-block rounded-[4px] border border-warn/35 bg-warn/[0.08] px-1.5 py-0.5 text-[10.5px] font-semibold text-warn-text">
+                    Compliance deadline · {formatDate(r.complianceDeadline)}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Per-regulation readiness (combined assessments) */}
+        {regulationScores.length > 0 ? (
+          <div className="mt-6 border-t-2 border-line pt-4">
+            <p className="eyebrow text-gold-text">Readiness by regulation</p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              {regulationScores.map((rs) => (
+                <div key={rs.code} className="rounded-lg border border-line bg-surface2/40 p-4">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-mono text-[12px] font-bold tracking-wide">{rs.code}</span>
+                    <span className="text-xl font-semibold tabular-nums">
+                      {formatScore(rs.scores.readinessScore)}
+                    </span>
+                  </div>
+                  <ScoreMeter value={rs.scores.readinessScore} className="mt-2" trackClassName="h-1.5" />
+                  <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 text-[12px]">
+                    <div className="flex justify-between">
+                      <dt className="text-ink3">Mandatory</dt>
+                      <dd className="font-semibold tabular-nums">
+                        {formatScore(rs.scores.mandatoryScore)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink3">Important</dt>
+                      <dd className="font-semibold tabular-nums">
+                        {formatScore(rs.scores.importantScore)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink3">Mandatory gaps</dt>
+                      <dd className={`font-semibold tabular-nums ${rs.scores.mandatoryGaps > 0 ? "text-crit-text" : ""}`}>
+                        {rs.scores.mandatoryGaps}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink3">Decisions pending</dt>
+                      <dd className="font-semibold tabular-nums">{rs.scores.unansweredControls}</dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink3">Evidence required</dt>
+                      <dd className="font-semibold tabular-nums">
+                        {rs.scores.controlsMissingEvidence}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between">
+                      <dt className="text-ink3">Controls</dt>
+                      <dd className="font-semibold tabular-nums">{rs.scores.totalControls}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Management summary */}
         <div className="mt-6 border-t-2 border-line pt-4">

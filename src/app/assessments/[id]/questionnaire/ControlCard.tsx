@@ -129,8 +129,13 @@ export function ControlCard({
           </span>
           <SeverityBadge severity={row.severity} />
           <span className="font-mono text-[10.5px] tracking-wide text-ink3">
-            {row.regimes.map((m) => `${m.code}${m.provisional ? "*" : ""}`).join(" · ")}
+            {row.sourceRegulationCode} · {row.legalBasis}
           </span>
+          {row.provisional ? (
+            <span className="tag border border-gold/40 bg-gold/[0.08] text-gold-text">
+              Provisional control
+            </span>
+          ) : null}
           <span className="ml-auto">
             <AnswerBadge answer={row.answer} />
           </span>
@@ -212,8 +217,8 @@ export function ControlCard({
                 <p className="mt-3 text-sm leading-6 text-ink">{row.description}</p>
                 <p className="mt-2 text-xs text-ink3">
                   {row.sourceReference}
-                  {row.regimes.some((m) => m.provisional)
-                    ? " · PDPL mapping provisional — requires legal review"
+                  {row.provisional
+                    ? " · Provisional control — client-facing wording requires legal sign-off"
                     : ""}
                 </p>
               </div>

@@ -11,40 +11,53 @@
 // withdrawal clause), and adds a data-accuracy control (RET-04, Art. 5(1)(d))
 // that has no framework row.
 //
-// Per the library document, every control currently maps to both EG-PDPL and
-// EU-GDPR because the PDPL is closely based on the GDPR. The PDPL mappings
-// are provisional until legally confirmed, which is why each mapping carries
-// a `provisional` flag and PDPL article references are left null.
+// This file is the EU-GDPR control library: every control here has
+// sourceRegulation EU-GDPR. Egypt PDPL is a separate first-class library in
+// src/data/pdpl-controls.ts, seeded from its own source document. Cross-law
+// overlap is expressed through RegulationControlMapping crosswalk rows, not
+// by tagging GDPR controls with PDPL badges.
 
-import type { RegimeCode, Severity } from "@/lib/types";
+import type { RegimeCode, RegulationStatus, Severity } from "@/lib/types";
 
 export interface RegulationSeed {
   code: RegimeCode;
   name: string;
+  jurisdiction: string;
   version: string;
+  legalInstrument: string;
   effectiveDate: string | null; // ISO date
-  status: "in_force" | "provisional";
-  notes: string;
+  complianceDeadline: string | null; // ISO date
+  regulator: string;
+  status: RegulationStatus;
+  description: string;
 }
 
 export const REGULATIONS: RegulationSeed[] = [
   {
     code: "EU-GDPR",
-    name: "General Data Protection Regulation (EU) 2016/679",
+    name: "General Data Protection Regulation",
+    jurisdiction: "European Union",
     version: "2016/679",
+    legalInstrument: "Regulation (EU) 2016/679",
     effectiveDate: "2018-05-25",
+    complianceDeadline: null,
+    regulator: "National supervisory authorities · European Data Protection Board",
     status: "in_force",
-    notes:
+    description:
       "Official text: EUR-Lex CELEX 32016R0679. The proposed Digital Omnibus (Nov 2025) may amend breach deadlines, RoPA scope and DPIA templates — controls are versioned against this layer so those changes can ship as a new regulation version.",
   },
   {
     code: "EG-PDPL",
-    name: "Egypt Personal Data Protection Law No. 151 of 2020",
-    version: "provisional",
-    effectiveDate: null,
-    status: "provisional",
-    notes:
-      "PDPL mappings are provisional: the library was extracted from the GDPR and Egypt's PDPL is closely based on it, so the vast majority of controls apply to both. Each mapping awaits legal confirmation, and a few GDPR-specific items (EU representative, exact transfer mechanisms) will need PDPL equivalents swapped in.",
+    name: "Egypt Personal Data Protection Law",
+    jurisdiction: "Egypt",
+    version: "Law 151/2020 + Executive Regulations 816/2025",
+    legalInstrument: "Law No. 151 of 2020 · Executive Regulations No. 816 of 2025",
+    effectiveDate: "2020-10-15",
+    complianceDeadline: "2026-11-01",
+    regulator: "Personal Data Protection Center (PDPC)",
+    status: "implementation_period",
+    description:
+      "Egypt's PDPL with its 2025 Executive Regulations. Compliance deadline 1 November 2026. The PDPL control library is seeded from the Egypt PDPL Law and Controls document; controls the document marks provisional (e.g. Impact Assessments pending PDPC guidance) carry a per-control provisional flag.",
   },
 ];
 
@@ -83,7 +96,6 @@ export interface ControlSeed {
   description: string;
   domain: string;
   severity: Severity;
-  regimes: RegimeCode[];
   /** GDPR article citation(s), from the framework document. */
   gdprArticles: string;
   evidenceExamples: string[];
@@ -102,7 +114,6 @@ export const CONTROLS: ControlSeed[] = [
       "Adopt a management-approved data protection policy defining roles, responsibilities and review cycle; review at least annually.",
     domain: "Governance & Accountability",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 5(2), 24",
     evidenceExamples: ["Signed policy", "Review log"],
     whyItMatters:
@@ -119,7 +130,6 @@ export const CONTROLS: ControlSeed[] = [
       "Assign named ownership for every privacy obligation across legal, IT, HR and marketing (RACI).",
     domain: "Governance & Accountability",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 24, 25",
     evidenceExamples: ["RACI matrix"],
     whyItMatters:
@@ -136,7 +146,6 @@ export const CONTROLS: ControlSeed[] = [
       "Embed a privacy-by-design gate in the project and change lifecycle: every new system, product or campaign passes a privacy checkpoint before launch.",
     domain: "Governance & Accountability",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 25",
     evidenceExamples: ["Completed checkpoint records"],
     whyItMatters:
@@ -153,7 +162,6 @@ export const CONTROLS: ControlSeed[] = [
       "Where two controllers jointly decide purposes and means, execute a joint-controller arrangement allocating duties and a contact point.",
     domain: "Governance & Accountability",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 26",
     evidenceExamples: ["Signed Art. 26 arrangement"],
     whyItMatters:
@@ -170,7 +178,6 @@ export const CONTROLS: ControlSeed[] = [
       "Appoint an EU representative where the organisation is outside the EU but offers goods/services to, or monitors, people in the EU.",
     domain: "Governance & Accountability",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 27",
     evidenceExamples: ["Appointment letter", "Published contact"],
     whyItMatters:
@@ -187,7 +194,6 @@ export const CONTROLS: ControlSeed[] = [
       "Maintain a compliance calendar of recurring privacy tasks (policy reviews, audits, training, DPIA refresh) with completion tracking.",
     domain: "Governance & Accountability",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 24",
     evidenceExamples: ["Calendar", "Completion status"],
     whyItMatters:
@@ -206,7 +212,6 @@ export const CONTROLS: ControlSeed[] = [
       "Document a lawful basis for every processing activity before it starts and record it in the RoPA.",
     domain: "Lawful Basis",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 6",
     evidenceExamples: ["Lawful basis register"],
     whyItMatters:
@@ -223,7 +228,6 @@ export const CONTROLS: ControlSeed[] = [
       "Run a compatibility assessment before reusing personal data for a new purpose.",
     domain: "Lawful Basis",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 6(4)",
     evidenceExamples: ["Purpose-change assessments"],
     whyItMatters:
@@ -240,7 +244,6 @@ export const CONTROLS: ControlSeed[] = [
       "Complete a Legitimate Interest Assessment (purpose, necessity, balancing) whenever relying on legitimate interests.",
     domain: "Lawful Basis",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 6(1)(f)",
     evidenceExamples: ["LIA on file per activity"],
     whyItMatters:
@@ -257,7 +260,6 @@ export const CONTROLS: ControlSeed[] = [
       "Identify and document an Article 9 condition before processing special-category data (health, biometric, religion, etc.).",
     domain: "Lawful Basis",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 9",
     evidenceExamples: ["Art. 9 assessments"],
     whyItMatters:
@@ -274,7 +276,6 @@ export const CONTROLS: ControlSeed[] = [
       "Process criminal-offence data only under official authority or where authorised by law.",
     domain: "Lawful Basis",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 10",
     evidenceExamples: ["Legal basis memo"],
     whyItMatters:
@@ -293,7 +294,6 @@ export const CONTROLS: ControlSeed[] = [
       "Operate a consent mechanism that is freely given, specific, informed and unambiguous, separate from other terms.",
     domain: "Consent Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 7",
     evidenceExamples: ["Consent UX screens", "Configuration"],
     whyItMatters:
@@ -309,7 +309,6 @@ export const CONTROLS: ControlSeed[] = [
       "Keep demonstrable consent records: who consented, when, to what wording/version, via which channel.",
     domain: "Consent Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 7(1)",
     evidenceExamples: ["Consent log"],
     whyItMatters:
@@ -326,7 +325,6 @@ export const CONTROLS: ControlSeed[] = [
       "Provide consent withdrawal that is as easy as giving consent, and ensure withdrawal actually halts the processing that relied on it.",
     domain: "Consent Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 7(3)",
     evidenceExamples: ["Withdrawal mechanism", "Processing stop confirmation"],
     whyItMatters:
@@ -343,7 +341,6 @@ export const CONTROLS: ControlSeed[] = [
       "Verify age and obtain parental consent before offering information-society services directly to children.",
     domain: "Consent Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 8",
     evidenceExamples: ["Age-gate design", "Consent records"],
     whyItMatters:
@@ -362,7 +359,6 @@ export const CONTROLS: ControlSeed[] = [
       "Serve a privacy notice at the point of collection covering all Art. 13 items: identity, purposes, basis, recipients, transfers, retention, rights.",
     domain: "Transparency & Notices",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 12, 13",
     evidenceExamples: ["Published notices"],
     whyItMatters:
@@ -379,7 +375,6 @@ export const CONTROLS: ControlSeed[] = [
       "Where data is obtained indirectly, provide Art. 14 information to data subjects within one month.",
     domain: "Transparency & Notices",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 14",
     evidenceExamples: ["Notification records"],
     whyItMatters:
@@ -396,7 +391,6 @@ export const CONTROLS: ControlSeed[] = [
       "Write notices in clear, plain language, accessible and free of charge; child-appropriate where relevant.",
     domain: "Transparency & Notices",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 12",
     evidenceExamples: ["Readability review"],
     whyItMatters:
@@ -413,7 +407,6 @@ export const CONTROLS: ControlSeed[] = [
       "Version-control notices; update and re-notify when processing changes materially.",
     domain: "Transparency & Notices",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 12–14",
     evidenceExamples: ["Notice changelog"],
     whyItMatters:
@@ -432,7 +425,6 @@ export const CONTROLS: ControlSeed[] = [
       "Provide easy intake channels for rights requests (web form, dedicated email) and log every request received.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 12",
     evidenceExamples: ["DSR register"],
     whyItMatters:
@@ -448,7 +440,6 @@ export const CONTROLS: ControlSeed[] = [
     description: "Apply proportionate identity verification before acting on a request.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 12(6)",
     evidenceExamples: ["Verification procedure"],
     whyItMatters:
@@ -465,7 +456,6 @@ export const CONTROLS: ControlSeed[] = [
       "Respond within one month; track deadlines; documented process for the permitted two-month extension.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 12(3)",
     evidenceExamples: ["SLA tracking", "Extension letters"],
     whyItMatters:
@@ -482,7 +472,6 @@ export const CONTROLS: ControlSeed[] = [
       "Fulfil access requests with confirmation, a copy of the data and all Art. 15 supplementary information.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 15",
     evidenceExamples: ["Access response template"],
     whyItMatters:
@@ -499,7 +488,6 @@ export const CONTROLS: ControlSeed[] = [
       "Operate procedures for rectification, erasure and restriction, including propagation of changes to recipients.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 16–19",
     evidenceExamples: ["Procedure docs", "Completion logs"],
     whyItMatters:
@@ -516,7 +504,6 @@ export const CONTROLS: ControlSeed[] = [
       "Provide portability exports in a structured, machine-readable format where the basis is consent or contract.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 20",
     evidenceExamples: ["Export capability"],
     whyItMatters:
@@ -533,7 +520,6 @@ export const CONTROLS: ControlSeed[] = [
       "Honour objections; stop direct marketing immediately upon objection and maintain a suppression list.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 21",
     evidenceExamples: ["Suppression list"],
     whyItMatters:
@@ -550,7 +536,6 @@ export const CONTROLS: ControlSeed[] = [
       "Inventory solely-automated decisions with legal or similarly significant effects; safeguard rights including human review.",
     domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 22",
     evidenceExamples: ["ADM inventory", "Review workflow"],
     whyItMatters:
@@ -569,7 +554,6 @@ export const CONTROLS: ControlSeed[] = [
       "Maintain a controller RoPA with all required fields; update on change and review at least annually.",
     domain: "Records of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 30(1)",
     evidenceExamples: ["RoPA"],
     whyItMatters:
@@ -586,7 +570,6 @@ export const CONTROLS: ControlSeed[] = [
       "Maintain a processor RoPA for processing carried out on behalf of clients.",
     domain: "Records of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 30(2)",
     evidenceExamples: ["Processor RoPA"],
     whyItMatters:
@@ -602,7 +585,6 @@ export const CONTROLS: ControlSeed[] = [
       "Make the RoPA available to the supervisory authority on request through a defined procedure.",
     domain: "Records of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 30(4)",
     evidenceExamples: ["Access procedure"],
     whyItMatters:
@@ -621,7 +603,6 @@ export const CONTROLS: ControlSeed[] = [
       "Document a DPO-requirement assessment; appoint a DPO where required (or voluntarily, applying the same standards).",
     domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 37",
     evidenceExamples: ["Assessment memo", "Appointment"],
     whyItMatters:
@@ -638,7 +619,6 @@ export const CONTROLS: ControlSeed[] = [
       "Publish the DPO's contact details and notify them to the supervisory authority.",
     domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 37(7)",
     evidenceExamples: ["Published contact", "SA filing"],
     whyItMatters:
@@ -655,7 +635,6 @@ export const CONTROLS: ControlSeed[] = [
       "Guarantee DPO independence: adequate resources, access to processing, no conflicting duties, direct reporting to top management.",
     domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 38",
     evidenceExamples: ["DPO charter", "Org chart"],
     whyItMatters:
@@ -672,7 +651,6 @@ export const CONTROLS: ControlSeed[] = [
       "DPO performs statutory tasks: advising, monitoring compliance, DPIA advice and cooperation with the supervisory authority.",
     domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 39",
     evidenceExamples: ["DPO activity reports"],
     whyItMatters:
@@ -691,7 +669,6 @@ export const CONTROLS: ControlSeed[] = [
       "Risk-assess each processing activity and implement technical and organisational measures proportionate to the risk.",
     domain: "Security of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 32",
     evidenceExamples: ["Security risk assessment"],
     whyItMatters:
@@ -708,7 +685,6 @@ export const CONTROLS: ControlSeed[] = [
       "Apply pseudonymisation and encryption of personal data where appropriate, at rest and in transit.",
     domain: "Security of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 32(1)(a)",
     evidenceExamples: ["Encryption standard", "Configs"],
     whyItMatters:
@@ -725,7 +701,6 @@ export const CONTROLS: ControlSeed[] = [
       "Enforce access control: least privilege, joiner-mover-leaver process, periodic access reviews.",
     domain: "Security of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 32(1)(b)",
     evidenceExamples: ["Access review logs"],
     whyItMatters:
@@ -742,7 +717,6 @@ export const CONTROLS: ControlSeed[] = [
       "Ensure availability and resilience: backups with tested restoration and recovery objectives.",
     domain: "Security of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 32(1)(c)",
     evidenceExamples: ["Backup and restore test records"],
     whyItMatters:
@@ -759,7 +733,6 @@ export const CONTROLS: ControlSeed[] = [
       "Regularly test, assess and evaluate the effectiveness of measures (penetration tests, scans, audits).",
     domain: "Security of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 32(1)(d)",
     evidenceExamples: ["Test and audit reports"],
     whyItMatters:
@@ -776,7 +749,6 @@ export const CONTROLS: ControlSeed[] = [
       "Ensure staff process personal data only on documented instructions and sign confidentiality commitments.",
     domain: "Security of Processing",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 29, 32(4)",
     evidenceExamples: ["Signed NDAs", "Acknowledgements"],
     whyItMatters:
@@ -795,7 +767,6 @@ export const CONTROLS: ControlSeed[] = [
       "Operate an incident response procedure to detect, contain and internally escalate suspected personal data breaches.",
     domain: "Breach Management",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 33",
     evidenceExamples: ["IR plan", "Escalation flow"],
     whyItMatters:
@@ -812,7 +783,6 @@ export const CONTROLS: ControlSeed[] = [
       "Notify the supervisory authority without undue delay and within 72 hours where the breach poses a risk, with the required content.",
     domain: "Breach Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 33(1)",
     evidenceExamples: ["Notification template", "Timestamps"],
     whyItMatters:
@@ -829,7 +799,6 @@ export const CONTROLS: ControlSeed[] = [
       "Notify affected data subjects without undue delay where the breach poses a high risk to them.",
     domain: "Breach Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 34",
     evidenceExamples: ["Comms templates", "Criteria"],
     whyItMatters:
@@ -846,7 +815,6 @@ export const CONTROLS: ControlSeed[] = [
       "Maintain an internal register of all breaches, including those not notified, recording facts, effects and remediation.",
     domain: "Breach Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 33(5)",
     evidenceExamples: ["Breach register"],
     whyItMatters:
@@ -863,7 +831,6 @@ export const CONTROLS: ControlSeed[] = [
       "As processor, notify the controller without undue delay after becoming aware of a breach.",
     domain: "Breach Management",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 33(2)",
     evidenceExamples: ["Contract clause", "Process"],
     whyItMatters:
@@ -882,7 +849,6 @@ export const CONTROLS: ControlSeed[] = [
       "Screen every new processing activity to flag likely high risk: new technologies, large-scale special-category data, systematic monitoring.",
     domain: "DPIA & Risk",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 35(1), (3)",
     evidenceExamples: ["Screening checklist"],
     whyItMatters:
@@ -899,7 +865,6 @@ export const CONTROLS: ControlSeed[] = [
       "Conduct DPIAs with the required content: description, necessity and proportionality, risks and mitigations; seek DPO advice.",
     domain: "DPIA & Risk",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 35(7)",
     evidenceExamples: ["Completed DPIAs"],
     whyItMatters:
@@ -916,7 +881,6 @@ export const CONTROLS: ControlSeed[] = [
       "Consult the supervisory authority before processing where residual risk remains high after mitigation.",
     domain: "DPIA & Risk",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 36",
     evidenceExamples: ["Consultation records"],
     whyItMatters:
@@ -931,7 +895,6 @@ export const CONTROLS: ControlSeed[] = [
     description: "Review DPIAs when the risk presented by the processing changes.",
     domain: "DPIA & Risk",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 35(11)",
     evidenceExamples: ["DPIA review log"],
     whyItMatters:
@@ -950,7 +913,6 @@ export const CONTROLS: ControlSeed[] = [
       "Use only processors providing sufficient guarantees; run documented due diligence before onboarding.",
     domain: "Processors & Vendors",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 28(1)",
     evidenceExamples: ["DD questionnaires"],
     whyItMatters:
@@ -967,7 +929,6 @@ export const CONTROLS: ControlSeed[] = [
       "Execute a data processing agreement with every processor containing all mandatory Art. 28(3) clauses.",
     domain: "Processors & Vendors",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 28(3)",
     evidenceExamples: ["Signed DPAs"],
     whyItMatters:
@@ -984,7 +945,6 @@ export const CONTROLS: ControlSeed[] = [
       "Control sub-processing: authorisation regime and flow-down of the same obligations to sub-processors.",
     domain: "Processors & Vendors",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 28(2), (4)",
     evidenceExamples: ["Sub-processor list", "Approvals"],
     whyItMatters:
@@ -1001,7 +961,6 @@ export const CONTROLS: ControlSeed[] = [
       "Exercise audit and information rights over processors periodically or on trigger events.",
     domain: "Processors & Vendors",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 28(3)(h)",
     evidenceExamples: ["Audit reports"],
     whyItMatters:
@@ -1018,7 +977,6 @@ export const CONTROLS: ControlSeed[] = [
       "Maintain a vendor register linking each vendor to data categories, DPA status and transfer mechanism.",
     domain: "Processors & Vendors",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 28",
     evidenceExamples: ["Vendor register"],
     whyItMatters:
@@ -1037,7 +995,6 @@ export const CONTROLS: ControlSeed[] = [
       "Map every cross-border flow: destination country, recipient, data categories and transfer mechanism.",
     domain: "International Transfers",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 44",
     evidenceExamples: ["Transfer map"],
     whyItMatters:
@@ -1054,7 +1011,6 @@ export const CONTROLS: ControlSeed[] = [
       "Apply a valid mechanism to each transfer: adequacy decision, executed SCCs or approved BCRs.",
     domain: "International Transfers",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 45, 46",
     evidenceExamples: ["Executed SCCs", "Adequacy check"],
     whyItMatters:
@@ -1071,7 +1027,6 @@ export const CONTROLS: ControlSeed[] = [
       "Perform transfer impact assessments and adopt supplementary measures where the destination's law requires it.",
     domain: "International Transfers",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 46",
     evidenceExamples: ["TIAs on file"],
     whyItMatters:
@@ -1088,7 +1043,6 @@ export const CONTROLS: ControlSeed[] = [
       "Where relying on derogations, document the specific condition and keep such transfers exceptional.",
     domain: "International Transfers",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 49",
     evidenceExamples: ["Derogation log"],
     whyItMatters:
@@ -1107,7 +1061,6 @@ export const CONTROLS: ControlSeed[] = [
       "Maintain a retention schedule assigning a period and justification to every category of personal data.",
     domain: "Data Lifecycle, Minimisation & Quality",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 5(1)(e)",
     evidenceExamples: ["Retention schedule"],
     whyItMatters:
@@ -1124,7 +1077,6 @@ export const CONTROLS: ControlSeed[] = [
       "Enforce deletion or anonymisation at the end of retention and verify execution.",
     domain: "Data Lifecycle, Minimisation & Quality",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 5(1)(e), 17",
     evidenceExamples: ["Deletion logs or certificates"],
     whyItMatters:
@@ -1141,7 +1093,6 @@ export const CONTROLS: ControlSeed[] = [
       "Apply a data-minimisation check at intake and in system design: collect only what the purpose needs.",
     domain: "Data Lifecycle, Minimisation & Quality",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 5(1)(c)",
     evidenceExamples: ["Design review records"],
     whyItMatters:
@@ -1158,7 +1109,6 @@ export const CONTROLS: ControlSeed[] = [
       "Take every reasonable step to keep personal data accurate and up to date, and rectify or erase inaccurate data without delay.",
     domain: "Data Lifecycle, Minimisation & Quality",
     severity: "legally_mandatory",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 5(1)(d)",
     evidenceExamples: ["Data quality procedure", "Correction logs"],
     whyItMatters:
@@ -1177,7 +1127,6 @@ export const CONTROLS: ControlSeed[] = [
       "Deliver privacy training at onboarding and at least annually; role-based modules for high-exposure teams.",
     domain: "Training & Awareness",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 24, 39(1)(b)",
     evidenceExamples: ["Completion records"],
     whyItMatters:
@@ -1194,7 +1143,6 @@ export const CONTROLS: ControlSeed[] = [
       "Run an ongoing awareness programme reinforcing correct handling of personal data.",
     domain: "Training & Awareness",
     severity: "important",
-    regimes: ["EG-PDPL", "EU-GDPR"],
     gdprArticles: "Art. 24",
     evidenceExamples: ["Campaign records"],
     whyItMatters:

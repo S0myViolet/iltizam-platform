@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getAssessmentBundle } from "@/lib/assessments";
+import { getAssessmentBundle, summarizeByRegulation } from "@/lib/assessments";
+import { prisma } from "@/lib/db";
 import { SeverityBadge, TierBadge, ANSWER_STATE_LABELS } from "@/components/badges";
 import { LogoMark } from "@/components/Wordmark";
 import { gapTierFor } from "@/lib/gaps";
@@ -18,6 +19,11 @@ export default async function AuditReportPage({ params }: { params: Promise<{ id
 
   const domains = scores.domainScores;
   const summary = buildManagementSummary(assessment.companyName, scores, gaps);
+  const regulations = await prisma.regulation.findMany({
+    where: { code: { in: assessment.selectedRegimes } },
+    orderBy: { code: "asc" },
+  });
+  const regulationScores = summarizeByRegulation(rows, gaps);
 
   return (
     <main>
@@ -83,6 +89,25 @@ export default async function AuditReportPage({ params }: { params: Promise<{ id
             </dl>
           </header>
 
+          {/* Regulation details */}
+          <section aria-label="Regulation details" className="avoid-break mt-8">
+            <p className="eyebrow text-gold-text">Regulations covered</p>
+            <ul className="mt-3 flex flex-col gap-3">
+              {regulations.map((r) => (
+                <li key={r.code} className="text-sm leading-6">
+                  <span className="font-mono text-[12px] font-bold tracking-wide">{r.code}</span>{" "}
+                  <span className="font-semibold">{r.name}</span>
+                  <span className="block text-ink2">
+                    {[r.legalInstrument, r.regulator].filter(Boolean).join(" · ")}
+                    {r.complianceDeadline
+                      ? ` · Compliance deadline ${formatDate(r.complianceDeadline)}`
+                      : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
           {/* Management summary */}
           <section aria-label="Management summary" className="avoid-break mt-8">
             <p className="eyebrow text-gold-text">Management summary</p>
@@ -128,6 +153,45 @@ export default async function AuditReportPage({ params }: { params: Promise<{ id
                 </dd>
               </div>
             </dl>
+
+            {regulationScores.length > 0 ? (
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-ink text-left text-[11px] tracking-wide text-ink2 uppercase">
+                      <th className="py-2 pr-3 font-medium">Regulation</th>
+                      <th className="px-3 py-2 text-right font-medium">Readiness</th>
+                      <th className="px-3 py-2 text-right font-medium">Mandatory</th>
+                      <th className="px-3 py-2 text-right font-medium">Important</th>
+                      <th className="px-3 py-2 text-right font-medium">Mandatory gaps</th>
+                      <th className="py-2 pl-3 text-right font-medium">Pending</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {regulationScores.map((rs) => (
+                      <tr key={rs.code} className="border-b border-line">
+                        <td className="py-2.5 pr-3 font-mono text-[12px] font-bold">{rs.code}</td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">
+                          {formatScorePrecise(rs.scores.readinessScore)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">
+                          {formatScorePrecise(rs.scores.mandatoryScore)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">
+                          {formatScorePrecise(rs.scores.importantScore)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right tabular-nums">
+                          {rs.scores.mandatoryGaps}
+                        </td>
+                        <td className="py-2.5 pl-3 text-right tabular-nums">
+                          {rs.scores.unansweredControls}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
           </section>
 
           {/* Domain table */}
@@ -183,7 +247,9 @@ export default async function AuditReportPage({ params }: { params: Promise<{ id
                         {gap.controlCode}
                       </span>
                       <SeverityBadge severity={gap.severity} />
-                      <span className="text-[11px] text-ink3">{gap.regimes.join(" · ")}</span>
+                      <span className="font-mono text-[10.5px] text-ink3">
+                        {gap.sourceRegulationCode} · {gap.legalBasis}
+                      </span>
                       <span className="ml-auto text-xs font-medium">
                         {ANSWER_STATE_LABELS[gap.answer]}
                       </span>

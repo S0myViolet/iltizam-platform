@@ -115,6 +115,13 @@ export function Questionnaire({
     (SHOW_FILTERS.some((f) => f.value === initialShow) ? initialShow : "all") as ShowFilter
   );
 
+  // Regulation filter — only meaningful when the assessment spans several.
+  const regulationCodes = useMemo(
+    () => [...new Set(rows.map((r) => r.sourceRegulationCode))].sort(),
+    [rows]
+  );
+  const [regulationFilter, setRegulationFilter] = useState<string>("all");
+
   // ── autosave plumbing ─────────────────────────────────────────────────────
   const pendingPatches = useRef(new Map<string, AnswerPatch>());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -215,6 +222,7 @@ export function Questionnaire({
     (r) =>
       (domainFilter === "all" || r.domain === domainFilter) &&
       (severityFilter === "all" || r.severity === severityFilter) &&
+      (regulationFilter === "all" || r.sourceRegulationCode === regulationFilter) &&
       matchesShow(r, showFilter)
   );
   const visibleDomains = domains.filter((d) => visibleRows.some((r) => r.domain === d.name));
@@ -290,6 +298,22 @@ export function Questionnaire({
                 </option>
               ))}
             </select>
+
+            {regulationCodes.length > 1 ? (
+              <div className="seg" role="group" aria-label="Filter by regulation">
+                {["all", ...regulationCodes].map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => setRegulationFilter(code)}
+                    aria-pressed={regulationFilter === code}
+                    className={`seg-item ${regulationFilter === code ? "seg-item-active" : ""}`}
+                  >
+                    {code === "all" ? "All regulations" : code}
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <div className="seg" role="group" aria-label="Filter by legal weight">
               {SEVERITY_FILTERS.map((f) => (

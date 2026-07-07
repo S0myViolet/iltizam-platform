@@ -52,8 +52,33 @@ export const REMEDIATION_STATUS_LABELS: Record<RemediationStatus, string> = {
   closed: "Closed",
 };
 
-export const REGULATION_STATUSES = ["in_force", "provisional", "draft", "superseded"] as const;
+export const REGULATION_STATUSES = [
+  "in_force",
+  "implementation_period",
+  "provisional",
+  "draft",
+  "superseded",
+] as const;
 export type RegulationStatus = (typeof REGULATION_STATUSES)[number];
+
+export const REGULATION_STATUS_LABELS: Record<RegulationStatus, string> = {
+  in_force: "In force",
+  implementation_period: "Implementation period",
+  provisional: "Provisional",
+  draft: "Draft",
+  superseded: "Superseded",
+};
+
+/** Crosswalk mapping statuses between a control and a regulation. */
+export const MAPPING_STATUSES = [
+  "exact",
+  "similar",
+  "partial",
+  "egypt_specific",
+  "gdpr_specific",
+  "provisional",
+] as const;
+export type MappingStatus = (typeof MAPPING_STATUSES)[number];
 
 export const EVIDENCE_KINDS = ["file", "link"] as const;
 export type EvidenceKind = (typeof EVIDENCE_KINDS)[number];

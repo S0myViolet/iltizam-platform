@@ -7,7 +7,11 @@ import { COMPANY_SIZES } from "@/lib/types";
 interface RegulationOption {
   code: string;
   name: string;
+  jurisdiction: string | null;
   version: string;
+  legalInstrument: string | null;
+  regulator: string | null;
+  complianceDeadline: string | null;
   status: string;
   controlCount: number;
 }
@@ -19,7 +23,7 @@ export function NewAssessmentForm({ regulations }: { regulations: RegulationOpti
   const [industry, setIndustry] = useState("");
   const [country, setCountry] = useState("");
   const [selectedRegimes, setSelectedRegimes] = useState<string[]>(
-    regulations.map((r) => r.code)
+    regulations.filter((r) => r.controlCount > 0).map((r) => r.code)
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,35 +143,51 @@ export function NewAssessmentForm({ regulations }: { regulations: RegulationOpti
         <legend className="sr-only">Which regulations apply?</legend>
         <div className="mt-1 grid gap-2 sm:grid-cols-2">
           {regulations.map((r) => {
+            const pending = r.controlCount === 0;
             const checked = selectedRegimes.includes(r.code);
             return (
               <label
                 key={r.code}
-                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
-                  checked ? "border-accent bg-accent/5" : "border-line hover:bg-surface2"
+                className={`flex items-start gap-3 rounded-lg border p-3.5 transition-colors ${
+                  pending
+                    ? "cursor-not-allowed border-line opacity-60"
+                    : checked
+                      ? "cursor-pointer border-accent bg-accent/5"
+                      : "cursor-pointer border-line hover:bg-surface2"
                 }`}
               >
                 <input
                   type="checkbox"
                   className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
                   checked={checked}
+                  disabled={pending}
                   onChange={() => toggleRegime(r.code)}
                 />
-                <span>
-                  <span className="block text-sm font-medium">{r.code}</span>
-                  <span className="mt-0.5 block text-xs leading-5 text-ink2">{r.name}</span>
-                  <span className="mt-0.5 block text-[11px] text-ink3">
-                    {r.controlCount} controls · version {r.version}
-                    {r.status === "provisional" ? " · provisional mapping" : ""}
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-mono text-[13px] font-bold tracking-wide">{r.code}</span>
+                    <span className="text-sm font-medium">{r.name}</span>
                   </span>
+                  <span className="mt-1 block text-xs leading-5 text-ink2">
+                    {[r.legalInstrument, r.jurisdiction].filter(Boolean).join(" · ")}
+                  </span>
+                  <span className="mt-0.5 block text-[11px] leading-5 text-ink3">
+                    {r.regulator ? `${r.regulator} · ` : ""}
+                    {pending ? "Control library pending extraction" : `${r.controlCount} controls`}
+                  </span>
+                  {r.complianceDeadline ? (
+                    <span className="mt-1.5 inline-block rounded-[4px] border border-warn/35 bg-warn/[0.08] px-1.5 py-0.5 text-[10.5px] font-semibold text-warn-text">
+                      Compliance deadline · {r.complianceDeadline}
+                    </span>
+                  ) : null}
                 </span>
               </label>
             );
           })}
         </div>
         <p className="mt-2 text-xs leading-5 text-ink3">
-          Most controls apply to both regimes — Egypt&apos;s PDPL is closely based on the GDPR.
-          Selecting both shows the full picture.
+          Each selected regulation adds its own control set to the review. Selecting both shows
+          combined and per-regulation readiness.
         </p>
       </fieldset>
 

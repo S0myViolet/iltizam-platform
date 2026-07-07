@@ -38,12 +38,20 @@ export async function POST(request: NextRequest) {
   const optional = (key: string) =>
     typeof b[key] === "string" && (b[key] as string).trim() ? (b[key] as string).trim() : null;
 
-  const assessment = await createAssessment({
-    companyName,
-    companySize: optional("companySize"),
-    industry: optional("industry"),
-    country: optional("country"),
-    selectedRegimes,
-  });
-  return NextResponse.json({ assessment }, { status: 201 });
+  try {
+    const assessment = await createAssessment({
+      companyName,
+      companySize: optional("companySize"),
+      industry: optional("industry"),
+      country: optional("country"),
+      selectedRegimes,
+    });
+    return NextResponse.json({ assessment }, { status: 201 });
+  } catch (err) {
+    // e.g. a selected regulation whose control library is not seeded yet
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Could not create the assessment." },
+      { status: 400 }
+    );
+  }
 }

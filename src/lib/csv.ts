@@ -69,10 +69,11 @@ export function buildAssessmentCsv(bundle: AssessmentBundle): string {
   lines.push(
     row(
       "Control code",
+      "Regulation",
+      "Legal basis",
       "Domain",
       "Question",
       "Severity",
-      "Regimes",
       "Answer",
       "Gap priority",
       "Owner",
@@ -96,10 +97,11 @@ export function buildAssessmentCsv(bundle: AssessmentBundle): string {
     lines.push(
       row(
         r.controlCode,
+        r.sourceRegulationCode,
+        r.legalBasis,
         r.domain,
         r.question,
         SEVERITY_LABELS[r.severity],
-        r.regimes.map((m) => m.code).join(" · "),
         ANSWER_LABELS[r.answer],
         tier === null ? "" : `P${tier} — ${GAP_TIER_LABELS[tier]}`,
         r.ownerName,
