@@ -86,8 +86,19 @@ and split by severity and by domain. The MVP scores on answers; evidence-based s
 
 ## Control library provenance
 
-Seed data comes from the *Iltzam Control Library* document (64 questions, exact
-wording, severity and regimes preserved) cross-referenced with the *GDPR → Control
-Framework* document (control codes, GDPR article citations, evidence artifacts).
-PDPL mappings are provisional pending legal confirmation, and are flagged as such in
-the data model and UI.
+Two first-class regulation libraries, each seeded verbatim from its source document:
+
+- **EU-GDPR — 64 controls** (54 legally mandatory / 10 important) from the *Iltzam
+  Control Library* document, cross-referenced with the *GDPR → Control Framework*
+  document (control codes, GDPR article citations, evidence artifacts).
+- **EG-PDPL — 85 controls** (64 legally mandatory / 21 important) from the *Egypt
+  PDPL Law and Controls* document: Law No. 151 of 2020 + Executive Regulations
+  816/2025, regulator PDPC, compliance deadline 1 November 2026. Question wording,
+  severity, domains and PDPL bases are preserved exactly; the Impact Assessments
+  domain is provisional pending confirmation in the Executive Regulations, and the
+  library as a whole awaits counsel sign-off before client-facing use.
+
+Assessments select either regulation or both; combined reviews carry both control
+sets with per-regulation readiness, filters, and report sections. Cross-law overlap
+is expressed through crosswalk mapping rows (exact / similar / partial /
+egypt_specific / gdpr_specific / provisional), not by merging controls.
