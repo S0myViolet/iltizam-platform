@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getAssessmentBundle, summarizeByRegulation } from "@/lib/assessments";
+import { getAssessmentBundle } from "@/lib/assessments";
 import { GAP_TIER_LABELS, type Gap, type GapTier } from "@/lib/gaps";
 import { buildManagementSummary } from "@/lib/summary";
-import { AnswerBadge, RemediationBadge, SeverityBadge, TierBadge } from "@/components/badges";
+import { AnswerBadge, RegimeBadge, RemediationBadge, SeverityBadge, TierBadge } from "@/components/badges";
 import { EmptyState } from "@/components/EmptyState";
 import { formatDate, formatScore } from "@/lib/format";
 import { LEGAL_DISCLAIMER } from "@/lib/types";
@@ -46,15 +46,15 @@ function GapEntry({ gap, assessmentId }: { gap: Gap; assessmentId: string }) {
               : "border-l-warn/55"
       }`}
     >
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <TierBadge tier={gap.tier} />
         <span className="font-mono text-[11px] font-semibold tracking-wide text-ink3">
           {gap.controlCode}
         </span>
         <SeverityBadge severity={gap.severity} />
-        <span className="font-mono text-[10.5px] tracking-wide text-ink3">
-          {gap.sourceRegulationCode} · {gap.legalBasis}
-        </span>
+        {gap.regimes.map((code) => (
+          <RegimeBadge key={code} code={code} />
+        ))}
         <span className="ml-auto">
           <AnswerBadge answer={gap.answer} />
         </span>
@@ -104,7 +104,6 @@ export default async function GapReportPage({ params }: { params: Promise<{ id: 
   const bundle = await getAssessmentBundle(id);
   if (!bundle) notFound();
   const { assessment, gaps, scores } = bundle;
-  const regulationScores = summarizeByRegulation(bundle.rows, gaps);
 
   const tierCounts = TIERS.map((tier) => ({
     tier,
@@ -141,22 +140,6 @@ export default async function GapReportPage({ params }: { params: Promise<{ id: 
       <section aria-label="Executive summary" className="card mt-5 p-5 sm:p-6">
         <p className="eyebrow text-gold-text">Executive summary</p>
         <p className="display mt-2.5 max-w-4xl text-[16px] leading-7">{summary}</p>
-        {regulationScores.length > 0 ? (
-          <ul className="mt-3 flex flex-wrap gap-x-8 gap-y-1 text-[13px] text-ink2">
-            {regulationScores.map((rs) => (
-              <li key={rs.code}>
-                <span className="font-mono text-[11.5px] font-bold">{rs.code}</span> readiness{" "}
-                <strong className="text-ink tabular-nums">
-                  {formatScore(rs.scores.readinessScore)}
-                </strong>
-                {" · "}
-                {rs.scores.mandatoryGaps} mandatory gap{rs.scores.mandatoryGaps === 1 ? "" : "s"}
-                {" · "}
-                {rs.scores.unansweredControls} pending
-              </li>
-            ))}
-          </ul>
-        ) : null}
 
         <dl className="mt-5 grid grid-cols-2 gap-x-8 gap-y-4 border-t-2 border-line pt-4 sm:grid-cols-3 lg:grid-cols-6">
           <div>

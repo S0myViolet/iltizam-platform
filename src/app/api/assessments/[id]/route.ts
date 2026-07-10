@@ -1,69 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssessmentBundle } from "@/lib/assessments";
 import { prisma } from "@/lib/db";
-import { isAssessmentStatus } from "@/lib/types";
+import { requireAssessmentAccess, requirePermission, requireSession } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-guard";
+import { writeAudit } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const bundle = await getAssessmentBundle(id);
-  if (!bundle) {
-    return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
+  try {
+    const { id } = await params;
+    const session = await requireSession();
+    await requireAssessmentAccess(session, id);
+    const bundle = await getAssessmentBundle(id);
+    return NextResponse.json(bundle);
+  } catch (err) {
+    return handleApiError(err);
   }
-  return NextResponse.json(bundle);
 }
 
 export async function PATCH(request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const existing = await prisma.assessment.findUnique({ where: { id } });
-  if (!existing) {
-    return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
-  }
-
-  let body: unknown;
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
-  }
-  const b = (body ?? {}) as Record<string, unknown>;
+    const { id } = await params;
+    const session = await requireSession();
+    const { assessment } = await requireAssessmentAccess(session, id);
+    requirePermission(session, assessment.organizationId, "assessment.manage");
 
-  const data: Record<string, unknown> = {};
-  if ("status" in b) {
-    if (!isAssessmentStatus(b.status)) {
-      return NextResponse.json({ error: "Invalid assessment status." }, { status: 400 });
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
-    data.status = b.status;
-    data.completedAt = b.status === "completed" ? (existing.completedAt ?? new Date()) : null;
-  }
-  for (const key of ["companyName", "companySize", "industry", "country"] as const) {
-    if (key in b) {
-      if (typeof b[key] !== "string" && b[key] !== null) {
-        return NextResponse.json({ error: `Invalid value for ${key}.` }, { status: 400 });
-      }
-      const value = typeof b[key] === "string" ? (b[key] as string).trim() : null;
-      if (key === "companyName" && !value) {
-        return NextResponse.json({ error: "Company name cannot be empty." }, { status: 400 });
-      }
-      data[key] = value;
-    }
-  }
-  if (Object.keys(data).length === 0) {
-    return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
-  }
+    const b = (body ?? {}) as Record<string, unknown>;
+    const data: Record<string, unknown> = {};
 
-  await prisma.assessment.update({ where: { id }, data });
-  const bundle = await getAssessmentBundle(id);
-  return NextResponse.json(bundle);
+    if (typeof b.title === "string" && b.title.trim()) data.title = b.title.trim();
+    if (typeof b.status === "string" &&
+        ["not_started", "in_progress", "needs_review", "completed", "archived"].includes(b.status)) {
+      data.status = b.status;
+      if (b.status === "completed") data.completedAt = new Date();
+      if (b.status === "archived") data.archivedAt = new Date();
+    }
+    if (typeof b.nextReviewAt === "string" && !Number.isNaN(Date.parse(b.nextReviewAt))) {
+      data.nextReviewAt = new Date(b.nextReviewAt);
+    }
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: "No valid fields to update." }, { status: 400 });
+    }
+    await prisma.assessment.update({ where: { id }, data });
+    await writeAudit({
+      organizationId: assessment.organizationId,
+      actorUserId: session.userId,
+      actorName: session.name,
+      action: data.status === "completed" ? "assessment_completed" : "assessment_updated",
+      entityType: "Assessment",
+      entityId: id,
+      summary: `Assessment updated (${Object.keys(data).join(", ")}).`,
+      after: data,
+    });
+    const bundle = await getAssessmentBundle(id);
+    return NextResponse.json(bundle);
+  } catch (err) {
+    return handleApiError(err);
+  }
 }
 
 export async function DELETE(_request: NextRequest, { params }: Params) {
-  const { id } = await params;
-  const existing = await prisma.assessment.findUnique({ where: { id }, select: { id: true } });
-  if (!existing) {
-    return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
+  try {
+    const { id } = await params;
+    const session = await requireSession();
+    const { assessment } = await requireAssessmentAccess(session, id);
+    requirePermission(session, assessment.organizationId, "assessment.manage");
+    await prisma.assessment.update({ where: { id }, data: { archivedAt: new Date(), status: "archived" } });
+    await writeAudit({
+      organizationId: assessment.organizationId,
+      actorUserId: session.userId,
+      actorName: session.name,
+      action: "assessment_archived",
+      entityType: "Assessment",
+      entityId: id,
+      summary: "Assessment archived.",
+    });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return handleApiError(err);
   }
-  await prisma.assessment.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
 }

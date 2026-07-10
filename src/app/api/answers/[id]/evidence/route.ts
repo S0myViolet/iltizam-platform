@@ -3,6 +3,9 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { MAX_UPLOAD_BYTES, saveEvidenceFile } from "@/lib/storage";
 import { isEvidenceType } from "@/lib/types";
+import { requirePermission, requireSession, AuthError } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-guard";
+import { writeAudit } from "@/lib/audit";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -11,11 +14,19 @@ type Params = { params: Promise<{ id: string }> };
 //   application/json {url, title}    → link evidence
 // Both accept `evidenceType` and optional `uploadedBy`.
 export async function POST(request: NextRequest, { params }: Params) {
+  try {
   const { id } = await params;
-  const answer = await prisma.controlAnswer.findUnique({ where: { id }, select: { id: true } });
-  if (!answer) {
-    return NextResponse.json({ error: "Answer not found." }, { status: 404 });
-  }
+  const session = await requireSession();
+  const answer = await prisma.controlAnswer.findUnique({
+    where: { id },
+    include: {
+      assessment: { select: { organizationId: true } },
+      control: { select: { controlCode: true } },
+    },
+  });
+  if (!answer) throw new AuthError(404, "Not found.");
+  const orgId = answer.assessment.organizationId;
+  requirePermission(session, orgId, "evidence.add");
 
   const contentType = request.headers.get("content-type") ?? "";
 
@@ -40,6 +51,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     const evidence = await prisma.evidence.create({
       data: {
         id: evidenceId,
+        organizationId: orgId,
+        uploadedByUserId: session.userId,
         answerId: id,
         kind: "file",
         fileName,
@@ -48,8 +61,17 @@ export async function POST(request: NextRequest, { params }: Params) {
         fileUrl: publicUrl ?? `/api/evidence/${evidenceId}/download`,
         storageKey,
         evidenceType,
-        uploadedBy,
+        uploadedBy: uploadedBy ?? session.name,
       },
+    });
+    await writeAudit({
+      organizationId: orgId,
+      actorUserId: session.userId,
+      actorName: session.name,
+      action: "evidence_uploaded",
+      entityType: "Evidence",
+      entityId: evidence.id,
+      summary: `Evidence file "${fileName}" uploaded to ${answer.control.controlCode} (unreviewed).`,
     });
     return NextResponse.json({ evidence }, { status: 201 });
   }
@@ -71,13 +93,27 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const evidence = await prisma.evidence.create({
     data: {
+      organizationId: orgId,
+      uploadedByUserId: session.userId,
       answerId: id,
       kind: "link",
       fileName: title.slice(0, 200),
       fileUrl: url,
       evidenceType,
-      uploadedBy,
+      uploadedBy: uploadedBy ?? session.name,
     },
   });
+  await writeAudit({
+    organizationId: orgId,
+    actorUserId: session.userId,
+    actorName: session.name,
+    action: "evidence_linked",
+    entityType: "Evidence",
+    entityId: evidence.id,
+    summary: `Evidence link "${title.slice(0, 80)}" attached to ${answer.control.controlCode} (unreviewed).`,
+  });
   return NextResponse.json({ evidence }, { status: 201 });
+  } catch (err) {
+    return handleApiError(err);
+  }
 }

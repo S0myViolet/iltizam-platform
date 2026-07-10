@@ -1,6 +1,7 @@
-// Assessment service layer — the only module that talks to the database on
-// behalf of assessment pages and API routes. Pages consume the view models
-// returned here; scoring/gap math stays in the pure modules.
+// Assessment service layer — the only module that queries the database on
+// behalf of assessment pages and API routes. Callers are responsible for
+// tenancy (verify the session may access the assessment's organization
+// BEFORE calling into here — see src/lib/auth.ts).
 
 import { prisma } from "./db";
 import { buildGaps, type Gap, type GapInput } from "./gaps";
@@ -9,6 +10,7 @@ import type {
   AnswerValue,
   AssessmentStatus,
   EvidenceKind,
+  EvidenceReviewStatus,
   EvidenceType,
   RemediationStatus,
   Severity,
@@ -20,13 +22,17 @@ export interface EvidenceItem {
   fileName: string;
   fileUrl: string;
   evidenceType: EvidenceType;
+  reviewStatus: EvidenceReviewStatus;
+  reviewNotes: string | null;
+  expiresAt: Date | null;
   uploadedBy: string | null;
   uploadedAt: Date;
+  reviewedAt: Date | null;
 }
 
 export interface RegimeRef {
   code: string;
-  articleReference: string | null;
+  legalBasis: string | null;
   provisional: boolean;
 }
 
@@ -42,11 +48,6 @@ export interface AnswerRow {
   orderInDomain: number;
   severity: Severity;
   isMandatory: boolean;
-  /** The regulation this control belongs to ("EU-GDPR", "EG-PDPL"). */
-  sourceRegulationCode: string;
-  /** Display citation, e.g. "GDPR Art. 33(1)" or "PDPL Art. 4(10), 26". */
-  legalBasis: string;
-  /** True where the source document marks this control provisional. */
   provisional: boolean;
   regimes: RegimeRef[];
   evidenceExamples: string[];
@@ -67,6 +68,8 @@ export interface AnswerRow {
 
 export interface AssessmentSummary {
   id: string;
+  organizationId: string;
+  title: string;
   companyName: string;
   companySize: string | null;
   industry: string | null;
@@ -76,6 +79,7 @@ export interface AssessmentSummary {
   readinessScore: number | null;
   mandatoryScore: number | null;
   importantScore: number | null;
+  nextReviewAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -97,122 +101,69 @@ function parseJsonArray(value: string): string[] {
   }
 }
 
-type AssessmentRecord = {
-  id: string;
-  companyName: string;
-  companySize: string | null;
-  industry: string | null;
-  country: string | null;
-  selectedRegimes: string;
-  status: string;
-  readinessScore: number | null;
-  mandatoryScore: number | null;
-  importantScore: number | null;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+const assessmentInclude = {
+  organization: true,
+  regulations: { include: { regulation: true } },
+  answers: {
+    include: {
+      control: {
+        include: {
+          domain: true,
+          regulationMappings: { include: { regulation: true } },
+        },
+      },
+      evidence: { orderBy: { uploadedAt: "desc" as const } },
+    },
+  },
 };
+
+type AssessmentRecord = NonNullable<
+  Awaited<ReturnType<typeof prisma.assessment.findFirst<{ include: typeof assessmentInclude }>>>
+>;
 
 function toSummary(a: AssessmentRecord): AssessmentSummary {
   return {
     id: a.id,
-    companyName: a.companyName,
-    companySize: a.companySize,
-    industry: a.industry,
-    country: a.country,
-    selectedRegimes: parseJsonArray(a.selectedRegimes),
+    organizationId: a.organizationId,
+    title: a.title,
+    companyName: a.organization.name,
+    companySize: a.organization.companySize,
+    industry: a.organization.industry,
+    country: a.organization.country,
+    selectedRegimes: a.regulations.map((r) => r.regulation.code).sort(),
     status: a.status as AssessmentStatus,
     readinessScore: a.readinessScore,
     mandatoryScore: a.mandatoryScore,
     importantScore: a.importantScore,
+    nextReviewAt: a.nextReviewAt,
     completedAt: a.completedAt,
     createdAt: a.createdAt,
     updatedAt: a.updatedAt,
   };
 }
 
-export interface AssessmentListItem extends AssessmentSummary {
-  totalControls: number;
-  answeredControls: number;
-}
+type AnswerRecord = AssessmentRecord["answers"][number];
 
-export async function listAssessments(): Promise<AssessmentListItem[]> {
-  const assessments = await prisma.assessment.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { answers: { select: { answer: true } } },
-  });
-  return assessments.map((a) => ({
-    ...toSummary(a),
-    totalControls: a.answers.length,
-    answeredControls: a.answers.filter((ans) => ans.answer !== "not_answered").length,
-  }));
-}
-
-export async function createAssessment(input: {
-  companyName: string;
-  companySize?: string | null;
-  industry?: string | null;
-  country?: string | null;
-  selectedRegimes: string[];
-}): Promise<AssessmentSummary> {
-  // Instantiate one answer per control whose source regulation is selected —
-  // "each client gets their own instance of every applicable control".
-  // Selecting EG-PDPL creates the PDPL instances, EU-GDPR the GDPR ones,
-  // both creates both sets (separate controls; crosswalk unification later).
-  const controls = await prisma.control.findMany({
-    where: { sourceRegulationCode: { in: input.selectedRegimes } },
-    select: { id: true, sourceRegulationCode: true },
-  });
-  for (const code of input.selectedRegimes) {
-    if (!controls.some((c) => c.sourceRegulationCode === code)) {
-      throw new Error(
-        `The ${code} control library is not seeded yet — it cannot be selected for an assessment.`
-      );
-    }
-  }
-  const created = await prisma.assessment.create({
-    data: {
-      companyName: input.companyName,
-      companySize: input.companySize ?? null,
-      industry: input.industry ?? null,
-      country: input.country ?? null,
-      selectedRegimes: JSON.stringify(input.selectedRegimes),
-      status: "not_started",
-      answers: { create: controls.map((c) => ({ controlId: c.id })) },
-    },
-  });
-  return toSummary(created);
-}
-
-const answerInclude = {
-  control: { include: { regulationMappings: { include: { regulation: true } } } },
-  evidence: { orderBy: { uploadedAt: "desc" as const } },
-};
-
-type AnswerRecord = NonNullable<
-  Awaited<ReturnType<typeof prisma.controlAnswer.findFirst<{ include: typeof answerInclude }>>>
->;
-
-function toAnswerRow(ans: AnswerRecord): AnswerRow {
+function toAnswerRow(ans: AnswerRecord, selectedRegulationIds: Set<string>): AnswerRow {
   const c = ans.control;
+  const mappings = c.regulationMappings.filter((m) => selectedRegulationIds.has(m.regulationId));
+  const codeNum = Number(c.controlCode.split("-").pop());
   return {
     answerId: ans.id,
     controlId: c.id,
     controlCode: c.controlCode,
     question: c.question,
     description: c.description,
-    domain: c.domain,
-    domainOrder: c.domainOrder,
-    orderInDomain: c.orderInDomain,
+    domain: c.domain.name,
+    domainOrder: c.domain.displayOrder,
+    orderInDomain: Number.isNaN(codeNum) ? 0 : codeNum,
     severity: c.severity as Severity,
     isMandatory: c.isMandatory,
-    sourceRegulationCode: c.sourceRegulationCode,
-    legalBasis: c.legalBasis,
     provisional: c.provisional,
-    regimes: c.regulationMappings
+    regimes: mappings
       .map((m) => ({
         code: m.regulation.code,
-        articleReference: m.articleReference,
+        legalBasis: m.legalBasis,
         provisional: m.provisional,
       }))
       .sort((a, b) => a.code.localeCompare(b.code)),
@@ -235,10 +186,18 @@ function toAnswerRow(ans: AnswerRecord): AnswerRow {
       fileName: e.fileName,
       fileUrl: e.fileUrl,
       evidenceType: e.evidenceType as EvidenceType,
+      reviewStatus: e.reviewStatus as EvidenceReviewStatus,
+      reviewNotes: e.reviewNotes,
+      expiresAt: e.expiresAt,
       uploadedBy: e.uploadedBy,
       uploadedAt: e.uploadedAt,
+      reviewedAt: e.reviewedAt,
     })),
   };
+}
+
+export function acceptedCount(row: AnswerRow): number {
+  return row.evidence.filter((e) => e.reviewStatus === "accepted").length;
 }
 
 export function toScorable(rows: AnswerRow[]): ScorableControl[] {
@@ -249,7 +208,13 @@ export function toScorable(rows: AnswerRow[]): ScorableControl[] {
     severity: r.severity,
     answer: r.answer,
     evidenceCount: r.evidence.length,
+    acceptedEvidenceCount: acceptedCount(r),
     requiresEvidence: r.requiresEvidence,
+    regulationCodes: r.regimes.map((m) => m.code),
+    provisional: r.provisional,
+    ownerName: r.ownerName,
+    dueDate: r.dueDate,
+    remediationStatus: r.remediationStatus,
   }));
 }
 
@@ -261,15 +226,18 @@ export function toGapInputs(rows: AnswerRow[]): GapInput[] {
     domainOrder: r.domainOrder,
     orderInDomain: r.orderInDomain,
     severity: r.severity,
-    sourceRegulationCode: r.sourceRegulationCode,
-    legalBasis: r.legalBasis,
     regimes: r.regimes.map((m) => m.code),
+    legalBases: Object.fromEntries(r.regimes.map((m) => [m.code, m.legalBasis])),
     answer: r.answer,
     whyItMatters: r.whyItMatters,
     recommendedAction: r.recommendedAction,
     evidenceExamples: r.evidenceExamples,
     evidenceCount: r.evidence.length,
+    acceptedEvidenceCount: acceptedCount(r),
+    rejectedEvidenceCount: r.evidence.filter((e) => e.reviewStatus === "rejected").length,
+    expiredEvidenceCount: r.evidence.filter((e) => e.reviewStatus === "expired").length,
     requiresEvidence: r.requiresEvidence,
+    provisional: r.provisional,
     ownerName: r.ownerName,
     dueDate: r.dueDate,
     remediationStatus: r.remediationStatus,
@@ -277,39 +245,41 @@ export function toGapInputs(rows: AnswerRow[]): GapInput[] {
   }));
 }
 
-export interface RegulationScore {
-  code: string;
-  scores: ScoreSummary;
-  gaps: Gap[];
+export interface AssessmentListItem extends AssessmentSummary {
+  totalControls: number;
+  answeredControls: number;
 }
 
-/**
- * Per-regulation readiness: score each selected regulation's controls
- * separately (the combined bundle-level scores stay the blended view).
- */
-export function summarizeByRegulation(rows: AnswerRow[], gaps: Gap[]): RegulationScore[] {
-  const codes = [...new Set(rows.map((r) => r.sourceRegulationCode))].sort();
-  if (codes.length <= 1) return [];
-  return codes.map((code) => {
-    const regRows = rows.filter((r) => r.sourceRegulationCode === code);
-    return {
-      code,
-      scores: computeScores(toScorable(regRows)),
-      gaps: gaps.filter((g) => g.sourceRegulationCode === code),
-    };
+export async function listAssessments(organizationId: string): Promise<AssessmentListItem[]> {
+  const assessments = await prisma.assessment.findMany({
+    where: { organizationId, archivedAt: null },
+    orderBy: { createdAt: "desc" },
+    include: assessmentInclude,
   });
+  return assessments.map((a) => ({
+    ...toSummary(a),
+    totalControls: a.answers.length,
+    answeredControls: a.answers.filter((ans) => ans.answer !== "not_answered").length,
+  }));
 }
 
 export async function getAssessmentBundle(id: string): Promise<AssessmentBundle | null> {
   const assessment = await prisma.assessment.findUnique({
     where: { id },
-    include: { answers: { include: answerInclude } },
+    include: assessmentInclude,
   });
   if (!assessment) return null;
 
+  const selectedRegulationIds = new Set(assessment.regulations.map((r) => r.regulationId));
   const rows = assessment.answers
-    .map(toAnswerRow)
-    .sort((a, b) => a.domainOrder - b.domainOrder || a.orderInDomain - b.orderInDomain);
+    .map((a) => toAnswerRow(a, selectedRegulationIds))
+    .sort(
+      (a, b) =>
+        a.domainOrder - b.domainOrder ||
+        a.domain.localeCompare(b.domain) ||
+        a.orderInDomain - b.orderInDomain ||
+        a.controlCode.localeCompare(b.controlCode)
+    );
   const scores = computeScores(toScorable(rows));
   const gaps = buildGaps(toGapInputs(rows));
 
@@ -317,35 +287,20 @@ export async function getAssessmentBundle(id: string): Promise<AssessmentBundle 
 }
 
 /**
- * Recompute cached scores and derive progress status after any answer change.
- * A manually-set "needs_review" status is sticky; the automatic transitions
- * only move between not_started / in_progress / completed.
+ * Recompute cached scores and derive progress status after any answer or
+ * evidence-review change. Deterministic: uses the central scoring engine.
  */
 export async function refreshAssessmentAfterAnswerChange(assessmentId: string): Promise<void> {
-  const assessment = await prisma.assessment.findUnique({
-    where: { id: assessmentId },
-    include: { answers: { include: { control: true, evidence: { select: { id: true } } } } },
-  });
-  if (!assessment) return;
+  const bundle = await getAssessmentBundle(assessmentId);
+  if (!bundle) return;
+  const { scores, assessment } = bundle;
 
-  const scorable: ScorableControl[] = assessment.answers.map((ans) => ({
-    controlCode: ans.control.controlCode,
-    domain: ans.control.domain,
-    domainOrder: ans.control.domainOrder,
-    severity: ans.control.severity as Severity,
-    answer: ans.answer as AnswerValue,
-    evidenceCount: ans.evidence.length,
-    requiresEvidence: ans.control.requiresEvidence,
-  }));
-  const scores = computeScores(scorable);
-
-  let status = assessment.status as AssessmentStatus;
-  if (status !== "needs_review") {
-    if (scores.unansweredControls === scorable.length) status = "not_started";
+  let status: string = assessment.status;
+  if (status !== "needs_review" && status !== "archived") {
+    if (scores.unansweredControls === scores.totalControls) status = "not_started";
     else if (scores.unansweredControls === 0) status = "completed";
     else status = "in_progress";
   }
-  const nowCompleted = status === "completed";
 
   await prisma.assessment.update({
     where: { id: assessmentId },
@@ -354,7 +309,58 @@ export async function refreshAssessmentAfterAnswerChange(assessmentId: string): 
       mandatoryScore: scores.mandatoryScore,
       importantScore: scores.importantScore,
       status,
-      completedAt: nowCompleted ? (assessment.completedAt ?? new Date()) : null,
+      completedAt: status === "completed" ? (assessment.completedAt ?? new Date()) : null,
     },
   });
+}
+
+/** Compact official-position snapshot used for scan before/after records. */
+export interface PositionSnapshot {
+  readinessScore: number | null;
+  mandatoryScore: number | null;
+  evidenceReadiness: number | null;
+  mandatoryGaps: number;
+  importantGaps: number;
+  evidenceGaps: number;
+  unanswered: number;
+  confirmedFindings: number;
+  unreviewedFindings: number;
+}
+
+export async function snapshotOfficialPosition(organizationId: string): Promise<PositionSnapshot> {
+  const assessment = await prisma.assessment.findFirst({
+    where: { organizationId, archivedAt: null },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  const [confirmed, unreviewed] = await Promise.all([
+    prisma.monitoringFinding.count({ where: { organizationId, status: "confirmed" } }),
+    prisma.monitoringFinding.count({ where: { organizationId, status: "new" } }),
+  ]);
+  if (!assessment) {
+    return {
+      readinessScore: null,
+      mandatoryScore: null,
+      evidenceReadiness: null,
+      mandatoryGaps: 0,
+      importantGaps: 0,
+      evidenceGaps: 0,
+      unanswered: 0,
+      confirmedFindings: confirmed,
+      unreviewedFindings: unreviewed,
+    };
+  }
+  const bundle = await getAssessmentBundle(assessment.id);
+  const s = bundle!.scores;
+  return {
+    readinessScore: s.readinessScore,
+    mandatoryScore: s.mandatoryScore,
+    evidenceReadiness: s.evidenceReadiness,
+    mandatoryGaps: s.mandatoryGaps,
+    importantGaps: s.importantGaps,
+    evidenceGaps: s.controlsMissingEvidence,
+    unanswered: s.unansweredControls,
+    confirmedFindings: confirmed,
+    unreviewedFindings: unreviewed,
+  };
 }

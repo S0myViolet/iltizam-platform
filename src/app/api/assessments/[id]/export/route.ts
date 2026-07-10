@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAssessmentBundle } from "@/lib/assessments";
+import { requireAssessmentAccess, requireSession } from "@/lib/auth";
+import { handleApiError } from "@/lib/api-guard";
 import { buildAssessmentCsv } from "@/lib/csv";
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, { params }: Params) {
+  try {
   const { id } = await params;
+  const session = await requireSession();
+  await requireAssessmentAccess(session, id);
   const bundle = await getAssessmentBundle(id);
   if (!bundle) {
     return NextResponse.json({ error: "Assessment not found." }, { status: 404 });
@@ -18,4 +23,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       "Content-Disposition": `attachment; filename="iltizam-assessment-${safeName || "export"}.csv"`,
     },
   });
+  } catch (err) {
+    return handleApiError(err);
+  }
 }

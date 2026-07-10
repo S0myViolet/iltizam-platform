@@ -21,6 +21,11 @@ evidence file uploads. One-time setup takes about 15 minutes.
 2. Under **Settings → Environment Variables**, add:
    - `DATABASE_URL` — the pooled Neon string
    - `DIRECT_URL` — the direct Neon string
+   - `SESSION_SECRET` — a long random value (`openssl rand -base64 48`);
+     signs the session cookie
+   - `ENABLE_DEMO_TOOLS` — `true` **only** on demonstration deployments;
+     it unlocks the demo scan, reset, Backend operations and Data explorer.
+     Leave unset on anything holding real data.
 3. Under **Storage**, create a **Blob** store and connect it to the project —
    this injects `BLOB_READ_WRITE_TOKEN` automatically. (Without it, file
    uploads are rejected in production; evidence links still work.)
@@ -36,7 +41,13 @@ DATABASE_URL="<direct-neon-url>" DIRECT_URL="<direct-neon-url>" npx prisma migra
 DATABASE_URL="<direct-neon-url>" DIRECT_URL="<direct-neon-url>" npx prisma db seed
 ```
 
-You should see: `Seeded 64 controls (54 legally mandatory, 10 important), 2 regulations.`
+The seed prints a verification block and fails loudly if the library counts
+drift — expect `pdplControls: 85`, `gdprControls: 64`, `monitoringRules: 12`,
+one demo organization and nine demo users.
+
+> Already deployed an earlier version? Re-run both commands — the new
+> migration (`platform_v2_multitenant_monitoring`) and the idempotent seed
+> upgrade the database in place.
 
 ## 4. Deploy
 
@@ -45,9 +56,12 @@ custom domain under **Settings → Domains** if you want one.
 
 ## Notes and limits
 
-- **No authentication yet.** Anyone with the URL can view and edit every
-  assessment. Share the link privately; do not put real client data on a
-  public deployment until auth lands.
+- **Demo-grade authentication.** `/signin` lets anyone pick a seeded
+  demonstration user by email — there are no passwords. Every permission is
+  enforced server-side per membership role, but identity itself is not
+  verified. Share the link privately; do not put real client data on a
+  public deployment until a real identity provider replaces the demo
+  sign-in.
 - Evidence uploads are capped at **4 MB** (Vercel request-body limit).
   Uploaded files live in Vercel Blob under unguessable public URLs.
 - Local development is unchanged except the database: point `DATABASE_URL`

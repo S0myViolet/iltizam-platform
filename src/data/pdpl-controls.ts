@@ -1,1295 +1,994 @@
 // Egypt PDPL control library — seed data.
 //
-// Source of truth: "Egypt_PDPL_Law_and_Controls.docx" (7 July 2026) — Egypt
-// Personal Data Protection Law No. 151 of 2020 with Executive Regulations
-// No. 816 of 2025 (Decree of 1 November 2025). 85 controls across 14
-// domains: 64 legally mandatory, 21 important. Regulator: Personal Data
-// Protection Center (PDPC). Compliance deadline: 1 November 2026.
-//
-// Question wording, severity, domain and PDPL basis are VERBATIM from the
-// document (bases displayed with a "PDPL " prefix). Guidance fields
-// (description, whyItMatters, recommendedAction, evidenceExamples) are
-// product copy written around the document's own context — the licence and
-// permit regime, criminal exposure for sensitive data and cross-border
-// breaches, the 6-working-day rights deadline, the 72-hour PDPC / 3-working-
-// day affected-person breach notices, DPO registration, and the Holder role.
-// Per the document, the Impact Assessments domain is provisional throughout:
-// the Law contains no explicit DPIA duty, so those controls await
-// confirmation in the Executive Regulations and PDPC guidance. The document
-// also notes the whole library still needs counsel sign-off before client-
-// facing use.
+// Source of truth: "Egypt’s Personal Data Protection Law" document (7 July 2026)
+// — Law No. 151 of 2020 and Executive Regulations 816/2025. All 85 control
+// questions, severities, domains and PDPL article bases are verbatim from the
+// document (85 controls: 64 legally mandatory, 21 important, 14 domains).
+// The Impact Assessments domain is provisional per the document: the Law itself
+// contains no explicit DPIA duty; it derives from the Executive Regulations and
+// PDPC guidance. Guidance copy (whyItMatters / recommendedAction / evidence
+// examples) is product-authored and verified against the document’s Part One.
 
 import type { Severity } from "@/lib/types";
 
 export interface PdplDomainSeed {
   name: string;
-  code: string; // platform prefix inside EGP- codes, e.g. "GOV"
+  code: string;
   order: number;
   blurb: string;
-  expectedControls: number;
 }
 
-/** The 14 PDPL platform domains, in the order the document defines. */
 export const PDPL_DOMAINS: PdplDomainSeed[] = [
-  { name: "Governance & Accountability", code: "GOV", order: 1, expectedControls: 8, blurb: "PDPC licences, accountability and who answers for personal data in Egypt." },
-  { name: "Lawful Basis", code: "LAW", order: 2, expectedControls: 6, blurb: "Your legal ground under the PDPL for every use of personal data." },
-  { name: "Consent Management", code: "CON", order: 3, expectedControls: 7, blurb: "Explicit consent, written consent for sensitive data, guardians and marketing opt-outs." },
-  { name: "Data Subject Rights", code: "DSR", order: 4, expectedControls: 7, blurb: "Handling rights requests on the PDPL's six-working-day clock." },
-  { name: "Records of Processing", code: "ROP", order: 5, expectedControls: 5, blurb: "The electronic processing register and what the PDPC can ask to see." },
-  { name: "Data Protection Officer", code: "DPO", order: 6, expectedControls: 7, blurb: "Appointing, registering and empowering your DPO with the PDPC." },
-  { name: "Security Measures", code: "SEC", order: 7, expectedControls: 8, blurb: "Encryption, confidentiality and security the PDPL expects around personal data." },
-  { name: "Breach Management", code: "BRE", order: 8, expectedControls: 6, blurb: "72 hours to the PDPC, 3 working days to affected people, immediately for national security." },
-  { name: "Cross-Border Transfers", code: "TRF", order: 9, expectedControls: 6, blurb: "Licences, permits and protection-level checks before data leaves Egypt." },
-  { name: "Vendors & Processors", code: "VEN", order: 10, expectedControls: 6, blurb: "Processor licences and contracts for everyone handling data on your behalf." },
-  { name: "Retention & Disposal", code: "RET", order: 11, expectedControls: 5, blurb: "Keeping data only as long as the purpose lasts, and disposing of it properly." },
-  { name: "Privacy Notices", code: "NOT", order: 12, expectedControls: 5, blurb: "Telling people clearly — in plain Arabic — what you do with their data." },
-  { name: "Impact Assessments", code: "DPI", order: 13, expectedControls: 5, blurb: "Assessing privacy risk before high-risk processing (provisional pending PDPC guidance)." },
-  { name: "Training & Awareness", code: "TRA", order: 14, expectedControls: 4, blurb: "DPO-led training and the records that prove it happened." },
+  { name: "Governance & Accountability", code: "EG-GOV", order: 1, blurb: "Who owns data protection, the PDPC licence that permits processing at all, and proof for inspection." },
+  { name: "Lawful Basis", code: "EG-LAW", order: 2, blurb: "A recorded legal ground for every way you use personal data." },
+  { name: "Consent Management", code: "EG-CON", order: 3, blurb: "Explicit consent, properly captured, freely withdrawable — including marketing and children." },
+  { name: "Data Subject Rights", code: "EG-DSR", order: 4, blurb: "Access, correction, erasure and objection — answered within six working days." },
+  { name: "Records of Processing", code: "EG-ROP", order: 5, blurb: "The registers the law requires and the PDPC can demand." },
+  { name: "Data Protection Officer", code: "EG-DPO", order: 6, blurb: "Appointing, registering and empowering the DPO the PDPL requires." },
+  { name: "Security Measures", code: "EG-SEC", order: 7, blurb: "Safeguards proportionate to the data — encryption, access control, testing." },
+  { name: "Breach Management", code: "EG-BRE", order: 8, blurb: "72 hours to the PDPC, three working days to the person — with records to prove it." },
+  { name: "Cross-Border Transfers", code: "EG-TRF", order: 9, blurb: "Licensed transfers to destinations that protect data no less than Egypt." },
+  { name: "Vendors & Processors", code: "EG-VEN", order: 10, blurb: "Licensed, contracted processors acting only on your instructions." },
+  { name: "Retention & Disposal", code: "EG-RET", order: 11, blurb: "Keep only what you need, only as long as you declared." },
+  { name: "Privacy Notices", code: "EG-NOT", order: 12, blurb: "Telling people clearly — in plain Arabic — what you do with their data." },
+  { name: "Impact Assessments", code: "EG-DPI", order: 13, blurb: "Risk screening from the Executive Regulations — provisional until the text is confirmed." },
+  { name: "Training & Awareness", code: "EG-TRA", order: 14, blurb: "A workforce that knows its PDPL duties." },
 ];
 
 export interface PdplControlSeed {
-  /** Stable code: EGP-<domain>-<nn>, e.g. "EGP-GOV-01". */
   code: string;
-  /** Plain yes/no question — exact wording from the source document. */
-  question: string;
-  /** Formal/plain description of the obligation, from the document. */
-  description: string;
   domain: string;
+  question: string;
   severity: Severity;
-  /** PDPL basis citation from the document, e.g. "PDPL Art. 4(10), 26". */
   legalBasis: string;
-  evidenceExamples: string[];
+  provisional: boolean;
   whyItMatters: string;
   recommendedAction: string;
-  /** True where the document marks the control provisional (e.g. Impact Assessments). */
-  provisional?: boolean;
-  /** Roles the control applies to; defaults to ["controller"]. */
-  appliesToRoles?: string[];
+  evidenceExamples: string[];
 }
 
 export const PDPL_CONTROLS: PdplControlSeed[] = [
-  // ── 1. Governance & Accountability (8) ────────────────────────────────────
   {
-    code: "EGP-GOV-01",
-    question:
-      "Do you have written data-protection policies, approved by management and shared with staff?",
-    description:
-      "Adopt management-approved data-protection policies and make them known to staff, as part of the controller's general duties under the PDPL.",
+    code: "EG-GOV-01",
     domain: "Governance & Accountability",
+    question: "Do you have written data-protection policies, approved by management and shared with staff?",
     severity: "important",
-    legalBasis: "PDPL Art 4",
-    evidenceExamples: ["Signed policy", "Staff circulation record"],
-    whyItMatters:
-      "Written, approved policies are the first evidence of compliance the PDPC will expect a licensed organisation to produce.",
-    recommendedAction:
-      "Draft data-protection policies, obtain management approval, share them with all staff, and keep the circulation record.",
+    legalBasis: "Art 4",
+    provisional: false,
+    whyItMatters: "The PDPL holds the company — and in serious cases its people — responsible for how personal data is handled, so a written, management-approved policy is your first proof that protection is deliberate rather than ad hoc. It is also the baseline document the PDPC will expect to see when it inspects your compliance.",
+    recommendedAction: "Draft a data-protection policy covering collection, use, security, and rights handling, get it signed off by management, and circulate it to all staff with an acknowledgment.",
+    evidenceExamples: ["Data-protection policy", "Management approval minute", "Staff acknowledgment log"],
   },
   {
-    code: "EGP-GOV-02",
-    question:
-      "Is there a named senior person formally accountable for personal-data protection across the company?",
-    description:
-      "Assign formal senior accountability for personal-data protection across the organisation.",
+    code: "EG-GOV-02",
     domain: "Governance & Accountability",
+    question: "Is there a named senior person formally accountable for personal-data protection across the company?",
     severity: "important",
-    legalBasis: "PDPL Art 4",
-    evidenceExamples: ["Appointment memo", "Org chart"],
-    whyItMatters:
-      "PDPL duties attach to the organisation; without a named senior owner, licence conditions and deadlines have no one answerable for them.",
-    recommendedAction:
-      "Name a senior accountable owner for data protection in writing, distinct from (and senior sponsor to) the DPO.",
+    legalBasis: "Art 4",
+    provisional: false,
+    whyItMatters: "Under the PDPL, breaches of controller duties carry fines of up to EGP 3 million and some offences are criminal, so accountability cannot sit with no one. A named senior owner ensures decisions get made, deadlines like the 6-working-day rights response are met, and the PDPC has someone answerable at the top.",
+    recommendedAction: "Formally appoint a senior executive as the accountable owner of data protection, record it in their mandate, and announce it internally.",
+    evidenceExamples: ["Appointment letter", "Role description", "Org chart with reporting line"],
   },
   {
-    code: "EGP-GOV-03",
+    code: "EG-GOV-03",
+    domain: "Governance & Accountability",
     question: "Do you hold a valid licence or permit from the PDPC to process personal data?",
-    description:
-      "Hold a valid PDPC licence (three years) or permit (one year / specific purpose) covering your processing of personal data.",
-    domain: "Governance & Accountability",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.10, 26",
-    evidenceExamples: ["PDPC licence or permit", "Renewal tracking"],
-    whyItMatters:
-      "Processing without the required PDPC licence or permit is unlawful in itself — this is the gateway obligation the whole Egyptian regime hangs on.",
-    recommendedAction:
-      "Identify the licence or permit category your processing needs, apply to the PDPC, and diarise renewal well before expiry.",
+    legalBasis: "Art 4.10, 26",
+    provisional: false,
+    whyItMatters: "Egypt is unusual in requiring a licence or permit from the PDPC before you process personal data at all — a three-year licence for a company or a one-year permit for shorter purposes, with separate authorisations for sensitive data, cross-border transfers, and electronic marketing. Processing without one is a direct breach of the law, not a paperwork gap.",
+    recommendedAction: "Identify which PDPC licence or permit categories your processing needs and file the application, diarising the renewal date.",
+    evidenceExamples: ["PDPC licence", "Permit application receipt", "Licence renewal calendar"],
   },
   {
-    code: "EGP-GOV-04",
-    question:
-      "If your company is based outside Egypt, have you appointed a representative inside Egypt?",
-    description:
-      "Where established outside Egypt but within the PDPL's extraterritorial scope, appoint a representative inside Egypt.",
+    code: "EG-GOV-04",
     domain: "Governance & Accountability",
+    question: "If your company is based outside Egypt, have you appointed a representative inside Egypt?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.11, 5.12",
-    evidenceExamples: ["Appointment letter", "Representative contact record"],
-    whyItMatters:
-      "The PDPL reaches foreign companies processing Egyptians' data; the in-Egypt representative is how the PDPC holds them answerable.",
-    recommendedAction:
-      "If you serve or monitor people in Egypt from abroad, appoint an Egyptian representative in writing and record their details.",
+    legalBasis: "Art 4.11, 5.12",
+    provisional: false,
+    whyItMatters: "The PDPL reaches foreign companies that process the data of people in Egypt, and it requires them to appoint a representative inside the country. Without one, the PDPC has no local point of accountability and you are in breach before any data incident even occurs.",
+    recommendedAction: "Appoint and document an in-Egypt representative with a written mandate, and notify the PDPC of the appointment.",
+    evidenceExamples: ["Representative appointment agreement", "PDPC notification", "Representative contact record"],
   },
   {
-    code: "EGP-GOV-05",
-    question:
-      "Can you produce evidence of your compliance and allow the PDPC to inspect it on request?",
-    description:
-      "Maintain compliance evidence and cooperate with PDPC inspection and evidence-production requests.",
+    code: "EG-GOV-05",
     domain: "Governance & Accountability",
+    question: "Can you produce evidence of your compliance and allow the PDPC to inspect it on request?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.12",
-    evidenceExamples: ["Compliance evidence pack", "Inspection procedure"],
-    whyItMatters:
-      "The PDPC has inspection rights; failure to produce evidence turns an inspection into a violation even where the underlying practice was sound.",
-    recommendedAction:
-      "Keep an inspection-ready evidence pack (licences, register, policies, notices) and a procedure for handling PDPC requests.",
+    legalBasis: "Art 4.12",
+    provisional: false,
+    whyItMatters: "The PDPL obliges you to prove compliance to the PDPC on demand, not just to comply quietly. If an inspector arrives and you cannot produce your licence, registers, policies, and breach records quickly, the gap itself becomes the finding — regardless of how well you actually handle data.",
+    recommendedAction: "Assemble a single, current evidence pack — licence, processing register, policies, DPO registration, breach log — and assign someone to keep it inspection-ready.",
+    evidenceExamples: ["Compliance evidence pack", "Processing register", "Inspection-readiness checklist"],
   },
   {
-    code: "EGP-GOV-06",
-    question:
-      "Before you launch a new system, product, or campaign, do you check its privacy impact first?",
-    description:
-      "Run a privacy check before launching new systems, products or campaigns that process personal data.",
+    code: "EG-GOV-06",
     domain: "Governance & Accountability",
+    question: "Before you launch a new system, product, or campaign, do you check its privacy impact first?",
     severity: "important",
-    legalBasis: "PDPL Art 4",
-    evidenceExamples: ["Pre-launch checkpoint records"],
-    whyItMatters:
-      "Catching licence, consent or transfer issues before launch is far cheaper than unwinding them under PDPC scrutiny afterwards.",
-    recommendedAction:
-      "Add a privacy checkpoint to your launch process so nothing ships without a recorded review.",
+    legalBasis: "Art 4",
+    provisional: false,
+    whyItMatters: "Checking privacy impact before launch is how you catch a missing PDPC authorisation, an unlicensed cross-border transfer, or unconsented sensitive data before they become breaches — and the sensitive-data and cross-border offences in Egypt carry criminal penalties, not just fines. Fixing these after launch is far more expensive than screening first.",
+    recommendedAction: "Add a mandatory privacy screening step to your launch process for any new system, product, or campaign that touches personal data.",
+    evidenceExamples: ["Privacy screening checklist", "Completed screening records", "Launch sign-off form"],
   },
   {
-    code: "EGP-GOV-07",
-    question:
-      "Is it clear who owns data protection across each team — IT, HR, marketing, legal?",
-    description:
-      "Assign clear per-team ownership of data-protection duties across IT, HR, marketing and legal.",
+    code: "EG-GOV-07",
     domain: "Governance & Accountability",
+    question: "Is it clear who owns data protection across each team — IT, HR, marketing, legal?",
     severity: "important",
-    legalBasis: "PDPL Art 4",
-    evidenceExamples: ["RACI matrix"],
-    whyItMatters:
-      "PDPL deadlines are short — six working days for rights requests, 72 hours for breaches — and only pre-assigned owners can hit them.",
-    recommendedAction:
-      "Map every PDPL obligation to a named owner in each team and keep the matrix current.",
+    legalBasis: "Art 4",
+    provisional: false,
+    whyItMatters: "PDPL duties land in different teams — IT holds security, marketing holds consent and opt-outs, HR holds employee data — and deadlines like the 6-working-day rights response and 72-hour breach notification fail fastest when nobody knows whose job they are. Clear ownership per team is what turns a policy into practice.",
+    recommendedAction: "Assign a named data-protection owner in each team that handles personal data and record their responsibilities in a simple RACI.",
+    evidenceExamples: ["RACI matrix", "Team owner list", "Role descriptions"],
   },
   {
-    code: "EGP-GOV-08",
-    question:
-      "Do you keep a compliance calendar of recurring privacy tasks so nothing is missed?",
-    description:
-      "Maintain a compliance calendar of recurring privacy tasks — licence renewals, register reviews, training, audits.",
+    code: "EG-GOV-08",
     domain: "Governance & Accountability",
+    question: "Do you keep a compliance calendar of recurring privacy tasks so nothing is missed?",
     severity: "important",
-    legalBasis: "PDPL Art 4",
-    evidenceExamples: ["Compliance calendar", "Completion tracking"],
-    whyItMatters:
-      "Licences and permits expire on fixed terms; a missed renewal quietly converts lawful processing into unlicensed processing.",
-    recommendedAction:
-      "Build a calendar of recurring PDPL tasks with owners and due dates, starting with licence and permit renewals.",
+    legalBasis: "Art 4",
+    provisional: false,
+    whyItMatters: "PDPL compliance is full of dates that quietly expire: the three-year licence and one-year permits need renewing, registers need reviewing, training needs repeating, and security needs retesting. A missed renewal can mean you are suddenly processing without a valid PDPC authorisation.",
+    recommendedAction: "Build a compliance calendar listing every recurring privacy task and renewal date, with a named owner and reminder for each.",
+    evidenceExamples: ["Compliance calendar", "Licence renewal reminders", "Task completion log"],
   },
-
-  // ── 2. Lawful Basis (6) ───────────────────────────────────────────────────
   {
-    code: "EGP-LAW-01",
-    question:
-      "For every way you use personal data, have you identified and recorded a lawful basis under the PDPL?",
-    description:
-      "Identify and record a PDPL lawful basis for every processing activity before it starts.",
+    code: "EG-LAW-01",
     domain: "Lawful Basis",
+    question: "For every way you use personal data, have you identified and recorded a lawful basis under the PDPL?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 6",
-    evidenceExamples: ["Lawful basis register"],
-    whyItMatters:
-      "Processing without a lawful basis breaches the PDPL's core rule, and controller-duty failures carry fines up to EGP 3 million.",
-    recommendedAction:
-      "List every processing activity and record its PDPL basis in a register before new activities begin.",
+    legalBasis: "Art 6",
+    provisional: false,
+    whyItMatters: "The PDPL makes processing without a legal ground unlawful in itself, and failing controller duties draws fines of up to EGP 3 million. Recording the basis for every processing activity is also what lets you answer the PDPC — and a data subject — when either asks why you hold their data.",
+    recommendedAction: "Map every processing activity, assign each one a lawful basis under the PDPL, and record the pairing in your processing register.",
+    evidenceExamples: ["Lawful-basis register", "Data-mapping worksheet", "Processing register entries"],
   },
   {
-    code: "EGP-LAW-02",
+    code: "EG-LAW-02",
+    domain: "Lawful Basis",
     question: "Where you rely on consent, is it explicit and properly obtained before processing?",
-    description:
-      "Obtain explicit, properly formed consent before processing wherever consent is the basis relied on.",
-    domain: "Lawful Basis",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2",
-    evidenceExamples: ["Consent capture flow", "Consent records"],
-    whyItMatters:
-      "The PDPL requires consent to be explicit — implied or bundled consent leaves the processing without a basis at all.",
-    recommendedAction:
-      "Review every consent-based activity and confirm consent is captured explicitly, before processing starts.",
+    legalBasis: "Art 2",
+    provisional: false,
+    whyItMatters: "The PDPL demands explicit consent obtained before processing starts — implied or after-the-fact consent does not count, and for sensitive data processing without consent is a criminal offence carrying at least three months' imprisonment plus a fine of up to EGP 5 million. Consent is your most exposed basis if you cannot show it was properly captured.",
+    recommendedAction: "Review every consent capture point to confirm it asks explicitly, before processing begins, and stores proof of the response.",
+    evidenceExamples: ["Consent form wording", "Consent log", "Capture-point screenshots"],
   },
   {
-    code: "EGP-LAW-03",
-    question:
-      "Do you collect personal data only for specific, legitimate, and clearly declared purposes?",
-    description:
-      "Collect personal data only for specific, legitimate and declared purposes.",
+    code: "EG-LAW-03",
     domain: "Lawful Basis",
+    question: "Do you collect personal data only for specific, legitimate, and clearly declared purposes?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 3.1",
-    evidenceExamples: ["Purpose register", "Collection notices"],
-    whyItMatters:
-      "Purpose limitation is a named PDPL principle — undeclared purposes make the collection itself unlawful.",
-    recommendedAction:
-      "Declare the purpose at every collection point and check each dataset against its declared purpose.",
+    legalBasis: "Art 3.1",
+    provisional: false,
+    whyItMatters: "The PDPL requires the purpose to be specific, legitimate, and declared to the person at collection — vague catch-all purposes like 'business operations' do not satisfy it. Everything downstream, from retention periods to what you may lawfully do with the data, hangs off the purpose you declared.",
+    recommendedAction: "Audit every collection point and rewrite its stated purpose so it is specific, legitimate, and clearly communicated at the moment of collection.",
+    evidenceExamples: ["Purpose statements per collection point", "Privacy notice", "Collection form copies"],
   },
   {
-    code: "EGP-LAW-04",
-    question:
-      "Do you avoid using data in ways that conflict with your declared purpose or your activity?",
-    description:
-      "Do not process personal data in ways incompatible with the declared purpose or your activity.",
+    code: "EG-LAW-04",
     domain: "Lawful Basis",
+    question: "Do you avoid using data in ways that conflict with your declared purpose or your activity?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 3.6",
-    evidenceExamples: ["Purpose-change assessments"],
-    whyItMatters:
-      "Reuse beyond the declared purpose is a standalone violation, however lawful the original collection was.",
-    recommendedAction:
-      "Gate any new use of existing data behind a documented purpose-compatibility check.",
+    legalBasis: "Art 3.6",
+    provisional: false,
+    whyItMatters: "Under the PDPL, data collected for one purpose cannot be repurposed in ways that conflict with what was declared or with your actual activity — reusing a delivery address list for marketing, for example, is a new processing that needs its own ground (and for electronic marketing, its own consent). Purpose drift is one of the easiest breaches to commit without noticing.",
+    recommendedAction: "Institute a rule that any new use of existing data is checked against the originally declared purpose before it goes ahead, and log the decision.",
+    evidenceExamples: ["Purpose-compatibility checklist", "New-use approval log", "Declared-purpose register"],
   },
   {
-    code: "EGP-LAW-05",
-    question:
-      "Before handling sensitive data, do you confirm both a lawful basis and the required PDPC licence?",
-    description:
-      "Confirm a lawful basis and hold the required PDPC sensitive-data licence before processing sensitive personal data.",
+    code: "EG-LAW-05",
     domain: "Lawful Basis",
+    question: "Before handling sensitive data, do you confirm both a lawful basis and the required PDPC licence?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 6, 12",
-    evidenceExamples: ["Sensitive-data licence", "Basis assessment"],
-    whyItMatters:
-      "Sensitive data is the PDPL's criminal zone: processing it without consent or licence carries at least three months' imprisonment and fines up to EGP 5 million.",
-    recommendedAction:
-      "Inventory sensitive data, confirm the basis for each use, and obtain the PDPC sensitive-data licence before processing.",
+    legalBasis: "Art 6, 12",
+    provisional: false,
+    whyItMatters: "Sensitive data is where the PDPL bites hardest: it needs both a legal ground with explicit consent and a separate PDPC licence, and handling sensitive data without consent is a criminal offence — at least three months' imprisonment plus a fine of up to EGP 5 million. This is a two-part check, and missing either half is a breach.",
+    recommendedAction: "Inventory every place you handle sensitive data, then verify each has explicit written consent and is covered by a sensitive-data licence from the PDPC before processing continues.",
+    evidenceExamples: ["Sensitive-data inventory", "PDPC sensitive-data licence", "Explicit consent records"],
   },
   {
-    code: "EGP-LAW-06",
-    question:
-      "When you rely on a basis other than consent, have you documented which one and why it fits?",
-    description:
-      "Document the non-consent lawful basis relied on for each activity and why it applies.",
+    code: "EG-LAW-06",
     domain: "Lawful Basis",
+    question: "When you rely on a basis other than consent, have you documented which one and why it fits?",
     severity: "important",
-    legalBasis: "PDPL Art 6",
-    evidenceExamples: ["Basis memos"],
-    whyItMatters:
-      "When the PDPC asks why processing was lawful, a written basis decided in advance is worth far more than one reconstructed afterwards.",
-    recommendedAction:
-      "Write a short basis memo for every non-consent activity, naming the basis and the reasoning.",
+    legalBasis: "Art 6",
+    provisional: false,
+    whyItMatters: "If you skip consent, the burden is on you to show which other legal ground applies and why it genuinely fits the processing — undocumented reasoning looks like no reasoning when the PDPC or a complainant asks. A short written justification, made at the time, is far more credible than one reconstructed after a dispute.",
+    recommendedAction: "For each non-consent processing activity, write a short justification naming the legal ground and why it applies, and file it with your processing register.",
+    evidenceExamples: ["Lawful-basis justification memos", "Processing register entries", "Legal review sign-off"],
   },
-
-  // ── 3. Consent Management (7) ─────────────────────────────────────────────
   {
-    code: "EGP-CON-01",
-    question:
-      "Is consent captured as a clear, explicit, affirmative action — never pre-ticked boxes or silence?",
-    description:
-      "Capture consent through a clear, explicit, affirmative action; pre-ticked boxes and silence do not qualify.",
+    code: "EG-CON-01",
     domain: "Consent Management",
+    question: "Is consent captured as a clear, explicit, affirmative action — never pre-ticked boxes or silence?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2",
-    evidenceExamples: ["Consent UX screens", "Configuration"],
-    whyItMatters:
-      "Consent that isn't explicit is void under the PDPL — everything processed on top of it loses its legal ground.",
-    recommendedAction:
-      "Audit every consent screen and form: unticked, separate, affirmative opt-ins only.",
+    legalBasis: "Art 2",
+    provisional: false,
+    whyItMatters: "Under Egypt's PDPL, consent only counts if the person actively and explicitly agrees — a pre-ticked box or someone's silence gives you no lawful basis at all. Processing without valid consent exposes you to fixed fines in Egyptian pounds, and where sensitive data is involved the exposure becomes criminal, with imprisonment plus fines up to EGP 5 million.",
+    recommendedAction: "Audit every form, app screen, and sign-up flow, and replace any pre-ticked boxes or implied-consent wording with an unticked, affirmative opt-in.",
+    evidenceExamples: ["Consent form screenshots", "Consent flow audit", "Sign-up UX specification"],
   },
   {
-    code: "EGP-CON-02",
-    question:
-      "Can people withdraw consent as easily as they gave it, and does that stop the processing?",
-    description:
-      "Provide withdrawal of consent as easy as giving it, with withdrawal actually halting the processing.",
+    code: "EG-CON-02",
     domain: "Consent Management",
+    question: "Can people withdraw consent as easily as they gave it, and does that stop the processing?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2.2",
-    evidenceExamples: ["Withdrawal mechanism", "Processing stop confirmation"],
-    whyItMatters:
-      "The PDPL makes withdrawal a right of the data subject; consent that is hard to withdraw was never freely given.",
-    recommendedAction:
-      "Add a one-step withdrawal path beside every consent and test that withdrawing stops the processing.",
+    legalBasis: "Art 2.2",
+    provisional: false,
+    whyItMatters: "The PDPL makes consent freely withdrawable — if withdrawing is harder than agreeing, or processing quietly continues afterwards, your lawful basis collapses and every use of that data since the withdrawal is unlawful. Denying someone this right can draw fines of up to EGP 1 million.",
+    recommendedAction: "Add a one-step withdrawal route in every channel where consent is collected, and test that withdrawal actually halts the downstream processing.",
+    evidenceExamples: ["Withdrawal request log", "Suppression list", "Consent system test record"],
   },
   {
-    code: "EGP-CON-03",
+    code: "EG-CON-03",
+    domain: "Consent Management",
     question: "Can you show, later, who consented, to what, and when?",
-    description: "Keep demonstrable consent records: who consented, to what, and when.",
-    domain: "Consent Management",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2, 18",
-    evidenceExamples: ["Consent log"],
-    whyItMatters:
-      "In a PDPC inspection or dispute, consent you cannot evidence is consent that does not exist.",
-    recommendedAction:
-      "Log every consent with person, timestamp, wording version and channel, and keep the log queryable.",
+    legalBasis: "Art 2, 18",
+    provisional: false,
+    whyItMatters: "If the PDPC inspects you or a person disputes their consent, the burden falls on you to prove who agreed, to exactly what, and when. Without timestamped records, valid consent is legally indistinguishable from no consent — and processing without it is a fineable breach.",
+    recommendedAction: "Set up a consent register that captures identity, consent text version, timestamp, and channel for every consent event.",
+    evidenceExamples: ["Consent log", "Consent text version history", "Consent database export"],
   },
   {
-    code: "EGP-CON-04",
+    code: "EG-CON-04",
+    domain: "Consent Management",
     question: "For sensitive personal data, do you obtain explicit written consent?",
-    description: "Obtain explicit written consent before processing sensitive personal data.",
-    domain: "Consent Management",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 12",
-    evidenceExamples: ["Written consent records"],
-    whyItMatters:
-      "Sensitive data demands written consent on top of licensing — and failures here are the PDPL's imprisonment tier.",
-    recommendedAction:
-      "Upgrade sensitive-data consent flows to explicit written form and retain the signed records.",
+    legalBasis: "Art 12",
+    provisional: false,
+    whyItMatters: "This is one of the PDPL's criminal provisions: handling sensitive personal data — health, biometrics, religion, finances, children's data — without explicit written consent carries imprisonment of at least three months plus a fine of up to EGP 5 million. Sensitive data also needs its own PDPC licence, so consent alone is not the whole picture.",
+    recommendedAction: "Identify every place you touch sensitive data and implement a documented written-consent step before any processing begins.",
+    evidenceExamples: ["Written consent forms", "Sensitive-data inventory", "PDPC sensitive-data licence"],
   },
   {
-    code: "EGP-CON-05",
+    code: "EG-CON-05",
+    domain: "Consent Management",
     question: "For a child’s data, do you obtain the guardian’s consent first?",
-    description: "Obtain the guardian's consent before processing a child's personal data.",
-    domain: "Consent Management",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 12",
-    evidenceExamples: ["Guardian consent records", "Age screening"],
-    whyItMatters:
-      "A child cannot consent under the PDPL — without the guardian's prior consent there is no basis at all.",
-    recommendedAction:
-      "Add age screening and a guardian-consent step wherever children's data can enter your systems.",
+    legalBasis: "Art 12",
+    provisional: false,
+    whyItMatters: "Children's data is treated as sensitive under the PDPL, so processing it without the guardian's prior consent falls into the law's criminal tier — imprisonment plus fines up to EGP 5 million, not just an administrative penalty. The guardian must agree before any collection, not after.",
+    recommendedAction: "Build an age check into onboarding and block collection of a child's data until guardian consent is captured and recorded.",
+    evidenceExamples: ["Guardian consent records", "Age verification workflow", "Child-data processing policy"],
   },
   {
-    code: "EGP-CON-06",
-    question:
-      "Do you avoid making a child’s entry to a game or competition conditional on extra data?",
-    description:
-      "Do not condition a child's participation in a game or competition on providing data beyond what the activity needs.",
+    code: "EG-CON-06",
     domain: "Consent Management",
+    question: "Do you avoid making a child’s entry to a game or competition conditional on extra data?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 12",
-    evidenceExamples: ["Entry flow review"],
-    whyItMatters:
-      "The PDPL specifically bans trading a child's participation for extra data — a detail generic frameworks miss.",
-    recommendedAction:
-      "Review every child-facing game or competition entry flow and strip data fields the activity doesn't need.",
+    legalBasis: "Art 12",
+    provisional: false,
+    whyItMatters: "The PDPL specifically prohibits making a child's participation in a game or competition conditional on handing over more data than the activity genuinely needs. Because children's data sits in the law's sensitive, criminally-sanctioned category, over-collecting here is one of the riskiest gaps a consumer-facing business can carry.",
+    recommendedAction: "Review every child-facing game, contest, or promotion and strip data fields down to the minimum the activity actually requires.",
+    evidenceExamples: ["Competition entry form review", "Data minimisation checklist", "Child-facing product audit"],
   },
   {
-    code: "EGP-CON-07",
-    question:
-      "For electronic marketing, do you have prior consent and a clear opt-out in every message?",
-    description:
-      "Obtain prior consent for electronic marketing and include a clear opt-out in every message.",
+    code: "EG-CON-07",
     domain: "Consent Management",
+    question: "For electronic marketing, do you have prior consent and a clear opt-out in every message?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 17",
-    evidenceExamples: ["Marketing consent records", "Message templates with opt-out"],
-    whyItMatters:
-      "Electronic marketing without prior consent is a named PDPL violation, and every message must carry its own way out.",
-    recommendedAction:
-      "Gate marketing sends on recorded prior consent and add a working opt-out to every template.",
+    legalBasis: "Art 17",
+    provisional: false,
+    whyItMatters: "Article 17 of the PDPL requires consent before you send electronic marketing and a visible opt-out in every single message — and electronic marketing needs its own PDPC authorisation on top of your base licence. Sending to people who never opted in, or hiding the unsubscribe, is a breach on every send.",
+    recommendedAction: "Purge marketing lists of anyone without recorded prior consent and add a working unsubscribe link to every message template.",
+    evidenceExamples: ["Marketing opt-in records", "Unsubscribe log", "PDPC marketing authorisation"],
   },
-
-  // ── 4. Data Subject Rights (7) ────────────────────────────────────────────
   {
-    code: "EGP-DSR-01",
+    code: "EG-DSR-01",
+    domain: "Data Subject Rights",
     question: "Can people see the data you hold on them and get a copy on request?",
-    description: "Provide data subjects access to their data and a copy on request.",
-    domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2.1",
-    evidenceExamples: ["Access response procedure"],
-    whyItMatters:
-      "Access is the PDPL's gateway right — denying it draws fines up to EGP 1 million.",
-    recommendedAction:
-      "Test that you can assemble one person's data from all systems and hand it over on request.",
+    legalBasis: "Art 2.1",
+    provisional: false,
+    whyItMatters: "Access is the first right the PDPL grants, and the clock is short: you have six working days to respond, far tighter than the GDPR's one month. Denying someone their rights can draw fines of up to EGP 1 million, and you cannot answer at all if you can't find and export a person's data quickly.",
+    recommendedAction: "Map where each person's data lives across your systems and build a repeatable export process that produces a complete copy within days, not weeks.",
+    evidenceExamples: ["Access request log", "Data export procedure", "Data map"],
   },
   {
-    code: "EGP-DSR-02",
+    code: "EG-DSR-02",
+    domain: "Data Subject Rights",
     question: "Can people correct, update, complete, or erase their data?",
-    description: "Operate correction, update, completion and erasure of personal data on request.",
-    domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2.3",
-    evidenceExamples: ["Procedure docs", "Completion logs"],
-    whyItMatters:
-      "Correction and erasure are enumerated PDPL rights; refusing them is a rights violation with direct fines.",
-    recommendedAction:
-      "Document and test the correction/erasure procedure across every system holding personal data.",
+    legalBasis: "Art 2.3",
+    provisional: false,
+    whyItMatters: "The PDPL gives people the right to have their data corrected, completed, or erased — and like all rights requests, you must act within six working days. A correction that never reaches your backups, vendor systems, or marketing tools leaves you holding unlawful, inaccurate data and exposed to fines of up to EGP 1 million for denying the right.",
+    recommendedAction: "Document a correction-and-erasure procedure that propagates changes to every system and processor holding the person's data.",
+    evidenceExamples: ["Rectification request log", "Erasure confirmation records", "System propagation checklist"],
   },
   {
-    code: "EGP-DSR-03",
+    code: "EG-DSR-03",
+    domain: "Data Subject Rights",
     question: "Can people ask you to limit the scope of processing?",
-    description: "Honour requests to restrict or limit the scope of processing.",
-    domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2.4",
-    evidenceExamples: ["Restriction procedure"],
-    whyItMatters:
-      "Limitation is its own PDPL right — systems must be able to keep data while pausing its use.",
-    recommendedAction:
-      "Add a restriction state to your systems so processing can be limited without deleting the record.",
+    legalBasis: "Art 2.4",
+    provisional: false,
+    whyItMatters: "Restriction is a distinct PDPL right: a person can demand you narrow processing to a specific purpose or scope, and you must be able to keep the data while freezing the disputed use — within the same six-working-day window. Most systems have delete and edit but no 'pause', which makes this the right companies most often cannot technically honour.",
+    recommendedAction: "Add a restriction flag or hold status to your core systems so specific processing can be suspended without deleting the record.",
+    evidenceExamples: ["Restriction request log", "Processing hold flag documentation", "System configuration record"],
   },
   {
-    code: "EGP-DSR-04",
+    code: "EG-DSR-04",
+    domain: "Data Subject Rights",
     question: "Can people object to how their data is processed?",
-    description: "Provide a working path for data subjects to object to processing.",
-    domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2.6",
-    evidenceExamples: ["Objection handling procedure"],
-    whyItMatters:
-      "Objection is an enumerated right; ignoring one converts routine processing into a violation.",
-    recommendedAction:
-      "Route objections to a named owner with a documented decision procedure and deadline tracking.",
+    legalBasis: "Art 2.6",
+    provisional: false,
+    whyItMatters: "The PDPL lets people object to processing that conflicts with their fundamental rights or the purposes you declared, and ignoring an objection is a denial of rights that can cost up to EGP 1 million. You need a route to receive the objection, assess it, and stop or justify the processing within six working days.",
+    recommendedAction: "Create an objection-handling procedure that defines who assesses each objection, on what grounds, and how the outcome is recorded and communicated.",
+    evidenceExamples: ["Objection request log", "Objection assessment procedure", "Response templates"],
   },
   {
-    code: "EGP-DSR-05",
+    code: "EG-DSR-05",
+    domain: "Data Subject Rights",
     question: "Do you respond to a rights request within 6 working days?",
-    description: "Answer data-subject rights requests within six working days.",
-    domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 10, 32",
-    evidenceExamples: ["SLA tracking", "Request register"],
-    whyItMatters:
-      "Six working days is far tighter than the GDPR's month — without tracking from day one, the deadline is missed before anyone notices.",
-    recommendedAction:
-      "Track every request with its six-working-day deadline and alert owners well before it falls due.",
+    legalBasis: "Art 10, 32",
+    provisional: false,
+    whyItMatters: "Six working days is one of the PDPL's hardest deadlines — roughly a quarter of the time the GDPR allows — and it applies to every right: access, correction, erasure, restriction, and objection. Missing it turns a routine request into a denial of rights, fineable up to EGP 1 million, so the deadline has to be engineered into your process, not left to whoever spots the email.",
+    recommendedAction: "Stand up a tracked rights-request workflow with an automatic deadline counter and escalation to the DPO well before day six.",
+    evidenceExamples: ["Rights request tracker", "SLA report", "Escalation procedure"],
   },
   {
-    code: "EGP-DSR-06",
+    code: "EG-DSR-06",
+    domain: "Data Subject Rights",
     question: "Is there an easy way to submit a request, and do you verify who is asking?",
-    description:
-      "Provide an easy intake channel for rights requests and verify the requester's identity.",
-    domain: "Data Subject Rights",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 10",
-    evidenceExamples: ["Request channel", "Verification procedure"],
-    whyItMatters:
-      "With six working days on the clock, a lost request is a missed deadline — and data released to the wrong person is a breach.",
-    recommendedAction:
-      "Publish a request channel, log every request on arrival, and verify identity before acting.",
+    legalBasis: "Art 10",
+    provisional: false,
+    whyItMatters: "The PDPL expects a genuine channel for people to exercise their rights — if a request can't practically be made, the right is effectively denied. Verification cuts the other way: handing someone's data to an impostor is itself a breach, potentially triggering the 72-hour PDPC notification and 3-working-day person notification duties.",
+    recommendedAction: "Publish a clear request channel (form or dedicated email) and define an identity-verification step proportionate to the sensitivity of the data requested.",
+    evidenceExamples: ["Published request form", "Identity verification procedure", "Request intake log"],
   },
   {
-    code: "EGP-DSR-07",
-    question:
-      "Is any fee for exercising rights within the legal cap (max EGP 20,000), and is breach notice always free?",
-    description:
-      "Keep any rights-request fee within the legal cap (max EGP 20,000) and never charge for breach notification.",
+    code: "EG-DSR-07",
     domain: "Data Subject Rights",
+    question: "Is any fee for exercising rights within the legal cap (max EGP 20,000), and is breach notice always free?",
     severity: "important",
-    legalBasis: "PDPL Art 2",
-    evidenceExamples: ["Fee schedule"],
-    whyItMatters:
-      "The PDPL lets you charge for rights handling only within a capped fee — and telling someone they were breached must always be free.",
-    recommendedAction:
-      "Set your fee schedule against the cap and hard-code breach notices as free of charge.",
+    legalBasis: "Art 2",
+    provisional: false,
+    whyItMatters: "The PDPL lets you charge a service fee for handling rights requests but caps it at EGP 20,000, and it draws one absolute line: telling a person their data was breached must always be free. Charging above the cap, or charging anything for a breach notification, converts a routine administrative step into a violation.",
+    recommendedAction: "Set your rights-request fee schedule in writing, confirm it sits under the EGP 20,000 cap, and state explicitly that breach notifications carry no charge.",
+    evidenceExamples: ["Fee schedule", "Rights request policy", "Breach notification template"],
   },
-
-  // ── 5. Records of Processing (5) ──────────────────────────────────────────
   {
-    code: "EGP-ROP-01",
+    code: "EG-ROP-01",
+    domain: "Records of Processing",
     question: "Do you keep a register of your personal-data processing activities?",
-    description: "Maintain a register of personal-data processing activities.",
-    domain: "Records of Processing",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.9",
-    evidenceExamples: ["Processing register"],
-    whyItMatters:
-      "The register is a named controller duty and the PDPC's map of your processing — its absence is a violation on its own.",
-    recommendedAction:
-      "Build the processing register now and make updating it part of every new project.",
+    legalBasis: "Art 4.9",
+    provisional: false,
+    whyItMatters: "The PDPL makes a processing register a named controller duty, and failing controller duties carries fines of up to three million Egyptian pounds. It is also the first document the PDPC will ask to see, so without it you cannot demonstrate anything else you do is under control.",
+    recommendedAction: "Create a register listing every processing activity — purpose, data categories, lawful basis, retention, and security measures — and assign an owner to maintain it.",
+    evidenceExamples: ["Processing register", "Data inventory export", "Register owner assignment"],
   },
   {
-    code: "EGP-ROP-02",
+    code: "EG-ROP-02",
+    domain: "Records of Processing",
     question: "If you process data for clients, do you keep a processor register too?",
-    description: "Maintain a processor register for processing performed on behalf of clients.",
-    domain: "Records of Processing",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 5.9",
-    evidenceExamples: ["Processor register"],
-    whyItMatters:
-      "Processors carry their own PDPL register duty — working on a client's behalf does not exempt you.",
-    recommendedAction:
-      "Keep a separate register of client processing: categories, scope, retention and security.",
-    appliesToRoles: ["processor"],
+    legalBasis: "Art 5.9",
+    provisional: false,
+    whyItMatters: "Egyptian law puts a separate register duty on processors in their own name — acting for a client does not exempt you, and processor-duty failures draw the same fines in Egyptian pounds. If you both control your own data and process for others, the PDPC expects to see both registers.",
+    recommendedAction: "Set up a distinct processor register covering each client engagement — the controller, the data handled, the instructions, and the retention terms.",
+    evidenceExamples: ["Processor register", "Client engagement log", "Controller instruction records"],
   },
   {
-    code: "EGP-ROP-03",
-    question:
-      "Is the register secure and electronic — covering consent, categories, scope, retention, and security?",
-    description:
-      "Keep the register electronic and secure, covering consent, data categories, scope, retention and security measures.",
+    code: "EG-ROP-03",
     domain: "Records of Processing",
+    question: "Is the register secure and electronic — covering consent, categories, scope, retention, and security?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.9; ER",
-    evidenceExamples: ["Electronic register", "Access controls"],
-    whyItMatters:
-      "The Executive Regulations specify the register's electronic form and required contents — a spreadsheet missing fields fails the duty.",
-    recommendedAction:
-      "Move the register to a secured electronic system and check its fields against the Executive Regulations list.",
+    legalBasis: "Art 4.9; ER",
+    provisional: false,
+    whyItMatters: "The Executive Regulations do not leave the register's form to you: it must be electronic, kept securely, and cover specific content including consent, data categories, scope, retention, and security measures. A spreadsheet missing those fields, or a paper file, can itself be a gap even if you are otherwise diligent.",
+    recommendedAction: "Move the register to a secure electronic system and check it captures every required field — consent records, categories, scope, retention periods, and security measures.",
+    evidenceExamples: ["Electronic register screenshot", "Register field checklist", "Access-control settings"],
   },
   {
-    code: "EGP-ROP-04",
+    code: "EG-ROP-04",
+    domain: "Records of Processing",
     question: "Can you produce the register for the PDPC on request?",
-    description: "Be able to produce the processing register to the PDPC on request.",
-    domain: "Records of Processing",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.12",
-    evidenceExamples: ["Production procedure"],
-    whyItMatters:
-      "A register you cannot produce during an inspection might as well not exist.",
-    recommendedAction:
-      "Define who produces the register, from where, in what format — and dry-run it once.",
+    legalBasis: "Art 4.12",
+    provisional: false,
+    whyItMatters: "The law gives the PDPC the right to inspect your evidence of compliance on request, and the register is the core of that evidence. Scrambling to reconstruct it during an inspection reads as non-compliance, whereas producing it on the spot shows the regulator your programme is real.",
+    recommendedAction: "Run a dry-run: export the current register today and confirm it is complete, current, and producible within hours, not weeks.",
+    evidenceExamples: ["Register export", "Inspection-readiness checklist", "Last-review timestamp"],
   },
   {
-    code: "EGP-ROP-05",
+    code: "EG-ROP-05",
+    domain: "Records of Processing",
     question: "Does your DPO keep the register reviewed, accurate, and up to date?",
-    description: "Have the DPO review and maintain the accuracy of the processing register.",
-    domain: "Records of Processing",
     severity: "important",
-    legalBasis: "PDPL Art 9.6",
-    evidenceExamples: ["Review log"],
-    whyItMatters:
-      "Register upkeep is one of the DPO's statutory tasks — a stale register signals an inactive DPO to the PDPC.",
-    recommendedAction:
-      "Put register review on the DPO's recurring calendar and log each review.",
+    legalBasis: "Art 9.6",
+    provisional: false,
+    whyItMatters: "The PDPL specifically tasks your DPO with keeping the register accurate and current — a register that was correct at launch but has drifted from reality undermines every answer you give the PDPC. New systems, vendors, and campaigns all change what should be in it.",
+    recommendedAction: "Schedule a recurring DPO review of the register — at least quarterly — and log each review with the changes made.",
+    evidenceExamples: ["Register review log", "DPO sign-off record", "Change history"],
   },
-
-  // ── 6. Data Protection Officer (7) ────────────────────────────────────────
   {
-    code: "EGP-DPO-01",
+    code: "EG-DPO-01",
+    domain: "Data Protection Officer",
     question: "Have you appointed a Data Protection Officer?",
-    description: "Appoint a Data Protection Officer.",
-    domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 8",
-    evidenceExamples: ["Appointment letter"],
-    whyItMatters:
-      "The DPO is mandatory under the PDPL — most of the law's operational duties run through this role.",
-    recommendedAction: "Appoint a qualified DPO formally, in writing, with defined duties.",
+    legalBasis: "Art 8",
+    provisional: false,
+    whyItMatters: "Appointing a DPO is a direct legal duty under the PDPL, not a best practice — operating without one is a breach in itself, with fines set in Egyptian pounds. The DPO is also the person the law expects to run your evaluations, handle requests within the 6-working-day deadline, and notify the PDPC of breaches, so without one those duties have no owner.",
+    recommendedAction: "Formally appoint a qualified DPO in writing, with a defined mandate, reporting line, and the resources to do the job.",
+    evidenceExamples: ["DPO appointment letter", "DPO job description", "Board or management resolution"],
   },
   {
-    code: "EGP-DPO-02",
+    code: "EG-DPO-02",
+    domain: "Data Protection Officer",
     question: "Is your DPO registered in the PDPC’s DPO register?",
-    description: "Register the appointed DPO in the PDPC's DPO register.",
-    domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 8",
-    evidenceExamples: ["PDPC registration record"],
-    whyItMatters:
-      "Appointment alone is not enough — an unregistered DPO leaves the statutory duty unmet.",
-    recommendedAction: "File the DPO's registration with the PDPC and keep the confirmation.",
+    legalBasis: "Art 8",
+    provisional: false,
+    whyItMatters: "Under the PDPL it is not enough to appoint a DPO internally — the officer must be entered in the PDPC's own DPO register. An unregistered DPO leaves you formally non-compliant even if the role is being performed well day to day.",
+    recommendedAction: "Submit your DPO's registration to the PDPC and keep the confirmation on file, updating it whenever the officer changes.",
+    evidenceExamples: ["PDPC registration confirmation", "DPO register entry", "Registration renewal record"],
   },
   {
-    code: "EGP-DPO-03",
-    question:
-      "Does your DPO run periodic evaluations of your data-protection systems and document the results?",
-    description:
-      "Have the DPO periodically evaluate data-protection systems and document the results.",
+    code: "EG-DPO-03",
     domain: "Data Protection Officer",
+    question: "Does your DPO run periodic evaluations of your data-protection systems and document the results?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 9.1",
-    evidenceExamples: ["Evaluation reports"],
-    whyItMatters:
-      "Periodic evaluation is a statutory DPO task — undocumented evaluations cannot be shown to the PDPC.",
-    recommendedAction:
-      "Schedule recurring DPO evaluations of systems and keep the written results.",
+    legalBasis: "Art 9.1",
+    provisional: false,
+    whyItMatters: "The law explicitly requires the DPO to periodically evaluate your data-protection and breach-prevention systems — it is a named duty, not optional housekeeping. Documented evaluations are also your best proof to the PDPC that problems are found and fixed before the regulator finds them.",
+    recommendedAction: "Set a fixed evaluation cycle for the DPO and require a written report with findings and remediation actions after each round.",
+    evidenceExamples: ["Periodic evaluation report", "Remediation action tracker", "Evaluation schedule"],
   },
   {
-    code: "EGP-DPO-04",
+    code: "EG-DPO-04",
+    domain: "Data Protection Officer",
     question: "Is your DPO the point of contact with the PDPC?",
-    description: "Make the DPO the organisation's point of contact with the PDPC.",
-    domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 9.2",
-    evidenceExamples: ["Contact designation", "Correspondence records"],
-    whyItMatters:
-      "The PDPC expects one accountable channel; regulator contact routed around the DPO breaks the statutory design.",
-    recommendedAction:
-      "Designate the DPO as PDPC contact in filings and route all regulator correspondence through them.",
+    legalBasis: "Art 9.2",
+    provisional: false,
+    whyItMatters: "The PDPL designates the DPO as your company's liaison with the PDPC — the regulator expects one named, reachable person, especially when hard deadlines like the 72-hour breach notification are running. Unclear contact lines cost exactly the hours those deadlines don't allow.",
+    recommendedAction: "Give the PDPC your DPO's current contact details and publish them internally so staff know who speaks to the regulator.",
+    evidenceExamples: ["PDPC contact notification", "DPO contact details on record", "Internal escalation chart"],
   },
   {
-    code: "EGP-DPO-05",
+    code: "EG-DPO-05",
+    domain: "Data Protection Officer",
     question: "Does your DPO handle data-subject requests and complaints?",
-    description: "Have the DPO receive and handle data-subject requests and complaints.",
-    domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 9.3, 9.5",
-    evidenceExamples: ["Request register", "Complaint records"],
-    whyItMatters:
-      "Requests and complaints are statutory DPO business — and the six-working-day clock runs while they sit unrouted.",
-    recommendedAction:
-      "Route the rights-request channel to the DPO and log every request and complaint they handle.",
+    legalBasis: "Art 9.3, 9.5",
+    provisional: false,
+    whyItMatters: "The law routes data-subject requests and complaints through the DPO, and the PDPL gives you only 6 working days to respond — one of the shortest rights deadlines anywhere. Denying people their rights carries fines of up to one million Egyptian pounds, so requests that never reach the DPO are a direct financial risk.",
+    recommendedAction: "Route all rights requests and complaints to the DPO through a single intake channel, with a tracker that flags the 6-working-day deadline.",
+    evidenceExamples: ["Rights request tracker", "Complaint log", "Intake procedure"],
   },
   {
-    code: "EGP-DPO-06",
+    code: "EG-DPO-06",
+    domain: "Data Protection Officer",
     question: "Does your DPO notify the PDPC when a breach occurs?",
-    description: "Have the DPO notify the PDPC of personal-data breaches.",
-    domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 9.4",
-    evidenceExamples: ["Notification procedure", "Timestamped notices"],
-    whyItMatters:
-      "Breach notification is personally on the DPO's task list — the 72-hour clock needs a named sender, ready in advance.",
-    recommendedAction:
-      "Put the DPO in the breach workflow as the PDPC notifier, with the template and channel prepared.",
+    legalBasis: "Art 9.4",
+    provisional: false,
+    whyItMatters: "Breach notification to the PDPC is the DPO's named legal duty, and the clock is brutal: 72 hours to the PDPC and 3 working days to the affected person. If the DPO is not wired into incident response from the first alert, those deadlines are almost impossible to hit.",
+    recommendedAction: "Build the DPO into your incident-response plan as the mandatory notifier, with a ready PDPC notification template and a tested escalation path.",
+    evidenceExamples: ["Breach notification template", "Incident escalation procedure", "Breach register"],
   },
   {
-    code: "EGP-DPO-07",
+    code: "EG-DPO-07",
+    domain: "Data Protection Officer",
     question: "Does your DPO fix violations inside the company and run staff training?",
-    description:
-      "Have the DPO remedy internal violations and run staff data-protection training.",
-    domain: "Data Protection Officer",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 9.7, 9.8",
-    evidenceExamples: ["Remediation log", "Training records"],
-    whyItMatters:
-      "The PDPL casts the DPO as internal enforcer and trainer — a title without these activities fails the statute.",
-    recommendedAction:
-      "Give the DPO a remediation log and a training programme, and keep both active.",
+    legalBasis: "Art 9.7, 9.8",
+    provisional: false,
+    whyItMatters: "The PDPL charges the DPO with correcting violations internally and preparing staff through training — the law treats prevention as part of the role, not an extra. Untrained staff are behind most breaches, and some PDPL breaches (sensitive data, cross-border) carry criminal penalties including imprisonment, so this is where individual exposure gets managed.",
+    recommendedAction: "Give the DPO documented authority to order internal corrections, and run a recurring PDPL training programme with completion records for every employee.",
+    evidenceExamples: ["Violation remediation log", "Training completion records", "Training curriculum"],
   },
-
-  // ── 7. Security Measures (8) ──────────────────────────────────────────────
   {
-    code: "EGP-SEC-01",
-    question:
-      "Have you assessed the risks to personal data and put matching security measures in place?",
-    description:
-      "Assess the risks to personal data and implement security measures matching those risks.",
+    code: "EG-SEC-01",
     domain: "Security Measures",
+    question: "Have you assessed the risks to personal data and put matching security measures in place?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.6",
-    evidenceExamples: ["Risk assessment", "Security measure inventory"],
-    whyItMatters:
-      "Securing the data is a named controller duty — and the reference point for every breach the PDPC later examines.",
-    recommendedAction:
-      "Run a risk assessment over personal-data systems and align measures to what it finds.",
+    legalBasis: "Art 4.6",
+    provisional: false,
+    whyItMatters: "Article 4.6 makes securing personal data a named duty, and failing controller or processor duties carries fines of up to EGP 3 million. A documented risk assessment is what shows the PDPC that your security matches your actual threats rather than guesswork.",
+    recommendedAction: "Run a risk assessment covering every system that holds personal data, and map each identified risk to a specific security control.",
+    evidenceExamples: ["Risk assessment report", "Security controls matrix", "Risk register"],
   },
   {
-    code: "EGP-SEC-02",
+    code: "EG-SEC-02",
+    domain: "Security Measures",
     question: "Is personal data protected by encryption, both stored and in transit?",
-    description: "Protect personal data with encryption at rest and in transit.",
-    domain: "Security Measures",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.6; ER",
-    evidenceExamples: ["Encryption standard", "Configurations"],
-    whyItMatters:
-      "The Executive Regulations name encryption specifically — unencrypted personal data is a finding waiting to happen.",
-    recommendedAction:
-      "Adopt an encryption standard for data at rest and in transit and verify the configurations enforcing it.",
+    legalBasis: "Art 4.6; ER",
+    provisional: false,
+    whyItMatters: "The Executive Regulations name encryption specifically, so this is not optional best practice. If a laptop is lost or traffic is intercepted, encryption is often the difference between a contained incident and a reportable breach that starts the 72-hour PDPC clock.",
+    recommendedAction: "Enable encryption at rest and TLS in transit on every database, backup, and connection carrying personal data, and record the configuration.",
+    evidenceExamples: ["Encryption standard", "TLS configuration report", "Database encryption settings"],
   },
   {
-    code: "EGP-SEC-03",
-    question:
-      "Do only authorised people have access, with reviews when staff join, move, or leave?",
-    description:
-      "Restrict access to authorised staff with joiner-mover-leaver reviews.",
+    code: "EG-SEC-03",
     domain: "Security Measures",
+    question: "Do only authorised people have access, with reviews when staff join, move, or leave?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.6",
-    evidenceExamples: ["Access review logs"],
-    whyItMatters:
-      "Stale access is how internal leaks happen — and under the PDPL the organisation answers for them.",
-    recommendedAction:
-      "Enforce least-privilege access with a joiner-mover-leaver checklist and periodic reviews.",
+    legalBasis: "Art 4.6",
+    provisional: false,
+    whyItMatters: "Stale accounts belonging to former staff are one of the most common ways personal data leaks, and any leak starts the 72-hour PDPC notification clock. The PDPL's Holder role means even teams that merely retain data carry this duty, not just the ones who collected it.",
+    recommendedAction: "Set up role-based access and a joiner-mover-leaver checklist that revokes access on a person's last day.",
+    evidenceExamples: ["Access control policy", "Quarterly access review", "Leaver deprovisioning log"],
   },
   {
-    code: "EGP-SEC-04",
+    code: "EG-SEC-04",
+    domain: "Security Measures",
     question: "Do you back up personal data and test that you can actually restore it?",
-    description: "Back up personal data and test restoration.",
-    domain: "Security Measures",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.6",
-    evidenceExamples: ["Backup schedule", "Restore test records"],
-    whyItMatters:
-      "Losing people's data is a security failure too — an untested backup is a hope, not a measure.",
-    recommendedAction:
-      "Schedule backups and run a documented restore test at least annually.",
+    legalBasis: "Art 4.6",
+    provisional: false,
+    whyItMatters: "The security duty covers loss and destruction of data, not just theft — ransomware or an accidental deletion you cannot recover from is itself a security failure under Article 4.6. A backup only counts if the restore actually works when you need it.",
+    recommendedAction: "Schedule automated backups of every system holding personal data and run a documented restore test at least twice a year.",
+    evidenceExamples: ["Backup schedule", "Restore test report", "Backup policy"],
   },
   {
-    code: "EGP-SEC-05",
+    code: "EG-SEC-05",
+    domain: "Security Measures",
     question: "Do you test your security regularly — scans, penetration tests, audits?",
-    description:
-      "Test security effectiveness regularly through scans, penetration tests and audits.",
-    domain: "Security Measures",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.6; ER",
-    evidenceExamples: ["Test and audit reports"],
-    whyItMatters:
-      "The Regulations expect security that is verified, not assumed — untested controls decay silently.",
-    recommendedAction:
-      "Put scans, penetration tests or audits on a recurring schedule and keep the reports.",
+    legalBasis: "Art 4.6; ER",
+    provisional: false,
+    whyItMatters: "The Executive Regulations expect security to be verified, not assumed, and the PDPC can inspect your compliance evidence on request. A recent penetration-test report is far easier to show a regulator than explanations after a breach, in a law that backs its rules with criminal penalties.",
+    recommendedAction: "Book an annual penetration test and regular vulnerability scans, and track every finding to closure.",
+    evidenceExamples: ["Penetration test report", "Vulnerability scan results", "Remediation tracker"],
   },
   {
-    code: "EGP-SEC-06",
-    question:
-      "Do staff handle personal data only as instructed and under confidentiality obligations?",
-    description:
-      "Ensure staff process personal data only on instructions and under confidentiality obligations.",
+    code: "EG-SEC-06",
     domain: "Security Measures",
+    question: "Do staff handle personal data only as instructed and under confidentiality obligations?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 5.1",
-    evidenceExamples: ["Signed confidentiality undertakings", "Handling instructions"],
-    whyItMatters:
-      "Your people are inside the security perimeter — instructions and confidentiality are what make their handling defensible.",
-    recommendedAction:
-      "Issue documented handling instructions and collect signed confidentiality undertakings.",
-    appliesToRoles: ["controller", "processor"],
+    legalBasis: "Art 5.1",
+    provisional: false,
+    whyItMatters: "Article 5.1 ties processing to documented instructions, so an employee acting off-script can put the whole company in breach even with good intentions. Against fines of up to EGP 3 million for duty failures, confidentiality clauses and written instructions are cheap insurance.",
+    recommendedAction: "Add confidentiality clauses to every employment and contractor agreement, and issue written data-handling instructions for each role.",
+    evidenceExamples: ["Signed confidentiality agreements", "Data handling SOP", "Acceptable use policy"],
   },
   {
-    code: "EGP-SEC-07",
-    question:
-      "For sensitive data, do the DPO and staff follow specific, stricter security policies?",
-    description:
-      "Apply specific, stricter security policies to sensitive data, followed by the DPO and staff.",
+    code: "EG-SEC-07",
     domain: "Security Measures",
+    question: "For sensitive data, do the DPO and staff follow specific, stricter security policies?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 13",
-    evidenceExamples: ["Sensitive-data policy", "Acknowledgements"],
-    whyItMatters:
-      "Sensitive data sits in the PDPL's criminal tier — ordinary controls are not enough where prison is the downside.",
-    recommendedAction:
-      "Write a stricter sensitive-data security policy and have the DPO and handling staff acknowledge it.",
+    legalBasis: "Art 13",
+    provisional: false,
+    whyItMatters: "Sensitive data is where the PDPL turns criminal: mishandling it can mean at least three months' imprisonment plus a fine of up to EGP 5 million. Article 13 requires the DPO and staff to follow specific, stricter rules for this data, so a generic security policy is not enough.",
+    recommendedAction: "Write a separate sensitive-data handling policy with tighter access controls, and have the DPO approve it and train the staff who touch that data.",
+    evidenceExamples: ["Sensitive-data policy", "DPO approval record", "Restricted access list"],
   },
   {
-    code: "EGP-SEC-08",
+    code: "EG-SEC-08",
+    domain: "Security Measures",
     question: "Do you keep your security measures documented and current?",
-    description: "Keep security measures documented and up to date.",
-    domain: "Security Measures",
     severity: "important",
-    legalBasis: "PDPL Art 4.6",
-    evidenceExamples: ["Security documentation", "Review log"],
-    whyItMatters:
-      "In an inspection or after a breach, documentation is how yesterday's security decisions defend you.",
-    recommendedAction:
-      "Document your measures and review the documentation on a fixed cycle.",
+    legalBasis: "Art 4.6",
+    provisional: false,
+    whyItMatters: "The PDPC can ask you to produce evidence of compliance during an inspection, and undocumented security is invisible to a regulator. Current documentation also speeds up your response when the 72-hour breach clock is running.",
+    recommendedAction: "Consolidate your security measures into one owned document and review it at least annually or after any major system change.",
+    evidenceExamples: ["Information security policy", "Document review log", "Version history"],
   },
-
-  // ── 8. Breach Management (6) ──────────────────────────────────────────────
   {
-    code: "EGP-BRE-01",
+    code: "EG-BRE-01",
+    domain: "Breach Management",
     question: "Can you notify the PDPC within 72 hours of a personal-data breach?",
-    description: "Notify the PDPC of a personal-data breach within 72 hours.",
-    domain: "Breach Management",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 7",
-    evidenceExamples: ["Notification template", "Timestamped records"],
-    whyItMatters:
-      "72 hours to the regulator is one of the PDPL's hardest deadlines — late notice is a second violation on top of the breach.",
-    recommendedAction:
-      "Prepare the PDPC notification template and escalation path now, before any incident.",
+    legalBasis: "Art 7",
+    provisional: false,
+    whyItMatters: "72 hours from the breach is one of the PDPL's hardest deadlines, and missing it stacks a separate violation on top of the breach itself in a regime that fines duty failures up to EGP 3 million. You cannot build the reporting process in the middle of a live incident.",
+    recommendedAction: "Prepare a PDPC notification template and an on-call escalation path now, so a report can go out within 72 hours on any day of the week.",
+    evidenceExamples: ["PDPC notification template", "Incident response runbook", "On-call rota"],
   },
   {
-    code: "EGP-BRE-02",
-    question:
-      "Do you notify the affected person within 3 working days of reporting the breach?",
-    description:
-      "Notify the affected data subject within three working days of reporting the breach to the PDPC.",
+    code: "EG-BRE-02",
     domain: "Breach Management",
+    question: "Do you notify the affected person within 3 working days of reporting the breach?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 7",
-    evidenceExamples: ["Person-facing notice templates", "Send records"],
-    whyItMatters:
-      "The PDPL gives affected people their own notification right on a three-working-day clock after the PDPC report — and it must be free.",
-    recommendedAction:
-      "Prepare person-facing breach notices and track the three-working-day deadline from each PDPC report.",
+    legalBasis: "Art 7",
+    provisional: false,
+    whyItMatters: "After the PDPC report, you have just three working days to tell the person affected, and the law requires that notice to be free of charge. Meeting that window depends on being able to identify whose data was hit and how to reach them fast.",
+    recommendedAction: "Draft a plain-language notification template for affected people and confirm you can extract their contact details from your systems within a day.",
+    evidenceExamples: ["Person notification template", "Contact extraction procedure", "Notification dispatch log"],
   },
   {
-    code: "EGP-BRE-03",
+    code: "EG-BRE-03",
+    domain: "Breach Management",
     question: "For a breach touching national security, can you notify immediately?",
-    description:
-      "Notify immediately where a breach touches national-security considerations.",
-    domain: "Breach Management",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 7",
-    evidenceExamples: ["Escalation criteria", "Immediate-notice procedure"],
-    whyItMatters:
-      "National-security breaches collapse the 72-hour window to immediately — a distinction unique to the Egyptian regime.",
-    recommendedAction:
-      "Add a national-security trigger to your incident criteria with an immediate-notification path.",
+    legalBasis: "Art 7",
+    provisional: false,
+    whyItMatters: "Where a breach touches national security, Article 7 removes the 72-hour window entirely — notification must be immediate. Your triage step has to flag this category on day zero, not after legal review.",
+    recommendedAction: "Add a national-security flag to your breach triage checklist with a direct escalation route to the DPO and the PDPC.",
+    evidenceExamples: ["Breach triage checklist", "Escalation matrix", "DPO contact card"],
   },
   {
-    code: "EGP-BRE-04",
-    question:
-      "Does your breach notice carry the required detail — nature, DPO contact, consequences, and remedial steps?",
-    description:
-      "Include the required content in breach notices: nature of the breach, DPO contact, consequences and remedial steps.",
+    code: "EG-BRE-04",
     domain: "Breach Management",
+    question: "Does your breach notice carry the required detail — nature, DPO contact, consequences, and remedial steps?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 7",
-    evidenceExamples: ["Notice template with required fields"],
-    whyItMatters:
-      "A notice missing the statutory content doesn't discharge the duty, however fast it was sent.",
-    recommendedAction:
-      "Build the four required elements into the notice template so no drafting happens mid-incident.",
+    legalBasis: "Art 7",
+    provisional: false,
+    whyItMatters: "Article 7 dictates what the notice must contain — the nature of the breach, your DPO's contact details, the likely consequences, and the remedial steps — so an incomplete notice may not count as notifying at all. Pre-building the content takes drafting out of the 72-hour window.",
+    recommendedAction: "Build all four required elements into your PDPC and person notification templates, and test-fill them in a tabletop exercise.",
+    evidenceExamples: ["Notification template", "Tabletop exercise notes", "Sample completed notice"],
   },
   {
-    code: "EGP-BRE-05",
+    code: "EG-BRE-05",
+    domain: "Breach Management",
     question: "Do you keep a record of every breach and how you responded?",
-    description: "Keep records of every breach and the response to it.",
-    domain: "Breach Management",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 9.1",
-    evidenceExamples: ["Breach register"],
-    whyItMatters:
-      "The breach record is how you prove notification decisions and remedial steps to the PDPC afterwards.",
-    recommendedAction:
-      "Keep a breach register recording facts, decisions, notices sent and remediation for every incident.",
+    legalBasis: "Art 9.1",
+    provisional: false,
+    whyItMatters: "Recording breaches and responses is one of the DPO's named duties under Article 9.1, and the register is what proves to the PDPC that you hit the 72-hour and 3-working-day deadlines. Timestamped records are your best defence if a response is ever questioned.",
+    recommendedAction: "Open a breach register that captures detection time, notification times, actions taken, and outcome for every incident, however small.",
+    evidenceExamples: ["Breach register", "Incident timeline records", "Post-incident review"],
   },
   {
-    code: "EGP-BRE-06",
+    code: "EG-BRE-06",
+    domain: "Breach Management",
     question: "Do you have a plan to detect, contain, and escalate a breach internally?",
-    description:
-      "Operate an internal plan to detect, contain and escalate personal-data breaches.",
-    domain: "Breach Management",
     severity: "important",
-    legalBasis: "PDPL Art 4.6, 7",
-    evidenceExamples: ["Incident response plan", "Escalation flow"],
-    whyItMatters:
-      "The 72-hour and 3-working-day clocks start ticking at once — without a rehearsed plan they are spent finding out who to call.",
-    recommendedAction:
-      "Write the incident plan with named escalation steps and walk the team through it once.",
+    legalBasis: "Art 4.6, 7",
+    provisional: false,
+    whyItMatters: "The 72-hour deadline only works if the clock isn't burning while nobody notices — detection and internal escalation are what make the PDPL's legal deadlines achievable in practice. The PDPC will judge your response partly by how quickly the right people knew.",
+    recommendedAction: "Write a short incident response plan naming who detects, who decides, and who notifies, and rehearse it at least once a year.",
+    evidenceExamples: ["Incident response plan", "Alerting configuration", "Drill report"],
   },
-
-  // ── 9. Cross-Border Transfers (6) ─────────────────────────────────────────
   {
-    code: "EGP-TRF-01",
+    code: "EG-TRF-01",
+    domain: "Cross-Border Transfers",
     question: "Do you hold a PDPC licence or permit to move personal data outside Egypt?",
-    description:
-      "Hold a PDPC licence or permit before transferring personal data outside Egypt.",
-    domain: "Cross-Border Transfers",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 14",
-    evidenceExamples: ["Transfer licence or permit"],
-    whyItMatters:
-      "Cross-border transfer without PDPC authorisation sits in the criminal tier — imprisonment plus fines up to EGP 5 million.",
-    recommendedAction:
-      "Map your outbound flows and obtain the PDPC transfer licence or permit before data leaves Egypt.",
+    legalBasis: "Art 14",
+    provisional: false,
+    whyItMatters: "Sending personal data outside Egypt requires its own PDPC authorisation, separate from your general processing licence — and breaching the cross-border rules is a criminal offence carrying at least three months' imprisonment plus a fine of up to EGP 5 million.",
+    recommendedAction: "Apply to the PDPC for the cross-border transfer licence or permit before any data leaves Egypt, and diarise its renewal date.",
+    evidenceExamples: ["PDPC transfer licence", "Licence application file", "Renewal calendar entry"],
   },
   {
-    code: "EGP-TRF-02",
+    code: "EG-TRF-02",
+    domain: "Cross-Border Transfers",
     question: "Is the destination country’s level of protection no lower than Egypt’s?",
-    description:
-      "Transfer only where the destination provides a level of protection no lower than Egypt's.",
-    domain: "Cross-Border Transfers",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 14, 16",
-    evidenceExamples: ["Destination assessments"],
-    whyItMatters:
-      "The PDPL's adequacy test is Egypt's own protection level — a transfer to a weaker regime fails even with paperwork.",
-    recommendedAction:
-      "Assess and record each destination's protection level against Egypt's before transferring.",
+    legalBasis: "Art 14, 16",
+    provisional: false,
+    whyItMatters: "The PDPL only allows data to leave Egypt if the receiving country protects it at least as well as Egypt does. Sending data to a weaker jurisdiction without a valid exception is one of the breaches that carries prison time and fines up to EGP 5 million.",
+    recommendedAction: "Document an adequacy assessment for each destination country before transferring, and refresh it when laws there change.",
+    evidenceExamples: ["Country adequacy assessment", "Destination country register", "Legal review memo"],
   },
   {
-    code: "EGP-TRF-03",
+    code: "EG-TRF-03",
+    domain: "Cross-Border Transfers",
     question: "Do you map every cross-border flow — where it goes, to whom, and why?",
-    description: "Map every cross-border flow: destination, recipient and purpose.",
-    domain: "Cross-Border Transfers",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 14",
-    evidenceExamples: ["Transfer map"],
-    whyItMatters:
-      "Cloud tools move data abroad quietly — you cannot licence or defend flows you haven't found.",
-    recommendedAction:
-      "Build the transfer map — destination, recipient, purpose — and keep it current as systems change.",
+    legalBasis: "Art 14",
+    provisional: false,
+    whyItMatters: "You cannot licence, assess, or defend a transfer you don't know about — and cloud hosting, SaaS tools, and group companies abroad all count as transfers. An unmapped flow is an unlicensed one, and that exposure is criminal under the PDPL.",
+    recommendedAction: "Build a data-flow map listing every transfer out of Egypt, its recipient, destination, and purpose, and review it quarterly.",
+    evidenceExamples: ["Cross-border data-flow map", "Transfer register", "Vendor location inventory"],
   },
   {
-    code: "EGP-TRF-04",
-    question:
-      "Where you rely on an exception, do you have explicit consent and a valid legal ground?",
-    description:
-      "Rely on transfer exceptions only with explicit consent and a valid legal ground.",
+    code: "EG-TRF-04",
     domain: "Cross-Border Transfers",
+    question: "Where you rely on an exception, do you have explicit consent and a valid legal ground?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 15",
-    evidenceExamples: ["Consent records", "Exception log"],
-    whyItMatters:
-      "The exception route still demands explicit consent plus a legal ground — it is not a loophole around licensing.",
-    recommendedAction:
-      "Log every exception-based transfer with its consent record and legal ground, and keep them rare.",
+    legalBasis: "Art 15",
+    provisional: false,
+    whyItMatters: "Article 15 lets you transfer to a country with weaker protection only in narrow cases, and each one demands the person's explicit consent plus a recognised legal ground. A missing or vague consent leaves you with an unlawful transfer — the category the PDPL punishes with imprisonment and fines up to EGP 5 million.",
+    recommendedAction: "For each exception-based transfer, record which Article 15 ground applies and capture explicit, provable consent before the data moves.",
+    evidenceExamples: ["Consent log", "Article 15 ground assessment", "Transfer approval record"],
   },
   {
-    code: "EGP-TRF-05",
-    question:
-      "When making data available to a party abroad, is it work-related, purpose-consistent, and adequately protected?",
-    description:
-      "Make data available to foreign parties only where work-related, purpose-consistent and adequately protected.",
+    code: "EG-TRF-05",
     domain: "Cross-Border Transfers",
+    question: "When making data available to a party abroad, is it work-related, purpose-consistent, and adequately protected?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 16",
-    evidenceExamples: ["Sharing assessments"],
-    whyItMatters:
-      "Even giving a foreign party access — not just sending data — is regulated availability under Article 16.",
-    recommendedAction:
-      "Check every foreign access grant for work-relatedness, purpose fit and protection before enabling it.",
+    legalBasis: "Art 16",
+    provisional: false,
+    whyItMatters: "Article 16 covers sharing access with a foreign controller or processor, not just physically moving data — remote access from abroad counts. The sharing must relate to the work, stay within the declared purpose, and keep protection no lower than Egypt's, or you fall into the same criminally sanctioned cross-border breach.",
+    recommendedAction: "Vet every foreign party given access to your data against the Article 16 tests and record the conclusion before granting access.",
+    evidenceExamples: ["Foreign access agreement", "Purpose-consistency check", "Access grant record"],
   },
   {
-    code: "EGP-TRF-06",
+    code: "EG-TRF-06",
+    domain: "Cross-Border Transfers",
     question: "Have you assessed the risk of the transfer where it is needed?",
-    description: "Assess transfer risk where required.",
-    domain: "Cross-Border Transfers",
     severity: "important",
-    legalBasis: "PDPL Art 14; ER",
-    evidenceExamples: ["Transfer risk assessments"],
-    whyItMatters:
-      "A recorded risk assessment is how a licensed transfer stays defensible when circumstances at the destination change.",
-    recommendedAction:
-      "Run and file a risk assessment for transfers that need one, and revisit when destinations change.",
+    legalBasis: "Art 14; ER",
+    provisional: false,
+    whyItMatters: "The Executive Regulations expect you to weigh what could go wrong before data leaves Egypt — who can reach it, what local law allows, how it is secured. A documented risk assessment is also your best evidence to the PDPC that a transfer was made responsibly, not blindly.",
+    recommendedAction: "Run and document a transfer risk assessment for each cross-border flow, and repeat it when the destination, recipient, or data changes.",
+    evidenceExamples: ["Transfer risk assessment", "Risk register entry", "Mitigation action plan"],
   },
-
-  // ── 10. Vendors & Processors (6) ──────────────────────────────────────────
   {
-    code: "EGP-VEN-01",
+    code: "EG-VEN-01",
+    domain: "Vendors & Processors",
     question: "Before you appoint a processor, do you check they can protect the data?",
-    description: "Vet a processor's ability to protect personal data before appointment.",
-    domain: "Vendors & Processors",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4, 5",
-    evidenceExamples: ["Due-diligence records"],
-    whyItMatters:
-      "You remain answerable to the PDPC for data your processors mishandle — vetting is your first defence.",
-    recommendedAction:
-      "Run documented due diligence on every processor before onboarding.",
+    legalBasis: "Art 4, 5",
+    provisional: false,
+    whyItMatters: "Under the PDPL you stay responsible for data you hand to a vendor, and failing your controller duties draws fines of up to EGP 3 million. Checking a processor's security before signing is far cheaper than discovering a weakness through their breach.",
+    recommendedAction: "Run a documented due-diligence check on every new processor's security and PDPL readiness before contract signature.",
+    evidenceExamples: ["Vendor due-diligence questionnaire", "Security assessment report", "Vendor approval record"],
   },
   {
-    code: "EGP-VEN-02",
+    code: "EG-VEN-02",
+    domain: "Vendors & Processors",
     question: "Do you have a written contract with every processor setting out their duties?",
-    description: "Execute a written contract with every processor defining their duties.",
-    domain: "Vendors & Processors",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 5.1",
-    evidenceExamples: ["Signed processor contracts"],
-    whyItMatters:
-      "A processor working without a written contract is a violation before anything goes wrong.",
-    recommendedAction:
-      "Inventory processors and execute written contracts covering PDPL duties with each.",
+    legalBasis: "Art 5.1",
+    provisional: false,
+    whyItMatters: "The PDPL requires processors to work under a written agreement that pins down their duties — without one, there is nothing binding them to your instructions, your security standards, or the law. A handshake arrangement is itself a compliance gap the PDPC can act on.",
+    recommendedAction: "Put a PDPL-compliant data-processing agreement in place with every processor, and remediate any vendor operating without one.",
+    evidenceExamples: ["Data-processing agreement", "Contract register", "DPA clause checklist"],
   },
   {
-    code: "EGP-VEN-03",
+    code: "EG-VEN-03",
+    domain: "Vendors & Processors",
     question: "Do your processors hold their own PDPC licence or permit where they need one?",
-    description:
-      "Confirm processors hold their own PDPC licence or permit where required.",
-    domain: "Vendors & Processors",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 5.11",
-    evidenceExamples: ["Processor licence records"],
-    whyItMatters:
-      "Egypt licenses processors too — an unlicensed processor contaminates the lawfulness of your chain.",
-    recommendedAction:
-      "Collect and track each processor's PDPC licence or permit status in your vendor records.",
+    legalBasis: "Art 5.11",
+    provisional: false,
+    whyItMatters: "Processors need their own PDPC licence or permit to process personal data in Egypt — your licence does not cover them. Using an unlicensed processor puts your data in unlawful hands and drags you into the enforcement picture alongside them.",
+    recommendedAction: "Collect and verify each processor's PDPC licence or permit, and make holding one a contractual condition of doing business.",
+    evidenceExamples: ["Copy of processor's PDPC licence", "Licence verification log", "Contract licensing clause"],
   },
   {
-    code: "EGP-VEN-04",
+    code: "EG-VEN-04",
+    domain: "Vendors & Processors",
     question: "Do your processors act only on your instructions and within the agreed purpose?",
-    description:
-      "Ensure processors act only on documented instructions within the agreed purpose.",
-    domain: "Vendors & Processors",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 5.1–5.3",
-    evidenceExamples: ["Instruction records"],
-    whyItMatters:
-      "A processor acting beyond instructions becomes an unlawful controller — and drags your processing with it.",
-    recommendedAction:
-      "Keep processor instructions documented and bound to the agreed purpose in the contract.",
+    legalBasis: "Art 5.1–5.3",
+    provisional: false,
+    whyItMatters: "A processor that reuses your data for its own ends turns your lawful processing into someone else's unlawful one — and the PDPL fines duty failures on both sides at up to EGP 3 million. Clear, recorded instructions are what keep the line between your purpose and theirs.",
+    recommendedAction: "Issue documented processing instructions to each processor and contractually bar any use of the data beyond the agreed purpose.",
+    evidenceExamples: ["Documented processing instructions", "DPA purpose-limitation clause", "Instruction change log"],
   },
   {
-    code: "EGP-VEN-05",
+    code: "EG-VEN-05",
+    domain: "Vendors & Processors",
     question: "Do you keep a register of processors, the data they handle, and their status?",
-    description:
-      "Maintain a register of processors, the data they handle and their status.",
-    domain: "Vendors & Processors",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 5.9",
-    evidenceExamples: ["Processor register"],
-    whyItMatters:
-      "Without one register of processors, data and licence status, gaps hide — the unlicensed processor surfaces here first.",
-    recommendedAction:
-      "Build the processor register with data categories, contract and licence status per vendor.",
+    legalBasis: "Art 5.9",
+    provisional: false,
+    whyItMatters: "The PDPL requires a register of processing as a standing record, and the PDPC can ask to see it during an inspection. Knowing at all times which vendors hold which data is also what makes a 72-hour breach notification achievable when the incident happens at a vendor.",
+    recommendedAction: "Maintain a live processor register recording each vendor, the data categories they handle, their licence status, and contract dates.",
+    evidenceExamples: ["Processor register", "Vendor data inventory", "Register review log"],
   },
   {
-    code: "EGP-VEN-06",
+    code: "EG-VEN-06",
+    domain: "Vendors & Processors",
     question: "Can you check up on your processors — audit them or ask for proof?",
-    description: "Exercise audit or proof rights over processors.",
-    domain: "Vendors & Processors",
     severity: "important",
-    legalBasis: "PDPL Art 4.12",
-    evidenceExamples: ["Audit reports", "Proof requests"],
-    whyItMatters:
-      "When the PDPC inspects you, your processors' assurances become your evidence — collect it before you need it.",
-    recommendedAction:
-      "Schedule periodic processor checks — an audit or proof request — and file the results.",
+    legalBasis: "Art 4.12",
+    provisional: false,
+    whyItMatters: "Because you must be able to evidence your compliance to the PDPC on request, you need the same visibility into the vendors doing your processing. Without an audit or proof-of-compliance right in the contract, you are taking their security on faith.",
+    recommendedAction: "Add audit and evidence-request rights to every processor contract and exercise them on a risk-based schedule.",
+    evidenceExamples: ["Audit rights clause", "Vendor audit report", "Compliance attestation letter"],
   },
-
-  // ── 11. Retention & Disposal (5) ──────────────────────────────────────────
   {
-    code: "EGP-RET-01",
+    code: "EG-RET-01",
+    domain: "Retention & Disposal",
     question: "Do you have a schedule setting how long each type of data is kept, and why?",
-    description:
-      "Maintain a retention schedule with a period and justification per data type.",
-    domain: "Retention & Disposal",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 3.4",
-    evidenceExamples: ["Retention schedule"],
-    whyItMatters:
-      "The PDPL ties retention to the declared purpose — keeping data past it is unlawful holding.",
-    recommendedAction:
-      "Write a retention schedule assigning a period and reason to every category of personal data.",
+    legalBasis: "Art 3.4",
+    provisional: false,
+    whyItMatters: "The PDPL only allows you to keep personal data for as long as the declared purpose requires, and the PDPC can inspect your practices and demand proof. Without a written schedule you cannot show why data is still on your systems, and failures of controller duties carry fines of up to three million Egyptian pounds.",
+    recommendedAction: "Draft a retention schedule listing each data category, its keep-for period, and the legal or business reason, then have management approve it.",
+    evidenceExamples: ["Retention schedule", "Data inventory", "Management approval record"],
   },
   {
-    code: "EGP-RET-02",
-    question:
-      "Do you erase personal data, or return it to the controller, at the end of the processing period?",
-    description:
-      "Erase personal data, or return it to the controller, when the processing period ends.",
+    code: "EG-RET-02",
     domain: "Retention & Disposal",
+    question: "Do you erase personal data, or return it to the controller, at the end of the processing period?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.7, 5.4",
-    evidenceExamples: ["Deletion logs", "Return records"],
-    whyItMatters:
-      "End-of-period erasure (or return, for processors) is a named duty — a schedule nobody executes documents the violation.",
-    recommendedAction:
-      "Automate or diarise end-of-period erasure and keep logs or return records proving it ran.",
-    appliesToRoles: ["controller", "processor"],
+    legalBasis: "Art 4.7, 5.4",
+    provisional: false,
+    whyItMatters: "When the processing period ends, the law requires the data to be erased or handed back to the controller — and this bites even if you merely hold data, because the PDPL creates a separate Holder role with its own duties. Data sitting around past its purpose is an open breach the PDPC can fine, up to three million Egyptian pounds for controller or processor duty failures.",
+    recommendedAction: "Set up an end-of-processing routine that deletes or returns data on schedule and records each disposal.",
+    evidenceExamples: ["Disposal log", "Deletion certificates", "Data return receipts"],
   },
   {
-    code: "EGP-RET-03",
+    code: "EG-RET-03",
+    domain: "Retention & Disposal",
     question: "Do you collect only the data you genuinely need for the purpose?",
-    description: "Collect only the data necessary for the declared purpose.",
-    domain: "Retention & Disposal",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 3.3",
-    evidenceExamples: ["Collection reviews"],
-    whyItMatters:
-      "Every unnecessary field is data you must licence, secure, register and eventually erase — risk carried for nothing.",
-    recommendedAction:
-      "Review every form and feed against its purpose and cut the fields you don't need.",
+    legalBasis: "Art 3.3",
+    provisional: false,
+    whyItMatters: "The PDPL requires collection to be limited to what the declared purpose actually needs — every extra field you gather is data you must license, secure, and eventually dispose of under threat of fines in Egyptian pounds. Over-collection also raises your stakes: if the extras include sensitive data, unauthorised handling can mean criminal penalties, not just a fine.",
+    recommendedAction: "Review every form and intake channel and strip out fields you cannot tie to a declared purpose.",
+    evidenceExamples: ["Form field review", "Data minimisation checklist", "Collection purpose map"],
   },
   {
-    code: "EGP-RET-04",
+    code: "EG-RET-04",
+    domain: "Retention & Disposal",
     question: "Do you keep data accurate and fix errors once you become aware of them?",
-    description: "Keep personal data accurate and correct errors on becoming aware of them.",
+    severity: "legally_mandatory",
+    legalBasis: "Art 4.8",
+    provisional: false,
+    whyItMatters: "Accuracy is a standing controller duty under the PDPL, not just something you do when asked — and when a person does request a correction, you have only six working days to respond. Ignoring known errors risks fines of up to three million Egyptian pounds for failing controller duties, and up to one million for denying someone their rights.",
+    recommendedAction: "Create a correction procedure with an owner and a deadline tracker so known errors and correction requests are fixed within six working days.",
+    evidenceExamples: ["Correction request log", "Data quality procedure", "Rights response tracker"],
+  },
+  {
+    code: "EG-RET-05",
     domain: "Retention & Disposal",
+    question: "Do you inform the person, or the controller, of the period the data will be processed?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 4.8",
-    evidenceExamples: ["Correction logs"],
-    whyItMatters:
-      "Accuracy is a controller duty that triggers on awareness — sitting on a known error is the violation.",
-    recommendedAction:
-      "Give staff a fast correction path and log fixes from the moment an error is known.",
+    legalBasis: "Art 3.3",
+    provisional: false,
+    whyItMatters: "The PDPL makes the processing period part of what people must be told up front — a retention promise, not an internal detail. If you process for clients, the same transparency runs to the controller, and the PDPC can ask you to evidence it during an inspection.",
+    recommendedAction: "Add the processing period for each data category to your privacy notices and client-facing processing terms.",
+    evidenceExamples: ["Privacy notice", "Processing agreement clause", "Retention disclosure log"],
   },
   {
-    code: "EGP-RET-05",
-    question:
-      "Do you inform the person, or the controller, of the period the data will be processed?",
-    description:
-      "Inform the data subject, or the controller, of the processing period.",
-    domain: "Retention & Disposal",
-    severity: "legally_mandatory",
-    legalBasis: "PDPL Art 3.3",
-    evidenceExamples: ["Notice wording", "Contract clauses"],
-    whyItMatters:
-      "The processing period is part of what people (and controllers) are entitled to know up front under the PDPL.",
-    recommendedAction:
-      "State the processing period in notices — and in contracts when acting as processor.",
-    appliesToRoles: ["controller", "processor"],
-  },
-
-  // ── 12. Privacy Notices (5) ───────────────────────────────────────────────
-  {
-    code: "EGP-NOT-01",
-    question:
-      "When you collect data, do you tell people who you are and why you’re collecting it?",
-    description:
-      "Tell people at collection who you are and why the data is collected.",
+    code: "EG-NOT-01",
     domain: "Privacy Notices",
+    question: "When you collect data, do you tell people who you are and why you’re collecting it?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 3.1",
-    evidenceExamples: ["Collection notices"],
-    whyItMatters:
-      "Identity and purpose at the point of collection are the PDPL's baseline transparency — their absence taints the collection.",
-    recommendedAction:
-      "Put a notice at every collection point stating who you are and the declared purpose.",
+    legalBasis: "Art 3.1",
+    provisional: false,
+    whyItMatters: "The PDPL requires that people know who is collecting their data and for what purpose at the moment of collection — data gathered without that disclosure has a defective basis from day one. That undermines every later step, and controller duty failures carry fines of up to three million Egyptian pounds.",
+    recommendedAction: "Put your identity, contact details, and collection purpose at every point where data enters — forms, apps, call scripts, and paper.",
+    evidenceExamples: ["Privacy notice", "Collection point inventory", "Form screenshots"],
   },
   {
-    code: "EGP-NOT-02",
-    question:
-      "Do you disclose the purpose, the categories of data, and how long you’ll keep it?",
-    description:
-      "Disclose the purpose, data categories and retention period.",
+    code: "EG-NOT-02",
     domain: "Privacy Notices",
+    question: "Do you disclose the purpose, the categories of data, and how long you’ll keep it?",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 3.1; ER",
-    evidenceExamples: ["Notice content review"],
-    whyItMatters:
-      "The Regulations spell out the notice contents — a notice missing categories or retention fails the duty.",
-    recommendedAction:
-      "Check every notice against the required contents: purpose, categories, retention period.",
+    legalBasis: "Art 3.1; ER",
+    provisional: false,
+    whyItMatters: "The Executive Regulations spell out what a PDPL notice must contain: the purpose, the categories of data involved, and the retention period. A notice missing these elements leaves you unable to show the PDPC that people were properly informed, which is a gap the regulator can fine in Egyptian pounds.",
+    recommendedAction: "Audit your current notices against the required content list and fill every gap before the compliance deadline.",
+    evidenceExamples: ["Notice content checklist", "Updated privacy notice", "Gap review record"],
   },
   {
-    code: "EGP-NOT-03",
+    code: "EG-NOT-03",
+    domain: "Privacy Notices",
     question: "Do you tell people if their data will be transferred outside Egypt?",
-    description: "Disclose intended transfers of data outside Egypt.",
-    domain: "Privacy Notices",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 14; ER",
-    evidenceExamples: ["Transfer disclosures in notices"],
-    whyItMatters:
-      "Cross-border movement is sensitive enough to be licensed — people must be told before their data leaves Egypt.",
-    recommendedAction:
-      "Add a transfer disclosure to notices wherever data leaves Egypt, naming that it does.",
+    legalBasis: "Art 14; ER",
+    provisional: false,
+    whyItMatters: "Cross-border transfers are the PDPL's highest-risk area: they need their own PDPC licence or permit, and breaching the transfer rules is a criminal offence carrying at least three months' imprisonment plus a fine of up to five million Egyptian pounds. Telling people about transfers in your notice is a foundation of doing them lawfully — silence here compounds an already criminal exposure.",
+    recommendedAction: "List every destination country and recipient of outbound data in your privacy notice, and confirm each transfer sits under a PDPC licence or a valid exception.",
+    evidenceExamples: ["Transfer disclosure clause", "Cross-border flow map", "PDPC transfer permit"],
   },
   {
-    code: "EGP-NOT-04",
+    code: "EG-NOT-04",
+    domain: "Privacy Notices",
     question: "Do you inform people of their rights and how to exercise them?",
-    description: "Inform people of their PDPL rights and how to exercise them.",
-    domain: "Privacy Notices",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 2; ER",
-    evidenceExamples: ["Rights section in notices"],
-    whyItMatters:
-      "Rights people don't know about go unexercised — which is why telling them is itself a duty.",
-    recommendedAction:
-      "Add a rights section to your notices with the practical route for exercising each right.",
+    legalBasis: "Art 2; ER",
+    provisional: false,
+    whyItMatters: "The PDPL gives people rights to access, correct, erase, restrict, and object — and once a request lands, you have just six working days to answer. If your notice never tells people these rights exist or where to send a request, you are effectively obstructing them, and denying someone their rights carries fines of up to one million Egyptian pounds.",
+    recommendedAction: "Add a rights section to your notice naming each PDPL right and a working submission channel, then test that channel end to end.",
+    evidenceExamples: ["Rights section of notice", "Request submission channel", "Rights request procedure"],
   },
   {
-    code: "EGP-NOT-05",
-    question:
-      "Are your notices written in clear, plain Arabic that a normal person can follow?",
-    description: "Write notices in clear, plain Arabic accessible to a normal reader.",
+    code: "EG-NOT-05",
     domain: "Privacy Notices",
+    question: "Are your notices written in clear, plain Arabic that a normal person can follow?",
     severity: "important",
-    legalBasis: "PDPL ER / PDPC guidance",
-    evidenceExamples: ["Arabic notices", "Readability review"],
-    whyItMatters:
-      "An Egyptian notice that only works in English or legalese doesn't inform the people the law protects.",
-    recommendedAction:
-      "Produce plain-Arabic versions of your notices and run a readability pass on them.",
+    legalBasis: "ER / PDPC guidance",
+    provisional: false,
+    whyItMatters: "A notice only informs if the reader actually understands it, and PDPC guidance expects notices Egyptian data subjects can follow — which in practice means clear, plain Arabic, not legal jargon or English-only text. An unreadable notice weakens every consent and disclosure that relies on it.",
+    recommendedAction: "Have your notices rewritten or reviewed in plain Arabic and tested on a non-lawyer before publishing.",
+    evidenceExamples: ["Arabic privacy notice", "Plain-language review note", "Readability sign-off"],
   },
-
-  // ── 13. Impact Assessments (5 — provisional pending ER/PDPC confirmation) ──
   {
-    code: "EGP-DPI-01",
-    question:
-      "Do you screen new or high-risk processing for its privacy impact before starting?",
-    description:
-      "Screen new or high-risk processing for privacy impact before it starts.",
+    code: "EG-DPI-01",
     domain: "Impact Assessments",
+    question: "Do you screen new or high-risk processing for its privacy impact before starting?",
     severity: "important",
-    legalBasis: "PDPL ER (to confirm)",
-    evidenceExamples: ["Screening checklist"],
-    whyItMatters:
-      "Screening is how licence, sensitive-data and transfer triggers get spotted before the PDPC spots them for you.",
-    recommendedAction:
-      "Add a short privacy screening step at the start of new or high-risk projects.",
+    legalBasis: "ER (to confirm)",
     provisional: true,
+    whyItMatters: "Egypt's PDPL law text does not spell out an impact-assessment duty — that expectation comes from the Executive Regulations and PDPC guidance — but the PDPC can inspect your compliance evidence, and a quick screening step is how you catch activities that need a licence, sensitive-data authorisation, or transfer permit before they go live. Skipping it is how companies stumble into the breaches that carry fines in the millions of Egyptian pounds, or worse.",
+    recommendedAction: "Add a short privacy screening questionnaire to your launch process for every new system, product, or campaign, with a named owner who signs off before go-live.",
+    evidenceExamples: ["Privacy screening checklist", "Completed screening form", "Project sign-off record"],
   },
   {
-    code: "EGP-DPI-02",
+    code: "EG-DPI-02",
+    domain: "Impact Assessments",
     question: "For high-risk activities, do you carry out an impact assessment first?",
-    description: "Carry out an impact assessment before high-risk activities.",
-    domain: "Impact Assessments",
     severity: "important",
-    legalBasis: "PDPL ER (to confirm)",
-    evidenceExamples: ["Completed assessments"],
-    whyItMatters:
-      "Where the Regulations confirm the duty, high-risk processing without an assessment starts unlawfully.",
-    recommendedAction:
-      "Run an impact assessment before high-risk activities begin and keep it on file.",
+    legalBasis: "ER (to confirm)",
     provisional: true,
+    whyItMatters: "For processing that could seriously affect people — sensitive data, large-scale monitoring, new technologies — the Executive Regulations and PDPC guidance expect a documented assessment before you start, even though the Law itself does not name one. A written assessment is also your best defence file if the PDPC inspects, since PDPL penalties are fixed fines in Egyptian pounds and, for sensitive-data violations, criminal.",
+    recommendedAction: "Adopt an impact assessment template and require a completed, approved assessment before any high-risk processing begins.",
+    evidenceExamples: ["DPIA report", "Risk assessment template", "Assessment approval record"],
   },
   {
-    code: "EGP-DPI-03",
+    code: "EG-DPI-03",
+    domain: "Impact Assessments",
     question: "For cross-border transfers, do you assess the transfer risk?",
-    description: "Assess the risk of cross-border transfers.",
-    domain: "Impact Assessments",
     severity: "important",
-    legalBasis: "PDPL Art 14; ER",
-    evidenceExamples: ["Transfer risk assessments"],
-    whyItMatters:
-      "Transfers are the PDPL's criminal tier — a recorded risk assessment is the diligence that keeps a licensed flow defensible.",
-    recommendedAction:
-      "Fold transfer-risk assessment into your cross-border process alongside licensing.",
+    legalBasis: "Art 14; ER",
     provisional: true,
+    whyItMatters: "Sending personal data outside Egypt requires a PDPC licence or permit and a destination that protects the data no less than Egypt does — and breaching the cross-border rules is a criminal offence carrying at least three months' imprisonment plus a fine of up to five million Egyptian pounds. A documented transfer risk assessment is how you show the destination's protection was checked before the data left.",
+    recommendedAction: "Assess and document the destination's level of protection for every cross-border flow before the transfer starts, and attach the assessment to your transfer permit file.",
+    evidenceExamples: ["Transfer risk assessment", "PDPC transfer permit", "Data flow map"],
   },
   {
-    code: "EGP-DPI-04",
-    question:
-      "For automated decisions or AI, can you show PDPC-approved ways for people to exercise their rights?",
-    description:
-      "Provide PDPC-approved means for people to exercise their rights over automated decisions or AI processing.",
+    code: "EG-DPI-04",
     domain: "Impact Assessments",
+    question: "For automated decisions or AI, can you show PDPC-approved ways for people to exercise their rights?",
     severity: "important",
-    legalBasis: "PDPL ER (AI provisions)",
-    evidenceExamples: ["Rights mechanism documentation"],
-    whyItMatters:
-      "The Regulations reach into AI processing — rights people cannot practically exercise against a model will not satisfy the PDPC.",
-    recommendedAction:
-      "Inventory automated decisions and document the rights mechanism for each, tracking PDPC guidance.",
+    legalBasis: "ER (AI provisions)",
     provisional: true,
+    whyItMatters: "The Executive Regulations add AI-specific expectations on top of the PDPL's rights regime, and every rights request — however the decision was made — still has to be answered within six working days. If an algorithm decides and no human channel exists, you cannot meet that deadline, and denying someone their rights carries fines of up to one million Egyptian pounds.",
+    recommendedAction: "Document how people can contest or seek review of automated decisions, and align that mechanism with PDPC guidance before deploying AI on personal data.",
+    evidenceExamples: ["AI rights-exercise procedure", "Automated decision inventory", "PDPC correspondence"],
   },
   {
-    code: "EGP-DPI-05",
+    code: "EG-DPI-05",
+    domain: "Impact Assessments",
     question: "Do you revisit these assessments when the risk changes?",
-    description: "Review impact assessments when the risk changes.",
-    domain: "Impact Assessments",
     severity: "important",
-    legalBasis: "PDPL ER (to confirm)",
-    evidenceExamples: ["Review log"],
-    whyItMatters:
-      "An assessment describes the activity as it was — scope or technology changes quietly retire its cover.",
-    recommendedAction:
-      "Set review triggers on each assessment and log the reviews.",
+    legalBasis: "ER (to confirm)",
     provisional: true,
+    whyItMatters: "An assessment done once and shelved stops matching reality the moment you add a vendor, a new data category, or a new destination country — and the PDPC inspects against what you actually do, not what you assessed a year ago. Reviewing when risk changes keeps your licence scope, transfer permits, and security measures aligned with the processing you are really running.",
+    recommendedAction: "Set defined triggers — new vendor, new purpose, new country, security incident — that force a review of the relevant assessment, and log each review.",
+    evidenceExamples: ["Assessment review log", "Updated DPIA versions", "Change-trigger checklist"],
   },
-
-  // ── 14. Training & Awareness (4) ──────────────────────────────────────────
   {
-    code: "EGP-TRA-01",
+    code: "EG-TRA-01",
+    domain: "Training & Awareness",
     question: "Does your DPO run training to prepare staff for the PDPL’s requirements?",
-    description: "Have the DPO run staff training on the PDPL's requirements.",
-    domain: "Training & Awareness",
     severity: "legally_mandatory",
-    legalBasis: "PDPL Art 9.8",
-    evidenceExamples: ["Training plan", "Session records"],
-    whyItMatters:
-      "PDPL training is a statutory DPO task, not an HR nicety — its absence is a DPO-duty failure.",
-    recommendedAction:
-      "Have the DPO own a PDPL training programme and keep the delivery records.",
+    legalBasis: "Art 9.8",
+    provisional: false,
+    whyItMatters: "Article 9.8 of the PDPL makes staff training a named duty of your Data Protection Officer — the same PDPC-registered officer who must report breaches within 72 hours and handle rights requests within six working days. If the DPO cannot show they have trained staff, that is a gap in a legally mandatory duty, not just good practice.",
+    recommendedAction: "Have your DPO deliver a documented PDPL training programme covering rights deadlines, breach reporting, and licensing duties, and keep the delivery records.",
+    evidenceExamples: ["Training programme plan", "Session attendance records", "Training materials"],
   },
   {
-    code: "EGP-TRA-02",
+    code: "EG-TRA-02",
+    domain: "Training & Awareness",
     question: "Do staff receive privacy training when they join, and regularly after?",
-    description: "Deliver privacy training at joining and regularly after.",
-    domain: "Training & Awareness",
     severity: "important",
-    legalBasis: "PDPL Art 9.8",
-    evidenceExamples: ["Onboarding records", "Refresher schedule"],
-    whyItMatters:
-      "Most incidents start with a person — onboarding plus refreshers is what keeps the six-day and 72-hour clocks known.",
-    recommendedAction:
-      "Add privacy training to onboarding and set a recurring refresher cycle.",
+    legalBasis: "Art 9.8",
+    provisional: false,
+    whyItMatters: "Most PDPL failures start with an untrained employee — a missed 72-hour breach report to the PDPC, a rights request left past the six-working-day deadline, or sensitive data handled without the required consent, which is a criminal offence. Training new joiners before they touch personal data, and refreshing everyone regularly, is the practical way to stop those failures at the source.",
+    recommendedAction: "Build privacy training into onboarding and schedule a refresher for all staff at least annually.",
+    evidenceExamples: ["Onboarding training checklist", "Annual refresher schedule", "Training completion log"],
   },
   {
-    code: "EGP-TRA-03",
+    code: "EG-TRA-03",
+    domain: "Training & Awareness",
     question: "Do you keep privacy awareness ongoing, not a one-off session?",
-    description: "Maintain ongoing privacy awareness beyond one-off sessions.",
-    domain: "Training & Awareness",
     severity: "important",
-    legalBasis: "PDPL Art 9.8",
-    evidenceExamples: ["Campaign records"],
-    whyItMatters:
-      "A single session fades in weeks; ongoing reminders are what turn the rules into habits.",
-    recommendedAction:
-      "Run a light ongoing awareness programme — reminders, briefings, short refreshers.",
+    legalBasis: "Art 9.8",
+    provisional: false,
+    whyItMatters: "The PDPL's deadlines are short and unforgiving — 72 hours to notify the PDPC of a breach, three working days to notify the affected person, six working days to answer a rights request — and staff only hit them if the knowledge is fresh when the incident lands. A single session at launch fades; ongoing reminders keep the reflexes alive.",
+    recommendedAction: "Run a recurring awareness rhythm — periodic bulletins, refreshers, or drills on breach escalation and rights handling — rather than a single annual session.",
+    evidenceExamples: ["Awareness campaign calendar", "Internal privacy bulletins", "Breach drill records"],
   },
   {
-    code: "EGP-TRA-04",
-    question: "Do you keep a record of who has completed training?",
-    description: "Keep completion records of staff training.",
+    code: "EG-TRA-04",
     domain: "Training & Awareness",
+    question: "Do you keep a record of who has completed training?",
     severity: "important",
-    legalBasis: "PDPL Art 9.8",
-    evidenceExamples: ["Completion records"],
-    whyItMatters:
-      "After a human-error incident, training records are the first thing the PDPC will ask the DPO to produce.",
-    recommendedAction:
-      "Track training completion per person and keep the records with the DPO.",
+    legalBasis: "Art 9.8",
+    provisional: false,
+    whyItMatters: "Under the PDPL you must be able to produce evidence of compliance for the PDPC on request, and training is one of the duties the law assigns to your DPO by name. Without completion records, you cannot prove the training happened — to the regulator or in your own defence if a breach ends up before a court that hands down fines in Egyptian pounds.",
+    recommendedAction: "Track training completion per employee with dates and content covered, and chase gaps until every relevant staff member is recorded.",
+    evidenceExamples: ["Training completion register", "Attendance sign-off sheets", "LMS completion report"],
   },
 ];
 
-/** Cross-check constants, enforced by the seed script and unit tests. */
-export const PDPL_EXPECTED_TOTAL = 85;
-export const PDPL_EXPECTED_MANDATORY = 64;
-export const PDPL_EXPECTED_IMPORTANT = 21;
+export const PDPL_EXPECTED = {
+  total: 85,
+  mandatory: 64,
+  important: 21,
+  domains: 14,
+  provisional: 5, // the Impact Assessments domain
+} as const;

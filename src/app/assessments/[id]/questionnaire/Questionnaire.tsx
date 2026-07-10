@@ -40,12 +40,17 @@ const SEVERITY_FILTERS = [
   { value: "important", label: "Important" },
 ] as const;
 
+function acceptedEvidenceCount(row: AnswerRow): number {
+  return row.evidence.filter((e) => e.reviewStatus === "accepted").length;
+}
+
 function isOpenItem(row: AnswerRow): boolean {
   return (
     gapTierFor({
       severity: row.severity,
       answer: row.answer,
       evidenceCount: row.evidence.length,
+      acceptedEvidenceCount: acceptedEvidenceCount(row),
       requiresEvidence: row.requiresEvidence,
     }) !== null
   );
@@ -58,7 +63,8 @@ function matchesShow(row: AnswerRow, show: ShowFilter): boolean {
     case "gaps":
       return row.answer === "no";
     case "missing_evidence":
-      return row.answer === "yes" && row.requiresEvidence && row.evidence.length === 0;
+      // Mirrors the engines: only ACCEPTED evidence closes the evidence gap.
+      return row.answer === "yes" && row.requiresEvidence && acceptedEvidenceCount(row) === 0;
     case "no_owner":
       return isOpenItem(row) && !row.ownerName;
     case "overdue":
@@ -79,6 +85,8 @@ export function Questionnaire({
   initialDomain,
   initialSeverity,
   initialShow,
+  canReviewEvidence = false,
+  canAddEvidence = true,
 }: {
   assessment: AssessmentSummary;
   initialRows: AnswerRow[];
@@ -86,6 +94,8 @@ export function Questionnaire({
   initialDomain: string;
   initialSeverity: string;
   initialShow: string;
+  canReviewEvidence?: boolean;
+  canAddEvidence?: boolean;
 }) {
   const [rows, setRows] = useState<AnswerRow[]>(initialRows);
   const [readinessScore, setReadinessScore] = useState<number | null>(assessment.readinessScore);
@@ -115,13 +125,6 @@ export function Questionnaire({
     (SHOW_FILTERS.some((f) => f.value === initialShow) ? initialShow : "all") as ShowFilter
   );
 
-  // Regulation filter — only meaningful when the assessment spans several.
-  const regulationCodes = useMemo(
-    () => [...new Set(rows.map((r) => r.sourceRegulationCode))].sort(),
-    [rows]
-  );
-  const [regulationFilter, setRegulationFilter] = useState<string>("all");
-
   // ── autosave plumbing ─────────────────────────────────────────────────────
   const pendingPatches = useRef(new Map<string, AnswerPatch>());
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
@@ -147,10 +150,28 @@ export function Questionnaire({
       if (data.assessment) setReadinessScore(data.assessment.readinessScore);
       setSaveError(null);
     } catch (err) {
+      // Re-queue the failed patch so the edit is never lost; any edits made
+      // while the request was in flight take precedence. A retry timer keeps
+      // trying until the server accepts it or the user navigates away.
+      pendingPatches.current.set(answerId, {
+        ...patch,
+        ...pendingPatches.current.get(answerId),
+      });
+      if (!timers.current.has(answerId)) {
+        timers.current.set(
+          answerId,
+          setTimeout(() => {
+            timers.current.delete(answerId);
+            void flush(answerId);
+          }, 5000)
+        );
+      }
       setSaveError(err instanceof Error ? err.message : "Save failed");
       setSaveState("error");
     } finally {
       inFlight.current -= 1;
+      // Only report "saved" once nothing is pending — a re-queued failure
+      // keeps the banner truthful instead of claiming all changes saved.
       if (inFlight.current === 0 && pendingPatches.current.size === 0) {
         setSaveState((prev) => (prev === "error" ? prev : "saved"));
       }
@@ -222,7 +243,6 @@ export function Questionnaire({
     (r) =>
       (domainFilter === "all" || r.domain === domainFilter) &&
       (severityFilter === "all" || r.severity === severityFilter) &&
-      (regulationFilter === "all" || r.sourceRegulationCode === regulationFilter) &&
       matchesShow(r, showFilter)
   );
   const visibleDomains = domains.filter((d) => visibleRows.some((r) => r.domain === d.name));
@@ -298,22 +318,6 @@ export function Questionnaire({
                 </option>
               ))}
             </select>
-
-            {regulationCodes.length > 1 ? (
-              <div className="seg" role="group" aria-label="Filter by regulation">
-                {["all", ...regulationCodes].map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => setRegulationFilter(code)}
-                    aria-pressed={regulationFilter === code}
-                    className={`seg-item ${regulationFilter === code ? "seg-item-active" : ""}`}
-                  >
-                    {code === "all" ? "All regulations" : code}
-                  </button>
-                ))}
-              </div>
-            ) : null}
 
             <div className="seg" role="group" aria-label="Filter by legal weight">
               {SEVERITY_FILTERS.map((f) => (
@@ -480,6 +484,8 @@ export function Questionnaire({
                       }
                       onPatch={queuePatch}
                       onEvidenceChange={setEvidence}
+                      canReviewEvidence={canReviewEvidence}
+                      canAddEvidence={canAddEvidence}
                     />
                   ))}
                 </div>

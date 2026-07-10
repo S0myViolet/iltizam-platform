@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
-import { LEGAL_DISCLAIMER } from "@/lib/types";
+import { LEGAL_DISCLAIMER, ROLE_LABELS } from "@/lib/types";
 import { LogoMark, Wordmark } from "@/components/Wordmark";
 import { HeaderNav } from "@/components/HeaderNav";
+import { HeaderSession } from "@/components/HeaderSession";
+import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Iltzam — Compliance readiness platform",
@@ -11,35 +13,62 @@ export const metadata: Metadata = {
     "Turn privacy obligations into accountable control work across EG-PDPL and EU-GDPR.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getSession();
+
   return (
-    // suppressHydrationWarning on the roots only: browser extensions (ad
-    // blockers, download managers) inject attributes into <html>/<body>
-    // before React hydrates, which otherwise trips a spurious mismatch
-    // warning. Real hydration bugs inside the page are still reported.
-    <html lang="en" suppressHydrationWarning>
-      <body className="flex min-h-screen flex-col antialiased" suppressHydrationWarning>
+    <html lang="en">
+      <body className="flex min-h-screen flex-col antialiased">
         <header className="band print-hidden sticky top-0 z-40 border-b border-brand-line">
-          <div className="shell flex h-16 items-center gap-6">
+          <div className="shell flex h-16 items-center gap-5">
             <Link
               href="/"
               className="shrink-0 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-bright"
             >
               <Wordmark />
             </Link>
-            <div className="ml-auto flex items-center gap-4">
-              <HeaderNav />
-              <Link
-                href="/assessments/new"
-                className="btn btn-gold-on-band !py-1.5 !text-[13px] whitespace-nowrap"
-              >
-                Start review
-              </Link>
-            </div>
+            {session ? (
+              <>
+                <nav aria-label="Product" className="hidden items-center md:flex">
+                  <HeaderNav />
+                  <Link href="/inventory" className="navtab">
+                    Inventory
+                  </Link>
+                  <Link href="/monitoring" className="navtab">
+                    Monitoring
+                  </Link>
+                  {session.isPlatformAdmin ? (
+                    <>
+                      <Link href="/admin/demo-operations" className="navtab !text-gold-bright">
+                        Backend operations
+                      </Link>
+                      <Link href="/admin/data-explorer" className="navtab !text-gold-bright">
+                        Data explorer
+                      </Link>
+                    </>
+                  ) : null}
+                </nav>
+                <div className="ml-auto">
+                  <HeaderSession
+                    name={session.name}
+                    roleLabel={
+                      session.isPlatformAdmin
+                        ? "Platform administrator"
+                        : session.activeOrg
+                          ? ROLE_LABELS[session.activeOrg.role]
+                          : "No organization"
+                    }
+                    organizationName={session.activeOrg?.organizationName ?? null}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="ml-auto text-[12px] text-brand-muted">Compliance readiness platform</div>
+            )}
           </div>
         </header>
 

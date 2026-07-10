@@ -115,7 +115,8 @@ export function EvidenceBadge({
 const REMEDIATION_STYLES: Record<RemediationStatus, string> = {
   not_started: "tag-outline",
   in_progress: "border border-accent/30 bg-accent/[0.07] text-accent-strong",
-  evidence_needed: "border border-warn/30 bg-warn/[0.07] text-warn-text",
+  evidence_required: "border border-warn/30 bg-warn/[0.07] text-warn-text",
+  accepted: "border border-good/25 bg-good/[0.07] text-good-text",
   ready_for_review: "border border-accent/30 bg-accent/[0.07] text-accent-strong",
   closed: "border border-good/25 bg-good/[0.07] text-good-text",
 };
@@ -133,6 +134,7 @@ const ASSESSMENT_STATUS_STYLES: Record<AssessmentStatus, { chip: string; dot: st
   in_progress: { chip: "border border-accent/30 bg-accent/[0.07] text-accent-strong", dot: "bg-accent" },
   completed: { chip: "border border-good/25 bg-good/[0.07] text-good-text", dot: "bg-good" },
   needs_review: { chip: "border border-warn/30 bg-warn/[0.07] text-warn-text", dot: "bg-warn" },
+  archived: { chip: "tag-outline opacity-70", dot: "bg-line2" },
 };
 
 export function AssessmentStatusBadge({ status }: { status: AssessmentStatus }) {

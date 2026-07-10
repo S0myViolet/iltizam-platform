@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { listAssessments } from "@/lib/assessments";
+import { requirePageSession } from "@/lib/page-auth";
+import { prisma } from "@/lib/db";
 import { AssessmentStatusBadge, RegimeBadge, TierBadge } from "@/components/badges";
 import { EmptyState } from "@/components/EmptyState";
 import { RadialScore, ScoreMeter } from "@/components/meters";
@@ -11,7 +13,7 @@ const STEPS = [
   {
     step: "01",
     title: "Decide each control",
-    body: "64 plain-language controls across 14 domains — written for operators, not lawyers.",
+    body: "Plain-language controls for Egypt PDPL (85) and GDPR (64) — written for operators, not lawyers.",
   },
   {
     step: "02",
@@ -97,7 +99,15 @@ function ReadinessPreview() {
 }
 
 export default async function HomePage() {
-  const assessments = await listAssessments();
+  const session = await requirePageSession();
+  const org =
+    session.activeOrg ??
+    (session.isPlatformAdmin
+      ? await prisma.organization
+          .findFirst({ where: { demoOrganization: true } })
+          .then((o) => (o ? { organizationId: o.id, organizationName: o.name } : null))
+      : null);
+  const assessments = org ? await listAssessments(org.organizationId) : [];
 
   return (
     <main className="pb-16">
@@ -140,7 +150,7 @@ export default async function HomePage() {
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <p className="eyebrow text-gold-text">How a review runs</p>
             <span className="text-xs text-ink3">
-              64 controls · 14 domains · 54 legally mandatory · 10 important
+              Egypt PDPL: 85 controls · GDPR: 64 controls · 14 domains each
             </span>
           </div>
           <ol className="relative mt-6 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -211,7 +221,7 @@ export default async function HomePage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2.5">
                         <h3 className="display truncate text-lg font-semibold group-hover:text-accent-strong">
-                          {a.companyName}
+                          {a.title}
                         </h3>
                         <AssessmentStatusBadge status={a.status} />
                       </div>

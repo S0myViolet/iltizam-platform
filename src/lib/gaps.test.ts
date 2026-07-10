@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildGaps, gapTierFor, groupGapsByDomain, topRiskDomains, type GapInput } from "./gaps";
 
+const NOW = new Date("2026-07-10T12:00:00Z");
+
 let counter = 0;
 function gapInput(overrides: Partial<GapInput> = {}): GapInput {
   counter += 1;
@@ -11,16 +13,19 @@ function gapInput(overrides: Partial<GapInput> = {}): GapInput {
     domainOrder: 1,
     orderInDomain: counter,
     severity: "legally_mandatory",
-    sourceRegulationCode: "EU-GDPR",
-    legalBasis: "GDPR Art. 5",
-    regimes: ["EU-GDPR"],
+    regimes: ["EG-PDPL"],
+    legalBases: { "EG-PDPL": "Art 4" },
     answer: "no",
     whyItMatters: "why",
     recommendedAction: "action",
     evidenceExamples: ["Policy"],
     evidenceCount: 0,
+    acceptedEvidenceCount: 0,
+    rejectedEvidenceCount: 0,
+    expiredEvidenceCount: 0,
     requiresEvidence: true,
-    ownerName: null,
+    provisional: false,
+    ownerName: "Owner",
     dueDate: null,
     remediationStatus: "not_started",
     answerId: `ans-${counter}`,
@@ -29,7 +34,7 @@ function gapInput(overrides: Partial<GapInput> = {}): GapInput {
 }
 
 describe("gapTierFor", () => {
-  it("assigns the five tiers in the specified priority order", () => {
+  it("assigns the five tiers in priority order", () => {
     expect(gapTierFor({ severity: "legally_mandatory", answer: "no", evidenceCount: 0, requiresEvidence: true })).toBe(1);
     expect(gapTierFor({ severity: "legally_mandatory", answer: "not_answered", evidenceCount: 0, requiresEvidence: true })).toBe(2);
     expect(gapTierFor({ severity: "important", answer: "no", evidenceCount: 0, requiresEvidence: true })).toBe(3);
@@ -37,65 +42,98 @@ describe("gapTierFor", () => {
     expect(gapTierFor({ severity: "legally_mandatory", answer: "yes", evidenceCount: 0, requiresEvidence: true })).toBe(5);
   });
 
-  it("treats yes-with-evidence and not-applicable as no gap", () => {
-    expect(gapTierFor({ severity: "legally_mandatory", answer: "yes", evidenceCount: 1, requiresEvidence: true })).toBeNull();
-    expect(gapTierFor({ severity: "important", answer: "yes", evidenceCount: 0, requiresEvidence: false })).toBeNull();
+  it("yes with ACCEPTED evidence is not a gap; unaccepted evidence still is", () => {
+    expect(
+      gapTierFor({ severity: "important", answer: "yes", evidenceCount: 3, acceptedEvidenceCount: 1, requiresEvidence: true })
+    ).toBeNull();
+    expect(
+      gapTierFor({ severity: "important", answer: "yes", evidenceCount: 3, acceptedEvidenceCount: 0, requiresEvidence: true })
+    ).toBe(5);
     expect(gapTierFor({ severity: "legally_mandatory", answer: "not_applicable", evidenceCount: 0, requiresEvidence: true })).toBeNull();
   });
 });
 
-describe("buildGaps", () => {
-  it("sorts by tier first, then platform domain order", () => {
-    const gaps = buildGaps([
-      gapInput({ controlCode: "IMP-NO", severity: "important", answer: "no", domainOrder: 1 }),
-      gapInput({ controlCode: "MAND-NO-LATE-DOMAIN", severity: "legally_mandatory", answer: "no", domainOrder: 9 }),
-      gapInput({ controlCode: "MAND-UNANSWERED", severity: "legally_mandatory", answer: "not_answered", domainOrder: 1 }),
-      gapInput({ controlCode: "MAND-NO-EARLY-DOMAIN", severity: "legally_mandatory", answer: "no", domainOrder: 2 }),
-      gapInput({ controlCode: "EVIDENCE-MISSING", severity: "legally_mandatory", answer: "yes", evidenceCount: 0 }),
-    ]);
-    expect(gaps.map((g) => g.controlCode)).toEqual([
-      "MAND-NO-EARLY-DOMAIN",
-      "MAND-NO-LATE-DOMAIN",
-      "MAND-UNANSWERED",
-      "IMP-NO",
-      "EVIDENCE-MISSING",
-    ]);
+describe("buildGaps — reasons and alerts", () => {
+  it("labels primary reasons: answer_no, unanswered, evidence_rejected before missing", () => {
+    const gaps = buildGaps(
+      [
+        gapInput({ controlCode: "NO", answer: "no" }),
+        gapInput({ controlCode: "UN", answer: "not_answered" }),
+        gapInput({ controlCode: "REJ", answer: "yes", evidenceCount: 1, rejectedEvidenceCount: 1 }),
+        gapInput({ controlCode: "MISS", answer: "yes" }),
+      ],
+      { now: NOW }
+    );
+    const byCode = Object.fromEntries(gaps.map((g) => [g.controlCode, g.reason]));
+    expect(byCode.NO).toBe("answer_no");
+    expect(byCode.UN).toBe("unanswered");
+    expect(byCode.REJ).toBe("evidence_rejected");
+    expect(byCode.MISS).toBe("evidence_missing");
   });
 
-  it("excludes fully-ready and not-applicable controls", () => {
-    const gaps = buildGaps([
-      gapInput({ answer: "yes", evidenceCount: 3 }),
-      gapInput({ answer: "not_applicable" }),
-    ]);
-    expect(gaps).toHaveLength(0);
+  it("adds owner_missing, overdue and legal_review_required alerts", () => {
+    const [gap] = buildGaps(
+      [
+        gapInput({
+          answer: "no",
+          ownerName: null,
+          dueDate: new Date("2026-06-01"),
+          remediationStatus: "in_progress",
+          provisional: true,
+        }),
+      ],
+      { now: NOW }
+    );
+    expect(gap.alerts).toContain("owner_missing");
+    expect(gap.alerts).toContain("overdue");
+    expect(gap.alerts).toContain("legal_review_required");
+  });
+
+  it("sorts by tier first, then overdue/ownerless first within a tier", () => {
+    const gaps = buildGaps(
+      [
+        gapInput({ controlCode: "IMP-NO", severity: "important", answer: "no" }),
+        gapInput({ controlCode: "MAND-CALM", severity: "legally_mandatory", answer: "no" }),
+        gapInput({
+          controlCode: "MAND-OVERDUE",
+          severity: "legally_mandatory",
+          answer: "no",
+          dueDate: new Date("2026-01-01"),
+        }),
+        gapInput({ controlCode: "EVIDENCE", severity: "legally_mandatory", answer: "yes" }),
+      ],
+      { now: NOW }
+    );
+    expect(gaps.map((g) => g.controlCode)).toEqual(["MAND-OVERDUE", "MAND-CALM", "IMP-NO", "EVIDENCE"]);
   });
 });
 
-describe("groupGapsByDomain", () => {
-  it("groups by domain in platform order with tier order inside", () => {
-    const gaps = buildGaps([
-      gapInput({ controlCode: "SEC-X", domain: "Security of Processing", domainOrder: 8, answer: "no" }),
-      gapInput({ controlCode: "GOV-X", domain: "Governance & Accountability", domainOrder: 1, answer: "not_answered" }),
-      gapInput({ controlCode: "GOV-Y", domain: "Governance & Accountability", domainOrder: 1, answer: "no" }),
-    ]);
-    const groups = groupGapsByDomain(gaps);
-    expect(groups.map((g) => g.domain)).toEqual([
+describe("groupGapsByDomain / topRiskDomains", () => {
+  it("groups by domain in platform order", () => {
+    const gaps = buildGaps(
+      [
+        gapInput({ controlCode: "S", domain: "Security Measures", domainOrder: 7, answer: "no" }),
+        gapInput({ controlCode: "G", domain: "Governance & Accountability", domainOrder: 1, answer: "no" }),
+      ],
+      { now: NOW }
+    );
+    expect(groupGapsByDomain(gaps).map((g) => g.domain)).toEqual([
       "Governance & Accountability",
-      "Security of Processing",
+      "Security Measures",
     ]);
-    expect(groups[0].gaps.map((g) => g.controlCode)).toEqual(["GOV-Y", "GOV-X"]);
   });
-});
 
-describe("topRiskDomains", () => {
   it("weights mandatory gaps three times an important gap", () => {
-    const gaps = buildGaps([
-      gapInput({ domain: "A", domainOrder: 1, severity: "legally_mandatory", answer: "no" }),
-      gapInput({ domain: "B", domainOrder: 2, severity: "important", answer: "no" }),
-      gapInput({ domain: "B", domainOrder: 2, severity: "important", answer: "not_answered" }),
-    ]);
+    const gaps = buildGaps(
+      [
+        gapInput({ domain: "A", domainOrder: 1, severity: "legally_mandatory", answer: "no" }),
+        gapInput({ domain: "B", domainOrder: 2, severity: "important", answer: "no" }),
+        gapInput({ domain: "B", domainOrder: 2, severity: "important", answer: "not_answered" }),
+      ],
+      { now: NOW }
+    );
     const top = topRiskDomains(gaps, 2);
-    expect(top[0]).toMatchObject({ domain: "A", weight: 3, mandatoryGaps: 1 });
-    expect(top[1]).toMatchObject({ domain: "B", weight: 2, mandatoryGaps: 0, totalGaps: 2 });
+    expect(top[0]).toMatchObject({ domain: "A", weight: 3 });
+    expect(top[1]).toMatchObject({ domain: "B", weight: 2, totalGaps: 2 });
   });
 });

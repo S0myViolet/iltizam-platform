@@ -45,6 +45,8 @@ export function ControlCard({
   onPatch,
   onEvidenceChange,
   variant = "card",
+  canReviewEvidence = false,
+  canAddEvidence = true,
 }: {
   row: AnswerRow;
   expanded: boolean;
@@ -53,11 +55,18 @@ export function ControlCard({
   onEvidenceChange: (answerId: string, updater: (prev: EvidenceItem[]) => EvidenceItem[]) => void;
   /** "card" = full decision card; "row" = compact register row until expanded. */
   variant?: "card" | "row";
+  /** Whether the signed-in member may accept/reject evidence (evidence.review). */
+  canReviewEvidence?: boolean;
+  /** Whether the signed-in member may add/remove evidence (evidence.add). */
+  canAddEvidence?: boolean;
 }) {
   const detailId = useId();
   const mandatory = row.severity === "legally_mandatory";
   const isGap = row.answer === "no";
-  const evidenceRequired = row.answer === "yes" && row.requiresEvidence && row.evidence.length === 0;
+  // Evidence readiness counts ACCEPTED evidence only — attached-but-unreviewed
+  // items still leave the control in the evidence queue.
+  const acceptedEvidence = row.evidence.filter((e) => e.reviewStatus === "accepted").length;
+  const evidenceRequired = row.answer === "yes" && row.requiresEvidence && acceptedEvidence === 0;
   const settled = row.answer === "yes" && !evidenceRequired;
 
   const railClass = isGap
@@ -70,7 +79,7 @@ export function ControlCard({
 
   const evidenceValue =
     row.evidence.length > 0
-      ? `${row.evidence.length} item${row.evidence.length === 1 ? "" : "s"} attached`
+      ? `${row.evidence.length} attached · ${acceptedEvidence} accepted`
       : evidenceRequired
         ? "Evidence required"
         : row.answer === "yes"
@@ -102,7 +111,7 @@ export function ControlCard({
           </span>
           <span
             className={`hidden truncate text-[12px] sm:block ${
-              evidenceRequired ? "text-warn-text" : row.evidence.length > 0 ? "text-good-text" : "text-ink3"
+              evidenceRequired ? "text-warn-text" : acceptedEvidence > 0 ? "text-good-text" : "text-ink3"
             }`}
           >
             {evidenceValue}
@@ -129,13 +138,8 @@ export function ControlCard({
           </span>
           <SeverityBadge severity={row.severity} />
           <span className="font-mono text-[10.5px] tracking-wide text-ink3">
-            {row.sourceRegulationCode} · {row.legalBasis}
+            {row.regimes.map((m) => `${m.code}${m.provisional ? "*" : ""}`).join(" · ")}
           </span>
-          {row.provisional ? (
-            <span className="tag border border-gold/40 bg-gold/[0.08] text-gold-text">
-              Provisional control
-            </span>
-          ) : null}
           <span className="ml-auto">
             <AnswerBadge answer={row.answer} />
           </span>
@@ -184,7 +188,7 @@ export function ControlCard({
             <LedgerItem
               label="Evidence"
               value={evidenceValue}
-              tone={evidenceRequired ? "warn" : row.evidence.length > 0 ? "good" : "default"}
+              tone={evidenceRequired ? "warn" : acceptedEvidence > 0 ? "good" : "default"}
             />
             <LedgerItem
               label="Review"
@@ -217,8 +221,8 @@ export function ControlCard({
                 <p className="mt-3 text-sm leading-6 text-ink">{row.description}</p>
                 <p className="mt-2 text-xs text-ink3">
                   {row.sourceReference}
-                  {row.provisional
-                    ? " · Provisional control — client-facing wording requires legal sign-off"
+                  {row.regimes.some((m) => m.provisional)
+                    ? " · PDPL mapping provisional — requires legal review"
                     : ""}
                 </p>
               </div>
@@ -327,6 +331,8 @@ export function ControlCard({
                 answerId={row.answerId}
                 evidence={row.evidence}
                 onEvidenceChange={onEvidenceChange}
+                canReviewEvidence={canReviewEvidence}
+                canAddEvidence={canAddEvidence}
               />
 
               {row.lastReviewedAt ? (

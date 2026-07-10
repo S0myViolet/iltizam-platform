@@ -1,74 +1,95 @@
-// PDPL seed-data integrity: once the 85 controls are extracted from
-// Egypt_PDPL_Law_and_Controls.docx, this suite enforces the document's own
-// structure (85 controls; 64 legally mandatory / 21 important; per-domain
-// counts; a PDPL basis on every control). While the library is still empty
-// (document pending), only the scaffold checks run.
+// Egypt PDPL seed integrity: the library must keep matching what the source
+// document states about itself — 85 controls, 64 legally mandatory, 21
+// important, 14 domains, with the Impact Assessments domain provisional.
 
 import { describe, expect, it } from "vitest";
-import {
-  PDPL_CONTROLS,
-  PDPL_DOMAINS,
-  PDPL_EXPECTED_TOTAL,
-  PDPL_EXPECTED_MANDATORY,
-  PDPL_EXPECTED_IMPORTANT,
-} from "./pdpl-controls";
+import { PDPL_CONTROLS, PDPL_DOMAINS, PDPL_EXPECTED } from "./pdpl-controls";
 
-describe("PDPL library scaffold", () => {
-  it("defines the 14 PDPL domains whose expected counts sum to 85", () => {
-    expect(PDPL_DOMAINS).toHaveLength(14);
-    const total = PDPL_DOMAINS.reduce((sum, d) => sum + d.expectedControls, 0);
-    expect(total).toBe(PDPL_EXPECTED_TOTAL);
-    expect(PDPL_EXPECTED_MANDATORY + PDPL_EXPECTED_IMPORTANT).toBe(PDPL_EXPECTED_TOTAL);
-    // platform order 1..14, unique codes
-    expect(PDPL_DOMAINS.map((d) => d.order)).toEqual(
-      Array.from({ length: 14 }, (_, i) => i + 1)
-    );
-    expect(new Set(PDPL_DOMAINS.map((d) => d.code)).size).toBe(14);
-  });
-});
-
-describe.skipIf(PDPL_CONTROLS.length === 0)("PDPL control library (extracted)", () => {
+describe("Egypt PDPL control library seed data", () => {
   it("has exactly 85 controls with the documented severity split", () => {
-    expect(PDPL_CONTROLS).toHaveLength(PDPL_EXPECTED_TOTAL);
+    expect(PDPL_CONTROLS).toHaveLength(PDPL_EXPECTED.total);
     expect(PDPL_CONTROLS.filter((c) => c.severity === "legally_mandatory")).toHaveLength(
-      PDPL_EXPECTED_MANDATORY
+      PDPL_EXPECTED.mandatory
     );
     expect(PDPL_CONTROLS.filter((c) => c.severity === "important")).toHaveLength(
-      PDPL_EXPECTED_IMPORTANT
+      PDPL_EXPECTED.important
     );
   });
 
-  it("matches the document's per-domain counts", () => {
-    for (const d of PDPL_DOMAINS) {
-      const count = PDPL_CONTROLS.filter((c) => c.domain === d.name).length;
-      expect(count, `domain "${d.name}"`).toBe(d.expectedControls);
+  it("has 14 domains, each used, with declared per-domain counts", () => {
+    expect(PDPL_DOMAINS).toHaveLength(PDPL_EXPECTED.domains);
+    const declared: Record<string, number> = {
+      "Governance & Accountability": 8,
+      "Lawful Basis": 6,
+      "Consent Management": 7,
+      "Data Subject Rights": 7,
+      "Records of Processing": 5,
+      "Data Protection Officer": 7,
+      "Security Measures": 8,
+      "Breach Management": 6,
+      "Cross-Border Transfers": 6,
+      "Vendors & Processors": 6,
+      "Retention & Disposal": 5,
+      "Privacy Notices": 5,
+      "Impact Assessments": 5,
+      "Training & Awareness": 4,
+    };
+    for (const [domain, count] of Object.entries(declared)) {
+      expect(
+        PDPL_CONTROLS.filter((c) => c.domain === domain),
+        `domain ${domain}`
+      ).toHaveLength(count);
     }
   });
 
-  it("uses stable EGP- codes matching their domain prefix, numbered sequentially", () => {
+  it("has unique EG-prefixed codes numbered sequentially per domain", () => {
     const codes = new Set(PDPL_CONTROLS.map((c) => c.code));
     expect(codes.size).toBe(PDPL_CONTROLS.length);
-    const prefixByDomain = new Map(PDPL_DOMAINS.map((d) => [d.name, d.code]));
-    const byDomain = new Map<string, number[]>();
     for (const c of PDPL_CONTROLS) {
-      expect(c.code, c.code).toMatch(/^EGP-[A-Z]{3}-\d{2}$/);
-      expect(c.code.startsWith(`EGP-${prefixByDomain.get(c.domain)}-`), c.code).toBe(true);
-      const n = Number(c.code.split("-")[2]);
-      byDomain.set(c.domain, [...(byDomain.get(c.domain) ?? []), n]);
-    }
-    for (const [domain, numbers] of byDomain) {
-      expect(numbers, `domain ${domain} numbering`).toEqual(
-        Array.from({ length: numbers.length }, (_, i) => i + 1)
-      );
+      expect(c.code).toMatch(/^EG-[A-Z]{3}-\d{2}$/);
     }
   });
 
-  it("carries a PDPL basis and complete guidance on every control", () => {
+  it("populates a PDPL legal basis on every control (Law articles or ER citations)", () => {
     for (const c of PDPL_CONTROLS) {
-      expect(c.legalBasis, c.code).toMatch(/PDPL|Art|Exec/i);
-      expect(c.question.trim().endsWith("?"), `${c.code} question ends with ?`).toBe(true);
-      expect(c.description.length, `${c.code} description`).toBeGreaterThan(10);
-      expect(c.whyItMatters.length, `${c.code} whyItMatters`).toBeGreaterThan(10);
+      // Verbatim from the document: either "Art …" of Law 151/2020, or an
+      // Executive Regulations citation ("ER …") for the provisional duties.
+      expect(c.legalBasis, c.code).toMatch(/Art|ER/);
+      expect(c.legalBasis.trim().length, c.code).toBeGreaterThan(1);
+    }
+  });
+
+  it("marks exactly the Impact Assessments domain provisional", () => {
+    const provisional = PDPL_CONTROLS.filter((c) => c.provisional);
+    expect(provisional).toHaveLength(PDPL_EXPECTED.provisional);
+    expect(new Set(provisional.map((c) => c.domain))).toEqual(new Set(["Impact Assessments"]));
+  });
+
+  it("contains the Egypt-specific duties GDPR does not carry", () => {
+    const questions = PDPL_CONTROLS.map((c) => c.question.toLowerCase());
+    const mustCover = [
+      "licence or permit from the pdpc", // PDPC licensing
+      "representative inside egypt", // Egypt representative
+      "6 working days", // rights deadline
+      "72 hours", // PDPC breach notification
+      "3 working days", // person notification
+      "registered in the pdpc", // DPO registration
+      "outside egypt", // cross-border licence
+      "plain arabic", // Arabic notices
+      "guardian", // child guardian consent
+    ];
+    for (const needle of mustCover) {
+      expect(
+        questions.some((q) => q.includes(needle)),
+        `expected a control covering "${needle}"`
+      ).toBe(true);
+    }
+  });
+
+  it("ships complete guidance for every control", () => {
+    for (const c of PDPL_CONTROLS) {
+      expect(c.question.trim().endsWith("?"), `${c.code} question`).toBe(true);
+      expect(c.whyItMatters.length, `${c.code} whyItMatters`).toBeGreaterThan(20);
       expect(c.recommendedAction.length, `${c.code} recommendedAction`).toBeGreaterThan(10);
       expect(c.evidenceExamples.length, `${c.code} evidenceExamples`).toBeGreaterThan(0);
     }

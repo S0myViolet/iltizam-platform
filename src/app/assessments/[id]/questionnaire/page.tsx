@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { getAssessmentBundle } from "@/lib/assessments";
+import { requirePageSession, requireAssessmentPage } from "@/lib/page-auth";
+import { roleHasPermission } from "@/lib/types";
 import { DOMAINS } from "@/data/controls";
 import { Questionnaire } from "./Questionnaire";
 
@@ -14,8 +16,18 @@ export default async function QuestionnairePage({
 }) {
   const { id } = await params;
   const filters = await searchParams;
+  const session = await requirePageSession();
+  const record = await requireAssessmentPage(session, id);
   const bundle = await getAssessmentBundle(id);
   if (!bundle) notFound();
+
+  const membership = session.memberships.find((m) => m.organizationId === record.organizationId);
+  const canReviewEvidence =
+    session.isPlatformAdmin ||
+    (membership ? roleHasPermission(membership.role, "evidence.review") : false);
+  const canAddEvidence =
+    session.isPlatformAdmin ||
+    (membership ? roleHasPermission(membership.role, "evidence.add") : false);
 
   const domainBlurbs = Object.fromEntries(DOMAINS.map((d) => [d.name, d.blurb]));
 
@@ -30,6 +42,8 @@ export default async function QuestionnairePage({
       initialDomain={filters.domain ?? "all"}
       initialSeverity={filters.severity ?? "all"}
       initialShow={filters.show ?? "all"}
+      canReviewEvidence={canReviewEvidence}
+      canAddEvidence={canAddEvidence}
     />
   );
 }

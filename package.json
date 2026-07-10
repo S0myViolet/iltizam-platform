@@ -12,11 +12,13 @@
     "db:reset": "prisma migrate reset --force",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "verify:demo": "tsx scripts/verify-demo.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "@vercel/blob": "^2.5.0",
+    "exceljs": "^4.4.0",
     "next": "15.5.20",
     "prisma": "^6.19.3",
     "react": "19.1.0",

@@ -11,6 +11,7 @@ import { gapTierFor } from "@/lib/gaps";
 import { AssessmentStatusBadge } from "@/components/badges";
 import { ScoreMeter } from "@/components/meters";
 import { WorkspaceNavLinks } from "@/components/WorkspaceNavLinks";
+import { requirePageSession, requireAssessmentPage } from "@/lib/page-auth";
 import { formatScore } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,8 @@ export default async function AssessmentWorkspaceLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await requirePageSession();
+  await requireAssessmentPage(session, id);
   const bundle = await getAssessmentBundle(id);
   if (!bundle) notFound();
   const { assessment, rows, scores } = bundle;
@@ -67,7 +70,7 @@ export default async function AssessmentWorkspaceLayout({
         <div className="card p-4">
           <div className="flex items-start justify-between gap-2">
             <h2 className="display min-w-0 truncate text-[17px] leading-6 font-semibold">
-              {assessment.companyName}
+              {assessment.title}
             </h2>
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
