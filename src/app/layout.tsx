@@ -21,8 +21,12 @@ export default async function RootLayout({
   const session = await getSession();
 
   return (
-    <html lang="en">
-      <body className="flex min-h-screen flex-col antialiased">
+    // suppressHydrationWarning on the roots only: browser extensions (ad
+    // blockers, download managers) inject attributes into <html>/<body>
+    // before React hydrates, which otherwise trips a spurious mismatch
+    // warning. Real hydration bugs inside the page are still reported.
+    <html lang="en" suppressHydrationWarning>
+      <body className="flex min-h-screen flex-col antialiased" suppressHydrationWarning>
         <header className="band print-hidden sticky top-0 z-40 border-b border-brand-line">
           <div className="shell flex h-16 items-center gap-5">
             <Link
