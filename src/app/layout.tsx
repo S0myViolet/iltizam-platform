@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { LEGAL_DISCLAIMER, ROLE_LABELS } from "@/lib/types";
+import { MAIN_WEBSITE_URL } from "@/lib/site";
 import { LogoMark, Wordmark } from "@/components/Wordmark";
 import { HeaderNav } from "@/components/HeaderNav";
 import { HeaderSession } from "@/components/HeaderSession";
@@ -71,7 +72,19 @@ export default async function RootLayout({
                 </div>
               </>
             ) : (
-              <div className="ml-auto text-[12px] text-brand-muted">Compliance readiness platform</div>
+              <div className="ml-auto flex items-center gap-4">
+                <span className="hidden text-[12px] text-brand-muted sm:inline">
+                  Compliance readiness platform
+                </span>
+                <a
+                  href={MAIN_WEBSITE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] font-semibold whitespace-nowrap text-gold-bright hover:underline"
+                >
+                  Main website ↗
+                </a>
+              </div>
             )}
           </div>
         </header>
@@ -86,6 +99,14 @@ export default async function RootLayout({
                 A compliance operating platform for EG-PDPL, EU-GDPR and the regulations that
                 come next.
               </p>
+              <a
+                href={MAIN_WEBSITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-block text-[13px] font-semibold text-gold-bright hover:underline"
+              >
+                Visit the main website ↗
+              </a>
             </div>
             <div className="max-w-md">
               <p className="eyebrow text-gold-bright">A note on scope</p>

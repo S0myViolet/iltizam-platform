@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { ROLE_LABELS, type MembershipRole } from "@/lib/types";
+import { MAIN_WEBSITE_URL } from "@/lib/site";
 import { Wordmark } from "@/components/Wordmark";
 import { SignInForm, type DemoUser } from "./SignInForm";
 
@@ -74,6 +75,14 @@ export default async function SignInPage() {
         <p className="mt-6 max-w-xl text-center text-xs leading-5 text-brand-muted/80">
           Demonstration sessions expire after 12 hours. Sign-ins are recorded in the audit trail.
         </p>
+        <a
+          href={MAIN_WEBSITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 text-[13px] font-semibold text-gold-bright hover:underline"
+        >
+          ← Back to the main website
+        </a>
       </section>
     </main>
   );
