@@ -4,6 +4,8 @@
 // slice only). Fails loudly if PDPL counts drift from the source document.
 
 import type { PrismaClient } from "@prisma/client";
+import { demoAdminCredentials, demoUserPassword, hashPassword } from "./passwords";
+import { generateVault, vaultExists } from "./vault";
 import { CONTROLS as GDPR_CONTROLS, DOMAINS as GDPR_DOMAINS } from "@/data/controls";
 import { PDPL_CONTROLS, PDPL_DOMAINS, PDPL_EXPECTED } from "@/data/pdpl-controls";
 import { MONITORING_RULES } from "@/data/monitoring-rules";
@@ -185,7 +187,7 @@ export async function seedMonitoringRules(prisma: PrismaClient) {
         conditionType: "structured",
         conditionConfiguration: J(r.condition),
         relatedControlCodes: J(r.relatedControlCodes),
-        regulationCodes: J(r.regulationCodes),
+        regulationCodes: J(["EG-PDPL"]),
         recommendedAction: r.recommendedAction,
         requiresHumanReview: true,
       },
@@ -244,11 +246,13 @@ export async function createAssessmentWithControls(
 export const DEMO_ASSESSMENT_TITLE = "PDPL & GDPR readiness review 2026";
 
 export async function seedDemo(prisma: PrismaClient) {
-  // Platform admin
+  // Platform admin — credentials come from DEMO_ADMIN_EMAIL / DEMO_ADMIN_PASSWORD.
+  const adminCreds = demoAdminCredentials();
+  const adminHash = hashPassword(adminCreds.password);
   const admin = await prisma.user.upsert({
-    where: { email: PLATFORM_ADMIN.email },
-    create: { name: PLATFORM_ADMIN.name, email: PLATFORM_ADMIN.email, isPlatformAdmin: true },
-    update: { isPlatformAdmin: true },
+    where: { email: adminCreds.email },
+    create: { name: PLATFORM_ADMIN.name, email: adminCreds.email, isPlatformAdmin: true, passwordHash: adminHash },
+    update: { isPlatformAdmin: true, passwordHash: adminHash },
   });
 
   // Organization
@@ -276,8 +280,8 @@ export async function seedDemo(prisma: PrismaClient) {
   for (const u of DEMO_USERS) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      create: { name: u.name, email: u.email },
-      update: { name: u.name },
+      create: { name: u.name, email: u.email, passwordHash: hashPassword(demoUserPassword()) },
+      update: { name: u.name, passwordHash: hashPassword(demoUserPassword()) },
     });
     const membership = await prisma.organizationMembership.upsert({
       where: { organizationId_userId: { organizationId: org.id, userId: user.id } },
@@ -292,6 +296,9 @@ export async function seedDemo(prisma: PrismaClient) {
     });
     usersByKey.set(u.key, { id: user.id, name: user.name, email: user.email, membershipId: membership.id });
   }
+
+  // The real synthetic data source (files on disk + manifest).
+  if (!vaultExists()) await generateVault();
 
   // Connector
   let connector = await prisma.connector.findFirst({

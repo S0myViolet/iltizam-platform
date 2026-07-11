@@ -1,7 +1,10 @@
-// Excel export — a real multi-sheet XLSX workbook for stakeholder review.
-// The database remains the source of truth; scores and gaps come from the
-// central engines (never recomputed here). No credentials, tokens, sessions
-// or storage keys are ever written to the workbook.
+// Excel export — the full monitoring workbook. Contains the ACTUAL synthetic
+// data the scan read (raw demo datasets), the normalized inventory, the fixed
+// rules, findings + control mappings, run history with change detection, the
+// deterministic scores, and the audit trail. The database and vault remain
+// the sources of truth; scores and gaps come from the central engines.
+// No credentials, tokens, sessions or storage keys are ever written here.
+// Raw synthetic rows are exported ONLY for the flagged demo organization.
 
 import ExcelJS from "exceljs";
 import { prisma } from "./db";
@@ -9,31 +12,52 @@ import { getAssessmentBundle } from "./assessments";
 import { GAP_REASON_LABELS } from "./gaps";
 import { LEGAL_DISCLAIMER, MONITORING_DISCLAIMER, SEVERITY_LABELS } from "./types";
 import type { Severity } from "./types";
+import { parseVaultFile, vaultExists } from "./vault";
 
 export const WORKBOOK_SHEETS = [
   "Overview",
   "Organization",
-  "Users",
-  "Regulations",
-  "Control Domains",
-  "Controls",
-  "Regulation Mappings",
-  "Assessments",
-  "Assessment Answers",
-  "Evidence Register",
+  "Source Systems",
+  "Source Files",
+  "Raw Demo Employees",
+  "Raw Demo Recruitment",
+  "Raw Demo Payroll",
+  "Raw Demo Biometric Data",
+  "Raw Demo Marketing Leads",
+  "Raw Demo Consent Log",
+  "Raw Demo Rights Requests",
+  "Raw Demo Vendors",
+  "Raw Demo Incidents",
+  "Raw Demo Training",
   "Data Inventory",
-  "Connectors",
-  "Synchronization Runs",
-  "Source Resources",
   "Monitoring Rules",
   "Monitoring Findings",
   "Finding Control Mappings",
+  "Evidence Candidates",
+  "Confirmed Evidence",
+  "Synchronization Runs",
+  "Changed Resources",
   "Gap Register",
   "Domain Scores",
   "Regulation Scores",
-  "Reports",
   "Audit Log",
 ] as const;
+
+/** Raw dataset sheets → the vault file each one is read from. */
+export const RAW_SHEET_SOURCES: Record<string, string> = {
+  "Raw Demo Employees": "Employees.xlsx",
+  "Raw Demo Recruitment": "Recruitment_Candidates.xlsx",
+  "Raw Demo Payroll": "Payroll_Archive_2022.xlsx",
+  "Raw Demo Biometric Data": "Biometric_Access_Records.xlsx",
+  "Raw Demo Marketing Leads": "Marketing_Leads.xlsx",
+  "Raw Demo Consent Log": "Customer_Consent_Log.xlsx",
+  "Raw Demo Rights Requests": "Data_Subject_Requests.xlsx",
+  "Raw Demo Vendors": "Cross_Border_Vendors.xlsx",
+  "Raw Demo Incidents": "Security_Incident_Register.xlsx",
+  "Raw Demo Training": "Training_Completion_Records.xlsx",
+};
+
+const MAX_RAW_ROWS = 1000;
 
 const HEADER_FILL: ExcelJS.Fill = {
   type: "pattern",
@@ -54,10 +78,7 @@ function addTable(
   header.fill = HEADER_FILL;
   ws.views = [{ state: "frozen", ySplit: 1 }];
   if (columns.length > 0) {
-    ws.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: 1, column: columns.length },
-    };
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columns.length } };
   }
   for (const r of rows) ws.addRow(r);
   ws.eachRow((row, n) => {
@@ -70,9 +91,9 @@ function addTable(
 const d = (v: Date | null | undefined) => (v ? v.toISOString().slice(0, 10) : "");
 const dt = (v: Date | null | undefined) => (v ? v.toISOString().replace("T", " ").slice(0, 16) : "");
 const pct = (v: number | null | undefined) => (v === null || v === undefined ? "Not scorable" : `${v}%`);
-const arr = (v: string) => {
+const arr = (v: string | null) => {
   try {
-    const p = JSON.parse(v);
+    const p = JSON.parse(v ?? "[]");
     return Array.isArray(p) ? p.join(", ") : "";
   } catch {
     return "";
@@ -87,87 +108,58 @@ export async function buildDemoWorkbook(organizationId: string, generatedBy: str
   });
   const bundle = assessmentRow ? await getAssessmentBundle(assessmentRow.id) : null;
 
-  const [
-    memberships,
-    regulations,
-    domains,
-    controls,
-    mappings,
-    assessments,
-    evidence,
-    inventory,
-    connectors,
-    syncRuns,
-    resources,
-    rules,
-    findings,
-    findingMappings,
-    reports,
-    auditLogs,
-  ] = await Promise.all([
-    prisma.organizationMembership.findMany({ where: { organizationId }, include: { user: true } }),
-    prisma.regulation.findMany({ orderBy: { code: "asc" } }),
-    prisma.controlDomain.findMany({ orderBy: [{ displayOrder: "asc" }, { code: "asc" }] }),
-    prisma.control.findMany({
-      include: { domain: true, regulationMappings: { include: { regulation: true } } },
-      orderBy: { controlCode: "asc" },
-    }),
-    prisma.regulationControlMapping.findMany({ include: { regulation: true, control: true } }),
-    prisma.assessment.findMany({ where: { organizationId }, include: { regulations: { include: { regulation: true } } } }),
-    prisma.evidence.findMany({
-      where: { organizationId },
-      include: { answer: { include: { control: true } } },
-      orderBy: { uploadedAt: "asc" },
-    }),
-    prisma.dataInventoryItem.findMany({ where: { organizationId }, orderBy: { name: "asc" } }),
-    prisma.connector.findMany({ where: { organizationId } }),
-    prisma.synchronizationRun.findMany({ where: { organizationId }, orderBy: { createdAt: "asc" } }),
-    prisma.connectorResource.findMany({ where: { organizationId }, orderBy: { externalId: "asc" } }),
-    prisma.monitoringRule.findMany({ orderBy: [{ code: "asc" }, { version: "asc" }] }),
-    prisma.monitoringFinding.findMany({
-      where: { organizationId },
-      include: { resource: true, controlMappings: { include: { control: true } } },
-      orderBy: { detectedAt: "asc" },
-    }),
-    prisma.findingControlMapping.findMany({
-      where: { finding: { organizationId } },
-      include: { control: true, finding: true },
-    }),
-    prisma.report.findMany({ where: { organizationId } }),
-    prisma.auditLog.findMany({ where: { organizationId }, orderBy: { createdAt: "desc" }, take: 500 }),
-  ]);
+  const [inventory, connectors, syncRuns, resources, rules, findings, findingMappings, evidence, auditLogs] =
+    await Promise.all([
+      prisma.dataInventoryItem.findMany({ where: { organizationId }, orderBy: { name: "asc" } }),
+      prisma.connector.findMany({ where: { organizationId } }),
+      prisma.synchronizationRun.findMany({ where: { organizationId }, orderBy: { createdAt: "asc" } }),
+      prisma.connectorResource.findMany({ where: { organizationId }, orderBy: { externalId: "asc" } }),
+      prisma.monitoringRule.findMany({ orderBy: [{ code: "asc" }, { version: "asc" }] }),
+      prisma.monitoringFinding.findMany({
+        where: { organizationId },
+        include: { resource: true, controlMappings: { include: { control: true } } },
+        orderBy: { detectedAt: "asc" },
+      }),
+      prisma.findingControlMapping.findMany({
+        where: { finding: { organizationId } },
+        include: { control: true, finding: true },
+      }),
+      prisma.evidence.findMany({
+        where: { organizationId, reviewStatus: "accepted" },
+        include: { answer: { include: { control: true } } },
+        orderBy: { uploadedAt: "asc" },
+      }),
+      prisma.auditLog.findMany({ where: { organizationId }, orderBy: { createdAt: "desc" }, take: 500 }),
+    ]);
 
   const wb = new ExcelJS.Workbook();
   wb.creator = "Iltzam";
-
-  // 1. Overview
   const s = bundle?.scores;
   const lastRun = syncRuns[syncRuns.length - 1];
+
+  // 1. Overview
   const overview = wb.addWorksheet("Overview");
-  overview.columns = [{ width: 38 }, { width: 80 }];
+  overview.columns = [{ width: 38 }, { width: 84 }];
   const put = (k: string, v: string | number) => overview.addRow([k, v]);
-  put("Export", "Iltzam backend demonstration export");
+  put("Export", "Iltzam monitoring workbook");
   put("Organization", org.name);
-  put("Country", org.country ?? "");
-  put("Generated", dt(new Date()));
+  put("Source", connectors[0]?.displayName ?? "—");
   put("Generated by", generatedBy);
-  put("Assessment", assessmentRow?.title ?? "—");
-  put("Selected regulations", bundle?.assessment.selectedRegimes.join(" · ") ?? "—");
-  put("Overall readiness (official)", pct(s?.readinessScore));
-  put("Mandatory readiness", pct(s?.mandatoryScore));
-  put("Evidence readiness", pct(s?.evidenceReadiness));
-  put("Total controls in assessment", s?.totalControls ?? 0);
-  put("Total gaps", bundle?.gaps.length ?? 0);
-  put("Mandatory gaps (answered No)", s?.mandatoryGaps ?? 0);
-  put("Evidence gaps (Yes without accepted evidence)", s?.controlsMissingEvidence ?? 0);
-  put("Inventory records", inventory.length);
-  put("Monitoring findings", findings.length);
-  put("Findings awaiting human review", findings.filter((f) => f.status === "new").length);
-  put("Last synchronization", lastRun ? `${lastRun.status} (${dt(lastRun.completedAt ?? lastRun.createdAt)})` : "—");
+  put("Generated at (UTC)", dt(new Date()));
+  put("Latest scan ID", lastRun?.id ?? "No scan on record");
+  put("Latest scan completed", dt(lastRun?.completedAt ?? null));
+  put("Files read in latest scan", lastRun ? `${lastRun.filesRead}/${lastRun.resourcesDiscovered}` : "—");
+  put("Records inspected in latest scan", lastRun?.rowsInspected ?? 0);
+  put("Official readiness", pct(s?.readinessScore));
+  put("Evidence readiness (accepted only)", pct(s?.evidenceReadiness));
+  put("Findings awaiting review", findings.filter((f) => f.status === "new").length);
+  put("Data note", "All raw datasets in this workbook are entirely synthetic demonstration data.");
   put("Disclaimer", LEGAL_DISCLAIMER);
   put("Monitoring note", MONITORING_DISCLAIMER);
   overview.getColumn(1).font = { bold: true };
-  overview.eachRow((r) => (r.alignment = { vertical: "top", wrapText: true }));
+  overview.eachRow((row) => {
+    row.alignment = { vertical: "top", wrapText: true };
+  });
 
   // 2. Organization
   addTable(wb, "Organization", [
@@ -179,348 +171,219 @@ export async function buildDemoWorkbook(organizationId: string, generatedBy: str
     { k: "Country", v: org.country ?? "" },
     { k: "Industry", v: org.industry ?? "" },
     { k: "Company size", v: org.companySize ?? "" },
-    { k: "Registration number", v: org.registrationNumber ?? "" },
-    { k: "Primary contact", v: `${org.primaryContactName ?? ""} <${org.primaryContactEmail ?? ""}>` },
-    { k: "Timezone", v: org.timezone ?? "" },
-    { k: "Demonstration organization", v: org.demoOrganization ? "Yes" : "No" },
-    { k: "Created", v: dt(org.createdAt) },
+    { k: "Demonstration organization", v: org.demoOrganization ? "Yes — all data synthetic" : "No" },
   ]);
 
-  // 3. Users
-  addTable(wb, "Users", [
-    { header: "Name", key: "name", width: 26 },
-    { header: "Email", key: "email", width: 36 },
-    { header: "Role", key: "role", width: 22 },
-    { header: "Status", key: "status", width: 14 },
-    { header: "Joined", key: "joined", width: 14 },
-  ], memberships.map((m) => ({
-    name: m.user.name,
-    email: m.user.email,
-    role: m.role,
-    status: m.status,
-    joined: d(m.joinedAt),
+  // 3. Source Systems
+  addTable(wb, "Source Systems", [
+    { header: "Source", key: "n", width: 36 },
+    { header: "Provider", key: "p", width: 20 },
+    { header: "Status", key: "s", width: 12 },
+    { header: "Monitoring", key: "m", width: 16 },
+    { header: "Interval (s)", key: "i", width: 10 },
+    { header: "Last Sync", key: "l", width: 16 },
+    { header: "Next Sync", key: "x", width: 16 },
+  ], connectors.map((c) => ({
+    n: c.displayName, p: c.provider, s: c.status,
+    m: c.monitoringEnabled ? "Active" : "Paused", i: c.monitoringIntervalSeconds,
+    l: dt(c.lastSyncAt), x: dt(c.nextSyncAt),
   })));
 
-  // 4. Regulations
-  addTable(wb, "Regulations", [
-    { header: "Code", key: "code", width: 12 },
-    { header: "Name", key: "name", width: 44 },
-    { header: "Jurisdiction", key: "jur", width: 18 },
-    { header: "Legal instrument", key: "inst", width: 44 },
-    { header: "Regulator", key: "reg", width: 32 },
-    { header: "Compliance deadline", key: "deadline", width: 18 },
-    { header: "Status", key: "status", width: 22 },
-  ], regulations.map((r) => ({
-    code: r.code,
-    name: r.name,
-    jur: r.jurisdiction ?? "",
-    inst: r.legalInstrument ?? "",
-    reg: r.regulator ?? "",
-    deadline: d(r.complianceDeadline),
-    status: r.status,
-  })));
-
-  // 5. Control Domains
-  addTable(wb, "Control Domains", [
-    { header: "Code", key: "code", width: 10 },
-    { header: "Name", key: "name", width: 36 },
-    { header: "Order", key: "order", width: 8 },
-    { header: "Description", key: "desc", width: 70 },
-  ], domains.map((x) => ({ code: x.code, name: x.name, order: x.displayOrder, desc: x.description ?? "" })));
-
-  // 6. Controls
-  addTable(wb, "Controls", [
-    { header: "Control Code", key: "code", width: 12 },
-    { header: "Domain", key: "domain", width: 28 },
-    { header: "Control Question", key: "q", width: 80 },
-    { header: "Severity", key: "sev", width: 18 },
-    { header: "Regulations", key: "regs", width: 18 },
-    { header: "Legal Basis", key: "basis", width: 22 },
-    { header: "Provisional", key: "prov", width: 11 },
-    { header: "Evidence Examples", key: "ev", width: 44 },
-  ], controls.map((c) => ({
-    code: c.controlCode,
-    domain: c.domain.name,
-    q: c.question,
-    sev: SEVERITY_LABELS[c.severity as Severity] ?? c.severity,
-    regs: c.regulationMappings.map((m) => m.regulation.code).join(" · "),
-    basis: c.regulationMappings.map((m) => m.legalBasis).filter(Boolean).join(" · "),
-    prov: c.provisional ? "Yes" : "",
-    ev: arr(c.evidenceExamples),
-  })));
-
-  // 7. Regulation Mappings
-  addTable(wb, "Regulation Mappings", [
-    { header: "Control Code", key: "c", width: 12 },
-    { header: "Regulation", key: "r", width: 12 },
-    { header: "Legal Basis", key: "b", width: 24 },
-    { header: "Mapping Type", key: "t", width: 20 },
-    { header: "Provisional", key: "p", width: 11 },
-    { header: "Notes", key: "n", width: 60 },
-  ], mappings.map((m) => ({
-    c: m.control.controlCode,
-    r: m.regulation.code,
-    b: m.legalBasis ?? "",
-    t: m.mappingType,
-    p: m.provisional ? "Yes" : "",
-    n: m.mappingNotes ?? "",
-  })));
-
-  // 8. Assessments
-  addTable(wb, "Assessments", [
-    { header: "Title", key: "t", width: 40 },
-    { header: "Status", key: "s", width: 16 },
-    { header: "Regulations", key: "r", width: 22 },
-    { header: "Official Readiness", key: "score", width: 16 },
-    { header: "Mandatory Readiness", key: "m", width: 16 },
-    { header: "Started", key: "st", width: 14 },
-    { header: "Next Review", key: "nr", width: 14 },
-  ], assessments.map((a) => ({
-    t: a.title,
-    s: a.status,
-    r: a.regulations.map((x) => x.regulation.code).join(" · "),
-    score: pct(a.readinessScore),
-    m: pct(a.mandatoryScore),
-    st: d(a.startedAt),
-    nr: d(a.nextReviewAt),
-  })));
-
-  // 9. Assessment Answers
-  addTable(wb, "Assessment Answers", [
-    { header: "Control Code", key: "code", width: 12 },
-    { header: "Domain", key: "domain", width: 26 },
-    { header: "Control Question", key: "q", width: 70 },
-    { header: "Severity", key: "sev", width: 17 },
-    { header: "Regulation", key: "regs", width: 16 },
-    { header: "Legal Basis", key: "basis", width: 20 },
-    { header: "Answer", key: "ans", width: 14 },
-    { header: "Evidence Status", key: "ev", width: 22 },
-    { header: "Owner", key: "owner", width: 20 },
-    { header: "Due Date", key: "due", width: 12 },
-    { header: "Remediation", key: "rem", width: 18 },
-    { header: "Notes", key: "notes", width: 44 },
-  ], (bundle?.rows ?? []).map((r) => ({
-    code: r.controlCode,
-    domain: r.domain,
-    q: r.question,
-    sev: SEVERITY_LABELS[r.severity],
-    regs: r.regimes.map((m) => m.code).join(" · "),
-    basis: r.regimes.map((m) => m.legalBasis).filter(Boolean).join(" · "),
-    ans: r.answer,
-    ev:
-      r.evidence.length === 0
-        ? "None attached"
-        : `${r.evidence.filter((e) => e.reviewStatus === "accepted").length} accepted / ${r.evidence.length} total`,
-    owner: r.ownerName ?? "Unassigned",
-    due: d(r.dueDate),
-    rem: r.remediationStatus,
-    notes: r.notes ?? "",
-  })));
-
-  // 10. Evidence Register
-  addTable(wb, "Evidence Register", [
-    { header: "Evidence", key: "n", width: 40 },
-    { header: "Control Code", key: "c", width: 12 },
-    { header: "Type", key: "t", width: 18 },
-    { header: "Kind", key: "k", width: 8 },
-    { header: "Human Review Status", key: "rs", width: 18 },
-    { header: "Reviewer Notes", key: "rn", width: 30 },
-    { header: "Uploaded By", key: "by", width: 20 },
-    { header: "Uploaded At", key: "at", width: 16 },
-    { header: "Reviewed At", key: "rat", width: 16 },
-    { header: "Expires", key: "exp", width: 12 },
-  ], evidence.map((e) => ({
-    n: e.fileName,
-    c: e.answer.control.controlCode,
-    t: e.evidenceType,
-    k: e.kind,
-    rs: e.reviewStatus,
-    rn: e.reviewNotes ?? "",
-    by: e.uploadedBy ?? "",
-    at: dt(e.uploadedAt),
-    rat: dt(e.reviewedAt),
-    exp: d(e.expiresAt),
-  })));
-
-  // 11. Data Inventory
-  addTable(wb, "Data Inventory", [
-    { header: "Name", key: "n", width: 36 },
-    { header: "System", key: "sys", width: 24 },
-    { header: "Source", key: "src", width: 12 },
-    { header: "Business Owner", key: "bo", width: 18 },
-    { header: "Data Categories", key: "dc", width: 32 },
-    { header: "Sensitive Categories", key: "sc", width: 20 },
-    { header: "Personal Data", key: "p", width: 12 },
-    { header: "Sensitive Data", key: "s", width: 12 },
-    { header: "Cross-Border", key: "x", width: 12 },
-    { header: "Destinations", key: "dest", width: 18 },
-    { header: "Retention", key: "ret", width: 20 },
+  // 4. Source Files
+  addTable(wb, "Source Files", [
+    { header: "File", key: "n", width: 34 },
+    { header: "External ID", key: "e", width: 22 },
+    { header: "Type", key: "t", width: 8 },
+    { header: "Records", key: "r", width: 9 },
+    { header: "Checksum", key: "c", width: 18 },
+    { header: "Change", key: "ch", width: 11 },
+    { header: "Owner", key: "o", width: 16 },
+    { header: "Location", key: "l", width: 34 },
     { header: "Sharing", key: "sh", width: 10 },
-    { header: "Encryption", key: "enc", width: 12 },
+    { header: "Classification", key: "cl", width: 12 },
+    { header: "Size (bytes)", key: "sz", width: 11 },
+    { header: "Last Seen", key: "ls", width: 16 },
+  ], resources.map((r) => ({
+    n: r.name, e: r.externalId, t: r.fileType ?? "", r: r.rowCount, c: r.checksum ?? "",
+    ch: r.changeStatus, o: r.owner ?? "Unassigned", l: r.location ?? "", sh: r.sharingStatus ?? "",
+    cl: r.classification ?? "", sz: r.sizeBytes ?? 0, ls: dt(r.lastSeenAt),
+  })));
+
+  // 5–14. Raw demo datasets — the actual synthetic rows the scan parsed.
+  // Only ever exported for the flagged demo organization.
+  for (const [sheetName, fileName] of Object.entries(RAW_SHEET_SOURCES)) {
+    const name = sheetName as (typeof WORKBOOK_SHEETS)[number];
+    if (!org.demoOrganization || !vaultExists()) {
+      addTable(wb, name, [{ header: "Note", key: "n", width: 80 }], [
+        { n: "Raw data export is available only for the synthetic demonstration organization." },
+      ]);
+      continue;
+    }
+    try {
+      const parsed = await parseVaultFile(fileName, MAX_RAW_ROWS);
+      addTable(
+        wb,
+        name,
+        parsed.columns.map((c) => ({ header: c, key: c, width: Math.max(12, Math.min(34, c.length + 8)) })),
+        parsed.rows as Record<string, unknown>[]
+      );
+    } catch {
+      addTable(wb, name, [{ header: "Note", key: "n", width: 80 }], [
+        { n: `Source file ${fileName} could not be read.` },
+      ]);
+    }
+  }
+
+  // 15. Data Inventory
+  addTable(wb, "Data Inventory", [
+    { header: "System", key: "n", width: 30 },
+    { header: "Source", key: "s", width: 22 },
+    { header: "Entry Type", key: "t", width: 12 },
+    { header: "Owner", key: "o", width: 16 },
+    { header: "Records", key: "rc", width: 9 },
+    { header: "Data Categories", key: "c", width: 30 },
+    { header: "Personal", key: "p", width: 9 },
+    { header: "Sensitive", key: "sv", width: 9 },
+    { header: "Cross-border", key: "x", width: 11 },
+    { header: "Storage", key: "st", width: 20 },
+    { header: "Destinations", key: "dst", width: 18 },
+    { header: "Retention", key: "r", width: 22 },
+    { header: "Sharing", key: "sh", width: 10 },
+    { header: "Encryption", key: "e", width: 11 },
     { header: "Last Scanned", key: "ls", width: 16 },
   ], inventory.map((i) => ({
-    n: i.name,
-    sys: i.systemName ?? "",
-    src: i.sourceType,
-    bo: i.businessOwner ?? "",
-    dc: arr(i.dataCategories),
-    sc: arr(i.sensitiveDataCategories),
-    p: i.containsPersonalData ? "Yes" : "No",
-    s: i.containsSensitiveData ? "Yes" : "No",
-    x: i.crossBorderTransfer ? "Yes" : "No",
-    dest: arr(i.destinationCountries),
-    ret: i.retentionPeriod ?? "Not documented",
-    sh: i.sharingStatus ?? "",
-    enc: i.encryptionStatus ?? "",
+    n: i.name, s: i.systemName ?? "", t: i.sourceType, o: i.businessOwner ?? "Unassigned",
+    rc: i.recordCount ?? 0, c: arr(i.dataCategories), p: i.containsPersonalData ? "Yes" : "No",
+    sv: i.containsSensitiveData ? "Yes" : "No", x: i.crossBorderTransfer ? "Yes" : "No",
+    st: arr(i.storageLocations), dst: arr(i.destinationCountries),
+    r: i.retentionPeriod ?? "Not documented", sh: i.sharingStatus ?? "", e: i.encryptionStatus ?? "",
     ls: dt(i.lastScannedAt),
   })));
 
-  // 12. Connectors — no credentials, no tokens.
-  addTable(wb, "Connectors", [
-    { header: "Connector", key: "n", width: 26 },
-    { header: "Provider", key: "p", width: 18 },
-    { header: "Status", key: "s", width: 12 },
-    { header: "Granted Scopes", key: "sc", width: 28 },
-    { header: "Last Sync", key: "ls", width: 16 },
-  ], connectors.map((c) => ({
-    n: c.displayName,
-    p: c.provider,
-    s: c.status,
-    sc: arr(c.grantedScopes),
-    ls: dt(c.lastSyncAt),
-  })));
-
-  // 13. Synchronization Runs
-  addTable(wb, "Synchronization Runs", [
-    { header: "Run", key: "id", width: 28 },
-    { header: "Status", key: "s", width: 12 },
-    { header: "Stage", key: "st", width: 18 },
-    { header: "Trigger", key: "t", width: 14 },
-    { header: "Started", key: "sa", width: 16 },
-    { header: "Completed", key: "ca", width: 16 },
-    { header: "Resources", key: "r", width: 10 },
-    { header: "Created", key: "c", width: 9 },
-    { header: "Updated", key: "u", width: 9 },
-    { header: "Findings", key: "f", width: 9 },
-    { header: "Evidence Candidates", key: "e", width: 12 },
-    { header: "Errors", key: "err", width: 8 },
-  ], syncRuns.map((r) => ({
-    id: r.id,
-    s: r.status,
-    st: r.stage,
-    t: r.triggerType,
-    sa: dt(r.startedAt),
-    ca: dt(r.completedAt),
-    r: r.resourcesDiscovered,
-    c: r.resourcesCreated,
-    u: r.resourcesUpdated,
-    f: r.findingsCreated,
-    e: r.evidenceCandidatesCreated,
-    err: r.errorsCount,
-  })));
-
-  // 14. Source Resources
-  addTable(wb, "Source Resources", [
-    { header: "External ID", key: "x", width: 14 },
-    { header: "Name", key: "n", width: 38 },
-    { header: "Location", key: "l", width: 32 },
-    { header: "Owner", key: "o", width: 18 },
-    { header: "Sharing", key: "s", width: 10 },
-    { header: "Classification", key: "c", width: 13 },
-    { header: "Modified", key: "m", width: 16 },
-    { header: "Last Seen", key: "ls", width: 16 },
-  ], resources.map((r) => ({
-    x: r.externalId,
-    n: r.name,
-    l: r.location ?? "",
-    o: r.owner ?? "",
-    s: r.sharingStatus ?? "",
-    c: r.classification ?? "",
-    m: dt(r.modifiedExternallyAt),
-    ls: dt(r.lastSeenAt),
-  })));
-
-  // 15. Monitoring Rules
+  // 16. Monitoring Rules
   addTable(wb, "Monitoring Rules", [
-    { header: "Monitoring Rule Code", key: "c", width: 20 },
-    { header: "Monitoring Rule Version", key: "v", width: 10 },
-    { header: "Monitoring Rule Name", key: "n", width: 40 },
-    { header: "Category", key: "cat", width: 20 },
+    { header: "Code", key: "c", width: 18 },
+    { header: "Version", key: "v", width: 8 },
+    { header: "Name", key: "n", width: 34 },
+    { header: "Category", key: "cat", width: 14 },
     { header: "Severity", key: "s", width: 10 },
-    { header: "Rule Condition Summary", key: "cond", width: 60 },
-    { header: "Related Controls", key: "rc", width: 26 },
-    { header: "Regulations", key: "regs", width: 12 },
-    { header: "Requires Human Review", key: "hr", width: 12 },
-    { header: "Recommended Action", key: "ra", width: 50 },
+    { header: "Condition", key: "cond", width: 60 },
+    { header: "Mapped Controls", key: "m", width: 24 },
+    { header: "Enabled", key: "e", width: 8 },
   ], rules.map((r) => ({
-    c: r.code,
-    v: r.version,
-    n: r.name,
-    cat: r.category,
-    s: r.severity,
-    cond: r.conditionConfiguration,
-    rc: arr(r.relatedControlCodes),
-    regs: arr(r.regulationCodes),
-    hr: r.requiresHumanReview ? "Yes" : "No",
-    ra: r.recommendedAction,
+    c: r.code, v: r.version, n: r.name, cat: r.category, s: r.severity,
+    cond: r.conditionConfiguration, m: arr(r.relatedControlCodes), e: r.enabled ? "Yes" : "No",
   })));
 
-  // 16. Monitoring Findings
+  // 17. Monitoring Findings
   addTable(wb, "Monitoring Findings", [
-    { header: "Finding", key: "t", width: 50 },
+    { header: "Rule", key: "r", width: 18 },
+    { header: "v", key: "v", width: 5 },
+    { header: "Title", key: "t", width: 52 },
+    { header: "Source File", key: "f", width: 28 },
     { header: "Severity", key: "s", width: 10 },
-    { header: "Finding Status", key: "st", width: 16 },
-    { header: "Human Review Status", key: "hr", width: 22 },
-    { header: "Monitoring Rule Code", key: "rc", width: 18 },
-    { header: "Monitoring Rule Version", key: "rv", width: 10 },
-    { header: "Source Resource", key: "sr", width: 32 },
-    { header: "Evidence Candidate", key: "ec", width: 12 },
-    { header: "Detected At", key: "da", width: 16 },
-    { header: "Reviewer", key: "rev", width: 18 },
-    { header: "Review Date", key: "rd", width: 16 },
-    { header: "Related Controls", key: "ctl", width: 24 },
-    { header: "Action Origin", key: "ao", width: 16 },
-    { header: "AI Assistance Used", key: "ai", width: 14 },
+    { header: "Status", key: "st", width: 14 },
+    { header: "Matched Values", key: "mv", width: 46 },
+    { header: "Evidence Candidate", key: "ec", width: 10 },
+    { header: "Mapped Controls", key: "mc", width: 22 },
+    { header: "Detected", key: "d", width: 16 },
+    { header: "Reviewed By", key: "rb", width: 16 },
+    { header: "Action Origin", key: "o", width: 14 },
+    { header: "AI Assistance Used", key: "ai", width: 10 },
   ], findings.map((f) => ({
-    t: f.title,
-    s: f.severity,
-    st: f.status,
-    hr: f.status === "new" ? "Awaiting human review" : f.status,
-    rc: f.ruleCode,
-    rv: f.ruleVersion,
-    sr: f.resource?.name ?? "",
-    ec: f.isEvidenceCandidate ? "Yes" : "",
-    da: dt(f.detectedAt),
-    rev: f.reviewedByName ?? "",
-    rd: dt(f.reviewedAt),
-    ctl: f.controlMappings.map((m) => m.control.controlCode).join(" · "),
-    ao: "automated_rule",
-    ai: "No",
+    r: f.ruleCode, v: f.ruleVersion, t: f.title, f: f.resource?.name ?? "",
+    s: f.severity, st: f.status, mv: f.matchedValues ?? "",
+    ec: f.isEvidenceCandidate ? "Yes" : "No",
+    mc: f.controlMappings.map((m) => m.control.controlCode).join(", "),
+    d: dt(f.detectedAt), rb: f.reviewedByName ?? "", o: "automated_rule", ai: "No",
   })));
 
-  // 17. Finding Control Mappings
+  // 18. Finding Control Mappings
   addTable(wb, "Finding Control Mappings", [
-    { header: "Finding", key: "f", width: 50 },
-    { header: "Related Control", key: "c", width: 14 },
-    { header: "Mapping Source", key: "s", width: 20 },
-    { header: "Mapping Confidence", key: "conf", width: 16 },
-    { header: "Review Status", key: "r", width: 14 },
+    { header: "Finding", key: "f", width: 52 },
+    { header: "Rule", key: "r", width: 18 },
+    { header: "Control", key: "c", width: 12 },
+    { header: "Mapping Source", key: "s", width: 18 },
+    { header: "Review Status", key: "rs", width: 12 },
     { header: "Reason", key: "why", width: 60 },
   ], findingMappings.map((m) => ({
-    f: m.finding.title,
-    c: m.control.controlCode,
-    s: m.mappingSource,
-    conf: m.mappingConfidence ?? "",
-    r: m.reviewStatus,
-    why: m.mappingReason,
+    f: m.finding.title, r: m.finding.ruleCode, c: m.control.controlCode,
+    s: m.mappingSource, rs: m.reviewStatus, why: m.mappingReason,
   })));
 
-  // 18. Gap Register
+  // 19. Evidence Candidates (automated, awaiting human attachment/acceptance)
+  addTable(wb, "Evidence Candidates", [
+    { header: "Source File", key: "f", width: 32 },
+    { header: "Suggested Type", key: "t", width: 18 },
+    { header: "Status", key: "s", width: 14 },
+    { header: "Detected", key: "d", width: 16 },
+    { header: "Note", key: "n", width: 56 },
+  ], findings.filter((f) => f.isEvidenceCandidate).map((f) => ({
+    f: f.resource?.name ?? "", t: f.suggestedEvidenceType ?? "", s: f.status, d: dt(f.detectedAt),
+    n: "Candidate only — a human reviewer must attach and accept it before it counts.",
+  })));
+
+  // 20. Confirmed Evidence (human-accepted only)
+  addTable(wb, "Confirmed Evidence", [
+    { header: "Evidence", key: "n", width: 40 },
+    { header: "Control", key: "c", width: 12 },
+    { header: "Type", key: "t", width: 18 },
+    { header: "Uploaded", key: "u", width: 16 },
+    { header: "Accepted At", key: "a", width: 16 },
+    { header: "Review Notes", key: "rn", width: 40 },
+  ], evidence.map((e) => ({
+    n: e.fileName, c: e.answer.control.controlCode, t: e.evidenceType,
+    u: dt(e.uploadedAt), a: dt(e.reviewedAt), rn: e.reviewNotes ?? "",
+  })));
+
+  // 21. Synchronization Runs
+  addTable(wb, "Synchronization Runs", [
+    { header: "Run ID", key: "id", width: 26 },
+    { header: "Trigger", key: "tr", width: 12 },
+    { header: "Status", key: "s", width: 18 },
+    { header: "Started", key: "st", width: 16 },
+    { header: "Completed", key: "c", width: 16 },
+    { header: "Files", key: "f", width: 8 },
+    { header: "Records", key: "rw", width: 9 },
+    { header: "New", key: "n", width: 6 },
+    { header: "Changed", key: "ch", width: 8 },
+    { header: "Removed", key: "rm", width: 8 },
+    { header: "Rules Evaluated", key: "re", width: 12 },
+    { header: "Findings", key: "fd", width: 8 },
+    { header: "Auto-resolved", key: "fr", width: 11 },
+    { header: "Evidence Cand.", key: "ec", width: 11 },
+    { header: "Errors", key: "er", width: 7 },
+  ], syncRuns.map((r) => ({
+    id: r.id, tr: r.triggerType, s: r.status, st: dt(r.startedAt), c: dt(r.completedAt),
+    f: r.filesRead, rw: r.rowsInspected, n: r.resourcesCreated, ch: r.resourcesUpdated,
+    rm: r.resourcesRemoved, re: r.rulesEvaluated, fd: r.findingsCreated, fr: r.findingsResolved,
+    ec: r.evidenceCandidatesCreated, er: r.errorsCount,
+  })));
+
+  // 22. Changed Resources — per-run change detection results.
+  const changedRows: Record<string, unknown>[] = [];
+  for (const run of syncRuns) {
+    if (!run.changeSummary) continue;
+    try {
+      const cs = JSON.parse(run.changeSummary) as { new: string[]; changed: string[]; removed: string[] };
+      for (const n of cs.new) changedRows.push({ run: run.id, at: dt(run.completedAt ?? run.createdAt), file: n, kind: "new" });
+      for (const n of cs.changed) changedRows.push({ run: run.id, at: dt(run.completedAt ?? run.createdAt), file: n, kind: "changed" });
+      for (const n of cs.removed) changedRows.push({ run: run.id, at: dt(run.completedAt ?? run.createdAt), file: n, kind: "removed" });
+    } catch { /* ignore malformed summaries */ }
+  }
+  addTable(wb, "Changed Resources", [
+    { header: "Run ID", key: "run", width: 26 },
+    { header: "Scan Completed", key: "at", width: 16 },
+    { header: "File", key: "file", width: 36 },
+    { header: "Change", key: "kind", width: 10 },
+  ], changedRows);
+
+  // 23. Gap Register
   addTable(wb, "Gap Register", [
     { header: "Priority", key: "p", width: 9 },
     { header: "Control Code", key: "c", width: 12 },
     { header: "Control Question", key: "q", width: 66 },
-    { header: "Domain", key: "d", width: 24 },
+    { header: "Domain", key: "dm", width: 24 },
     { header: "Severity", key: "s", width: 17 },
     { header: "Regulation", key: "r", width: 14 },
     { header: "Legal Basis", key: "b", width: 20 },
@@ -531,24 +394,17 @@ export async function buildDemoWorkbook(organizationId: string, generatedBy: str
     { header: "Due Date", key: "due", width: 12 },
     { header: "Recommended Action", key: "ra", width: 56 },
   ], (bundle?.gaps ?? []).map((g) => ({
-    p: `P${g.tier}`,
-    c: g.controlCode,
-    q: g.question,
-    d: g.domain,
-    s: SEVERITY_LABELS[g.severity],
-    r: g.regimes.join(" · "),
+    p: `P${g.tier}`, c: g.controlCode, q: g.question, dm: g.domain,
+    s: SEVERITY_LABELS[g.severity as Severity], r: g.regimes.join(" · "),
     b: Object.values(g.legalBases).filter(Boolean).join(" · "),
-    a: g.answer,
-    why: g.reasonLabel,
+    a: g.answer, why: g.reasonLabel,
     al: g.alerts.map((x) => GAP_REASON_LABELS[x]).join(", "),
-    o: g.ownerName ?? "Unassigned",
-    due: d(g.dueDate),
-    ra: g.recommendedAction,
+    o: g.ownerName ?? "Unassigned", due: d(g.dueDate), ra: g.recommendedAction,
   })));
 
-  // 19. Domain Scores
+  // 24. Domain Scores
   addTable(wb, "Domain Scores", [
-    { header: "Domain", key: "d", width: 32 },
+    { header: "Domain", key: "dm", width: 32 },
     { header: "Readiness", key: "s", width: 12 },
     { header: "Controls", key: "t", width: 10 },
     { header: "Applicable", key: "a", width: 10 },
@@ -556,16 +412,10 @@ export async function buildDemoWorkbook(organizationId: string, generatedBy: str
     { header: "Gaps", key: "g", width: 8 },
     { header: "Unanswered", key: "u", width: 11 },
   ], (s?.domainScores ?? []).map((x) => ({
-    d: x.domain,
-    s: pct(x.score),
-    t: x.total,
-    a: x.applicable,
-    c: x.compliant,
-    g: x.gaps,
-    u: x.unanswered,
+    dm: x.domain, s: pct(x.score), t: x.total, a: x.applicable, c: x.compliant, g: x.gaps, u: x.unanswered,
   })));
 
-  // 20. Regulation Scores
+  // 25. Regulation Scores
   addTable(wb, "Regulation Scores", [
     { header: "Regulation", key: "r", width: 12 },
     { header: "Readiness", key: "s", width: 12 },
@@ -575,43 +425,26 @@ export async function buildDemoWorkbook(organizationId: string, generatedBy: str
     { header: "Gaps", key: "g", width: 8 },
     { header: "Unanswered", key: "u", width: 11 },
   ], (s?.regulationScores ?? []).map((x) => ({
-    r: x.regulationCode,
-    s: pct(x.score),
-    m: pct(x.mandatoryScore),
-    e: pct(x.evidenceScore),
-    t: x.total,
-    g: x.gaps,
-    u: x.unanswered,
+    r: x.regulationCode, s: pct(x.score), m: pct(x.mandatoryScore), e: pct(x.evidenceScore),
+    t: x.total, g: x.gaps, u: x.unanswered,
   })));
 
-  // 21. Reports
-  addTable(wb, "Reports", [
-    { header: "Type", key: "t", width: 24 },
-    { header: "Status", key: "s", width: 12 },
-    { header: "Generated", key: "g", width: 16 },
-  ], reports.map((r) => ({ t: r.type, s: r.status, g: dt(r.generatedAt ?? r.createdAt) })));
-
-  // 22. Audit Log
+  // 26. Audit Log
   addTable(wb, "Audit Log", [
-    { header: "When", key: "w", width: 16 },
-    { header: "Action Origin", key: "o", width: 15 },
-    { header: "Action", key: "a", width: 30 },
-    { header: "Actor", key: "actor", width: 20 },
-    { header: "Entity", key: "e", width: 22 },
+    { header: "At (UTC)", key: "t", width: 16 },
+    { header: "Origin", key: "o", width: 14 },
+    { header: "Actor", key: "a", width: 20 },
+    { header: "Action", key: "ac", width: 26 },
+    { header: "Entity", key: "e", width: 20 },
     { header: "Summary", key: "s", width: 90 },
   ], auditLogs.map((l) => ({
-    w: dt(l.createdAt),
-    o: l.origin,
-    a: l.action,
-    actor: l.actorName ?? (l.origin === "human" ? "" : "system"),
-    e: l.entityType ?? "",
-    s: l.summary,
+    t: dt(l.createdAt), o: l.origin, a: l.actorName ?? "System", ac: l.action,
+    e: l.entityType ?? "", s: l.summary,
   })));
 
   return wb;
 }
 
 export async function workbookToBuffer(wb: ExcelJS.Workbook): Promise<Buffer> {
-  const data = await wb.xlsx.writeBuffer();
-  return Buffer.from(data as ArrayBuffer);
+  return Buffer.from(await wb.xlsx.writeBuffer());
 }

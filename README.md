@@ -25,16 +25,21 @@ against a connector, and export the entire backend as a 22-sheet Excel workbook.
   scoring or decision path.
 - **Evidence review workflow**: unreviewed → accepted / rejected / expired /
   needs update, performed by humans with the `evidence.review` permission.
-- **Automated monitoring (demonstration)**: a demo connector with 18 fictional
-  resources, 12 versioned deterministic rules, and a staged scan pipeline that
-  persists resources, inventory, findings and control mappings. Findings default
-  to **"new" and require human review** — they never change official scores.
+- **Automated monitoring over REAL files**: the seed generates the Nile Digital
+  Services Demo Data Vault — 18 actual XLSX/CSV/JSON/text files (~1,700 synthetic
+  records) plus a context manifest. The scan parses them server-side, checksums
+  them for change detection, evaluates 12 versioned MON-* rules, and persists
+  resources, inventory, findings (with matched source values) and control
+  mappings. Findings default to **"new" and require human review** — they never
+  change official scores. Active monitoring re-scans on an interval; Inject
+  Demo Change mutates the real source so the next scan detects it.
 - **Comprehensive audit trail** with origins: `human`, `automated_rule`,
   `system_job` (an `optional_ai` origin exists but no AI feature is enabled).
 - **Platform-admin surfaces**: Backend operations (scan trigger with live stage
   stepper, before/after score proof, reset, export) and a read-only Data
   explorer over 21 datasets (secrets are never rendered).
-- **22-sheet Excel export** of the full backend (no credentials, tokens or keys).
+- **26-sheet Excel monitoring workbook** including the raw synthetic datasets
+  the scan read (demo organization only; no credentials, tokens or keys).
 
 See **docs/backend-demo.md** for the operator guide and the five-minute
 stakeholder demonstration script.
@@ -56,12 +61,13 @@ npx prisma db seed       # regulations, both control libraries, rules, demo org
 npm run dev              # http://localhost:4040
 ```
 
-Sign in at `/signin` as any seeded demonstration user — e.g.
-`salma.fawzy@niledigital.example` (client admin of **Nile Digital Services**),
-`nour.elsayed@niledigital.example` (reviewer), or
-`platform.admin@iltzam.example` (platform administrator). This is demo-grade
-authentication (signed session cookie, no passwords) designed to be swapped
-for a real identity provider.
+The public site is at `/`; the app is behind `/sign-in` (email + password —
+no third-party providers). In local/demo mode the sign-in page lists the
+seeded accounts; the shared demo password defaults to `iltzam-demo`
+(`DEMO_USER_PASSWORD`), and the platform administrator is
+`platform.admin@iltzam.example` (`DEMO_ADMIN_EMAIL` / `DEMO_ADMIN_PASSWORD`).
+New workspaces can be created at `/sign-up`. See **docs/backend-demo.md**
+for the full local demonstration guide.
 
 ## Scripts
 
@@ -72,7 +78,7 @@ for a real identity provider.
 | `npm test` | Vitest unit tests (scoring, gaps, both libraries, monitoring, permissions) |
 | `npm run typecheck` | TypeScript `--noEmit` |
 | `npm run lint` | ESLint |
-| `npm run verify:demo` | End-to-end verification against a running server (60 checks) |
+| `npm run verify:demo` | End-to-end verification against a running server (67 checks) |
 | `npm run db:seed` | Re-seed (idempotent upserts; fails loudly if library counts drift) |
 | `npm run db:reset` | Drop + re-migrate + re-seed the database |
 

@@ -3,7 +3,8 @@ import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { AuthError, demoToolsEnabled, requirePermission, requireSession } from "@/lib/auth";
 import { handleApiError } from "@/lib/api-guard";
-import { executeDemoScan, startDemoScan } from "@/lib/scan";
+import { executeScan, startScan } from "@/lib/scan";
+import { VAULT_PROVIDER } from "@/lib/vault";
 
 // Run Demonstration Scan — demo-org + demo-tools + connector.manage gated.
 export async function POST() {
@@ -25,18 +26,19 @@ export async function POST() {
     }
 
     const connector = await prisma.connector.findFirst({
-      where: { organizationId: org.id, provider: "demo_connector" },
+      where: { organizationId: org.id, provider: VAULT_PROVIDER },
     });
     if (!connector) throw new AuthError(404, "Demo connector not found.");
 
-    const { runId } = await startDemoScan({
+    const { runId } = await startScan({
       organizationId: org.id,
       connectorId: connector.id,
       triggeredByUserId: session.userId,
       triggeredByName: session.name,
+      triggerType: "manual",
     });
     // Execute after the response is sent; the UI polls the run for progress.
-    after(() => executeDemoScan(runId));
+    after(() => executeScan(runId));
     return NextResponse.json({ runId }, { status: 202 });
   } catch (err) {
     return handleApiError(err);

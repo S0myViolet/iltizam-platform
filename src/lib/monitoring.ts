@@ -5,9 +5,13 @@
 // review before they can touch any official number.
 
 import type { MonitoringRuleSeed, RuleClause, RuleCondition } from "@/data/monitoring-rules";
-import type { DemoResource } from "@/data/demo";
 
-export type ResourceMetadata = DemoResource;
+/** Flat facts a rule evaluates: manifest metadata + scan-derived fields. */
+export type ResourceMetadata = Record<string, unknown> & {
+  externalId: string;
+  name: string;
+  evidenceType?: string | null;
+};
 
 function fieldValue(meta: ResourceMetadata, field: string): unknown {
   return (meta as unknown as Record<string, unknown>)[field];
@@ -76,6 +80,14 @@ export interface RuleMatch {
   suggestedEvidenceType: string | null;
   /** Deterministic dedup key: same resource + same rule ⇒ same finding. */
   dedupKey: string;
+  /** The exact source values that satisfied the condition. */
+  matchedValues: Record<string, unknown>;
+}
+
+function conditionFields(condition: RuleCondition): string[] {
+  if (condition.any) return condition.any.flatMap(conditionFields);
+  if (condition.all) return condition.all.map((c) => c.field);
+  return [];
 }
 
 export function evaluateRulesForResource(
@@ -97,6 +109,9 @@ export function evaluateRulesForResource(
       isEvidenceCandidate: rule.isEvidenceCandidate ?? false,
       suggestedEvidenceType: rule.isEvidenceCandidate ? (meta.evidenceType ?? null) : null,
       dedupKey: `${rule.code}:${meta.externalId}`,
+      matchedValues: Object.fromEntries(
+        [...new Set(conditionFields(rule.condition))].map((f) => [f, fieldValue(meta, f) ?? null])
+      ),
     });
   }
   // Stable order: rule code, then resource id — determinism in persistence too.

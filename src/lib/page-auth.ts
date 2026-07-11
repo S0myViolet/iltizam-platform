@@ -1,4 +1,4 @@
-// Server-page session guards: redirect to /signin when unauthenticated,
+// Server-page session guards: redirect to /sign-in when unauthenticated,
 // 404 on cross-tenant access (never confirm existence to another tenant).
 
 import { notFound, redirect } from "next/navigation";
@@ -7,7 +7,7 @@ import { prisma } from "./db";
 
 export async function requirePageSession(): Promise<Session> {
   const session = await getSession();
-  if (!session) redirect("/signin");
+  if (!session) redirect("/sign-in");
   return session;
 }
 

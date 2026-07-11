@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { encodeSessionToken, SESSION_COOKIE } from "@/lib/auth";
+import { verifyPassword } from "@/lib/passwords";
 import { writeAudit } from "@/lib/audit";
 
-// Demo-grade sign-in: select a seeded user by email. There is no self-signup
-// and no password ceremony — this authenticates *who you are demonstrating
-// as*; every permission is still enforced server-side per membership role.
+// Email + password sign-in. The same safe message covers a wrong password and
+// an unknown email so the endpoint never confirms whether an account exists.
+const SAFE_MESSAGE = "Email or password not recognized. Create an account if you do not have one.";
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -14,14 +15,16 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
-  const email = typeof (body as Record<string, unknown>).email === "string"
-    ? ((body as Record<string, unknown>).email as string).trim().toLowerCase()
-    : "";
-  if (!email) return NextResponse.json({ error: "Email is required." }, { status: 400 });
+  const b = (body ?? {}) as Record<string, unknown>;
+  const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
+  const password = typeof b.password === "string" ? b.password : "";
+  if (!email || !password) {
+    return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
+  }
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return NextResponse.json({ error: "No such demonstration user." }, { status: 401 });
+  if (!user || !verifyPassword(password, user.passwordHash)) {
+    return NextResponse.json({ error: SAFE_MESSAGE }, { status: 401 });
   }
 
   const membership = await prisma.organizationMembership.findFirst({
@@ -38,7 +41,7 @@ export async function POST(request: NextRequest) {
     summary: `${user.name} signed in.`,
   });
 
-  const res = NextResponse.json({ ok: true, name: user.name });
+  const res = NextResponse.json({ ok: true, name: user.name, isPlatformAdmin: user.isPlatformAdmin });
   res.cookies.set(SESSION_COOKIE, encodeSessionToken(user.id), {
     httpOnly: true,
     sameSite: "lax",

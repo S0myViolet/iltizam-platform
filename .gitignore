@@ -43,3 +43,6 @@ uploads/
 prisma/dev.db
 prisma/dev.db-journal
 !.env.example
+
+# Generated synthetic demo data vault (recreated by the seed)
+/demo-data

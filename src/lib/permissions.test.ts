@@ -41,16 +41,21 @@ describe("role permissions", () => {
 });
 
 describe("Excel workbook contract", () => {
-  it("declares all 22 required sheets", () => {
-    expect(WORKBOOK_SHEETS).toHaveLength(22);
+  it("declares all 26 required sheets", () => {
+    expect(WORKBOOK_SHEETS).toHaveLength(26);
     for (const name of [
-      "Overview", "Organization", "Users", "Regulations", "Control Domains", "Controls",
-      "Regulation Mappings", "Assessments", "Assessment Answers", "Evidence Register",
-      "Data Inventory", "Connectors", "Synchronization Runs", "Source Resources",
-      "Monitoring Rules", "Monitoring Findings", "Finding Control Mappings", "Gap Register",
-      "Domain Scores", "Regulation Scores", "Reports", "Audit Log",
+      "Overview", "Organization", "Source Systems", "Source Files",
+      "Raw Demo Employees", "Raw Demo Recruitment", "Raw Demo Payroll",
+      "Raw Demo Biometric Data", "Raw Demo Marketing Leads", "Raw Demo Consent Log",
+      "Raw Demo Rights Requests", "Raw Demo Vendors", "Raw Demo Incidents",
+      "Raw Demo Training", "Data Inventory", "Monitoring Rules", "Monitoring Findings",
+      "Finding Control Mappings", "Evidence Candidates", "Confirmed Evidence",
+      "Synchronization Runs", "Changed Resources", "Gap Register", "Domain Scores",
+      "Regulation Scores", "Audit Log",
     ]) {
       expect(WORKBOOK_SHEETS).toContain(name);
     }
+    // Excel's hard limit: sheet names must stay within 31 characters.
+    for (const name of WORKBOOK_SHEETS) expect(name.length).toBeLessThanOrEqual(31);
   });
 });

@@ -70,6 +70,8 @@ interface FindingDetail {
     reviewedByName: string | null;
     assignedOwnerName: string | null;
     resolutionNotes: string | null;
+    /** JSON object of the exact source values that satisfied the rule condition. */
+    matchedValues: string | null;
     rule: {
       code: string;
       version: number;
@@ -171,6 +173,23 @@ function prettyJson(raw: string): string {
 
 function humanize(value: string): string {
   return value.replace(/_/g, " ");
+}
+
+/** Parse the finding's matchedValues JSON into stable key/value display pairs. */
+function parseMatchedValues(raw: string | null): [string, string][] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return [];
+    return Object.entries(parsed as Record<string, unknown>).map(
+      ([key, value]): [string, string] => [
+        key,
+        typeof value === "string" ? value : JSON.stringify(value),
+      ]
+    );
+  } catch {
+    return [];
+  }
 }
 
 // ─── Shared tag row (list rows + drawer header) ─────────────────────────────
@@ -348,25 +367,33 @@ export function FindingsBoard({ rows, canReview }: { rows: FindingRow[]; canRevi
 
   const f = detail?.finding ?? null;
   const controlCodes = f ? f.controlMappings.map((m) => m.control.controlCode) : [];
+  const matchedEntries = f ? parseMatchedValues(f.matchedValues) : [];
 
   const lineageSteps: { label: string; value: string | null; mono?: boolean; held?: boolean }[] =
     f
       ? [
-          { label: "Connector", value: `"${f.connector?.displayName ?? "Not recorded"}"` },
-          { label: "Source resource discovered", value: f.resource?.name ?? "Not recorded" },
+          { label: f.connector?.displayName ?? "Connector not recorded", value: null },
           {
-            label: "Inventory item created",
-            value: detail?.inventoryItem?.name ?? "Not recorded",
+            label: `Source file discovered (${f.resource?.name ?? "not recorded"})`,
+            value: null,
           },
-          { label: "Rule triggered", value: `${f.ruleCode} v${f.ruleVersion}`, mono: true },
-          { label: "Finding created", value: formatDateTime(f.detectedAt) },
+          { label: "Rows parsed", value: null },
+          { label: "Resource normalized", value: null },
+          { label: `Rule ${f.ruleCode} v${f.ruleVersion} evaluated`, value: null },
           {
-            label: "Control mapped",
-            value: controlCodes.length > 0 ? controlCodes.join(", ") : "No control mappings",
-            mono: controlCodes.length > 0,
+            label: "Condition matched",
+            value:
+              matchedEntries.length > 0
+                ? `${matchedEntries.length} matched source value${matchedEntries.length === 1 ? "" : "s"}`
+                : "Matched values not recorded",
           },
-          { label: "Official score held pending human review", value: null, held: true },
-          { label: "Audit events", value: `${detail?.auditTrail.length ?? 0} recorded` },
+          { label: "Potential finding created", value: formatDateTime(f.detectedAt) },
+          controlCodes.length > 0
+            ? { label: "PDPL control(s) mapped", value: controlCodes.join(", "), mono: true }
+            : { label: "No control mapping — informational evidence candidate", value: null },
+          { label: `Human review status: ${FINDING_STATUS_LABELS[f.status]}`, value: null },
+          { label: "Score impact: none until a reviewer confirms", value: null, held: true },
+          { label: `Audit events recorded (${detail?.auditTrail.length ?? 0})`, value: null },
         ]
       : [];
 
@@ -659,6 +686,29 @@ export function FindingsBoard({ rows, canReview }: { rows: FindingRow[]; canRevi
                   <pre className="mt-2.5 overflow-x-auto rounded-md border border-line bg-surface2/50 p-3 font-mono text-[11px] leading-5 text-ink2">
                     {prettyJson(f.rule.conditionConfiguration)}
                   </pre>
+                  {matchedEntries.length > 0 ? (
+                    <>
+                      <h4 className="mt-3 text-[11px] font-semibold tracking-wide text-ink3 uppercase">
+                        Matched source values
+                      </h4>
+                      <p className="mt-0.5 text-xs text-ink3">The exact condition that matched.</p>
+                      <dl className="mt-1.5 divide-y divide-line overflow-hidden rounded-md border border-line">
+                        {matchedEntries.map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="flex items-baseline justify-between gap-4 px-3 py-1.5"
+                          >
+                            <dt className="font-mono text-[11px] font-semibold tracking-wide text-ink3">
+                              {key}
+                            </dt>
+                            <dd className="min-w-0 text-right font-mono text-[11.5px] break-all text-ink">
+                              {value}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </>
+                  ) : null}
                   <h4 className="mt-3 text-[11px] font-semibold tracking-wide text-ink3 uppercase">
                     Recommended action
                   </h4>

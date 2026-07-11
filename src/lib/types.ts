@@ -215,24 +215,32 @@ export type FindingSeverity = (typeof FINDING_SEVERITIES)[number];
 
 export const SYNC_STAGES = [
   "queued",
-  "connecting",
-  "discovering",
+  "opening_source",
+  "discovering_files",
+  "reading_spreadsheets",
+  "reading_records",
   "normalizing",
   "evaluating_rules",
   "mapping_controls",
-  "updating_readiness",
+  "evidence_candidates",
+  "updating_inventory",
+  "saving_audit",
   "completed",
 ] as const;
 export type SyncStage = (typeof SYNC_STAGES)[number];
 
 export const SYNC_STAGE_LABELS: Record<SyncStage, string> = {
   queued: "Queued",
-  connecting: "Connecting",
-  discovering: "Discovering",
-  normalizing: "Normalizing",
+  opening_source: "Opening source",
+  discovering_files: "Discovering files",
+  reading_spreadsheets: "Reading spreadsheets",
+  reading_records: "Reading structured records",
+  normalizing: "Normalizing resources",
   evaluating_rules: "Evaluating rules",
   mapping_controls: "Mapping controls",
-  updating_readiness: "Updating readiness",
+  evidence_candidates: "Creating evidence candidates",
+  updating_inventory: "Updating inventory",
+  saving_audit: "Saving audit events",
   completed: "Completed",
 };
 

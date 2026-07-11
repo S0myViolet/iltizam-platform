@@ -16,7 +16,7 @@ export function HeaderSession({
   const router = useRouter();
   async function signOut() {
     await fetch("/api/auth/signout", { method: "POST" });
-    router.push("/signin");
+    router.push("/");
     router.refresh();
   }
   return (

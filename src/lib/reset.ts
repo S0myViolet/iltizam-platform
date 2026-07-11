@@ -7,6 +7,7 @@
 import { prisma } from "./db";
 import { writeAudit } from "./audit";
 import { seedDemo, DEMO_ASSESSMENT_TITLE } from "./seeding";
+import { generateVault } from "./vault";
 
 export async function resetDemonstration(input: {
   organizationId: string;
@@ -29,11 +30,18 @@ export async function resetDemonstration(input: {
     where: { organizationId: org.id, sourceType: "connector" },
   });
   await prisma.report.deleteMany({ where: { organizationId: org.id } });
-  // The runs are gone, so the connector's sync stamps must not survive them.
+  // The runs are gone, so the connector's sync stamps must not survive them,
+  // and active monitoring stops with them.
   await prisma.connector.updateMany({
     where: { organizationId: org.id },
-    data: { lastSyncAt: null, lastSuccessfulSyncAt: null, lastError: null },
+    data: {
+      lastSyncAt: null, lastSuccessfulSyncAt: null, lastError: null,
+      monitoringEnabled: false, nextSyncAt: null, status: "connected",
+    },
   });
+
+  // Restore the synthetic vault byte-for-byte (removes injected changes/files).
+  await generateVault({ force: true });
 
   // Restore the demonstration assessment to its seeded answer plan.
   await prisma.assessment.deleteMany({
@@ -49,7 +57,7 @@ export async function resetDemonstration(input: {
     action: "demonstration_reset",
     entityType: "Organization",
     entityId: org.id,
-    summary: "Demonstration reset: scan artefacts removed, demo assessment restored to its seeded state.",
+    summary: "Demonstration reset: scan artefacts removed, synthetic vault regenerated, demo assessment restored to its seeded state.",
   });
   return { ok: true };
 }

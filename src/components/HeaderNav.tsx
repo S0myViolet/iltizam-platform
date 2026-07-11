@@ -12,9 +12,9 @@ export function HeaderNav() {
   return (
     <nav aria-label="Primary" className="hidden items-center sm:flex">
       <Link
-        href="/"
-        aria-current={pathname === "/" ? "page" : undefined}
-        className={`navtab ${pathname === "/" ? "navtab-active" : ""}`}
+        href="/app"
+        aria-current={pathname === "/app" ? "page" : undefined}
+        className={`navtab ${pathname === "/app" ? "navtab-active" : ""}`}
       >
         Assessments
       </Link>

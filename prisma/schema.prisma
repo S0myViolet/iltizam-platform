@@ -57,7 +57,8 @@ model User {
   authenticationProviderId String?  @unique
   name                     String
   email                    String   @unique
-  // Demo-grade authentication: platform admin flag lives on the user.
+  // Email + password authentication (scrypt hash). Null only for legacy rows.
+  passwordHash             String?
   isPlatformAdmin          Boolean  @default(false)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
@@ -336,6 +337,8 @@ model DataInventoryItem {
   processors              String // JSON string[]
   containsPersonalData    Boolean   @default(false)
   containsSensitiveData   Boolean   @default(false)
+  // Row/record count observed by the latest scan (0 for manual entries).
+  recordCount             Int       @default(0)
   crossBorderTransfer     Boolean   @default(false)
   sharingStatus           String? // private | internal | broad | public
   encryptionStatus        String? // encrypted | unencrypted | unknown
@@ -365,6 +368,9 @@ model Connector {
   lastSyncAt                    DateTime?
   nextSyncAt                    DateTime?
   lastSuccessfulSyncAt          DateTime?
+  // Active monitoring: a local scheduler re-scans while enabled.
+  monitoringEnabled             Boolean   @default(false)
+  monitoringIntervalSeconds     Int       @default(60)
   lastError                     String?
   createdByUserId               String?
   createdAt                     DateTime  @default(now())
@@ -390,9 +396,17 @@ model SynchronizationRun {
   resourcesDiscovered       Int       @default(0)
   resourcesCreated          Int       @default(0)
   resourcesUpdated          Int       @default(0)
+  resourcesRemoved          Int       @default(0)
+  filesRead                 Int       @default(0)
+  rowsInspected             Int       @default(0)
+  rulesEvaluated            Int       @default(0)
   findingsCreated           Int       @default(0)
+  findingsResolved          Int       @default(0)
   evidenceCandidatesCreated Int       @default(0)
   errorsCount               Int       @default(0)
+  // What the scan is doing right now (file name) + per-run change summary (JSON).
+  currentItem               String?
+  changeSummary             String?
   triggeredByUserId         String?
   triggerType               String    @default("manual") // manual | scheduled | demonstration
   errorSummary              String?
@@ -424,6 +438,11 @@ model ConnectorResource {
   sizeBytes            Int?
   sharingStatus        String?
   classification       String?
+  // Content fingerprint + parse results from the latest scan.
+  checksum             String?
+  fileType             String? // xlsx | csv | json | txt
+  rowCount             Int       @default(0)
+  changeStatus         String    @default("new") // new | unchanged | changed | removed
   metadata             String // JSON — normalized resource metadata the rules evaluate
   createdExternallyAt  DateTime?
   modifiedExternallyAt DateTime?
@@ -480,6 +499,9 @@ model MonitoringFinding {
   description               String
   severity                  String
   status                    String    @default("new") // new | under_review | confirmed | dismissed | resolved
+  // Exact facts that satisfied the rule condition (JSON) — shown in the
+  // finding detail so reviewers see the matched source values.
+  matchedValues        String?
   isEvidenceCandidate       Boolean   @default(false)
   suggestedEvidenceType     String?
   confidence                String? // deterministic rules report "rule_match"
