@@ -10,6 +10,8 @@ import { LEGAL_DISCLAIMER, MONITORING_DISCLAIMER } from "@/lib/types";
 import { PDPL_EXPECTED } from "@/data/pdpl-controls";
 import { MONITORING_RULES } from "@/data/monitoring-rules";
 import { LandingNav } from "./LandingNav";
+import { FilmSection } from "./FilmSection";
+import HeroLoop from "@/components/film/HeroLoop";
 
 export const metadata: Metadata = {
   title: "Iltzam — Managed compliance for Egypt’s PDPL",
@@ -120,23 +122,32 @@ export default function LandingPage() {
       <main className="flex-1">
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <section className="shell pt-16 pb-14 sm:pt-24 sm:pb-16">
-          <p className="eyebrow text-gold-text">Managed compliance for Egypt</p>
-          <h1 className="display mt-5 max-w-3xl text-4xl leading-[1.12] font-semibold text-ink sm:text-5xl">
-            Become inspection-ready under Egypt’s PDPL — and stay that way.
-          </h1>
-          <p className="mt-6 max-w-2xl text-[15px] leading-7 text-ink2 sm:text-base sm:leading-8">
-            Law No. 151 of 2020 and its Executive Regulations (816/2025) are enforced by the
-            Personal Data Protection Center (PDPC), with compliance expected by{" "}
-            <strong className="font-semibold text-ink">1 November 2026</strong>. Iltzam turns those
-            duties into control work your organisation can answer, evidence, and defend.
-          </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/platform" className="btn btn-primary">
-              Explore the platform
-            </Link>
-            <Link href="/sign-in" className="btn">
-              Sign in
-            </Link>
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
+            <div>
+              <p className="eyebrow text-gold-text">Managed compliance for Egypt</p>
+              <h1 className="display mt-5 max-w-3xl text-4xl leading-[1.12] font-semibold text-ink sm:text-5xl">
+                Become inspection-ready under Egypt’s PDPL — and stay that way.
+              </h1>
+              <p className="mt-6 max-w-2xl text-[15px] leading-7 text-ink2 sm:text-base sm:leading-8">
+                Law No. 151 of 2020 and its Executive Regulations (816/2025) are enforced by the
+                Personal Data Protection Center (PDPC), with compliance expected by{" "}
+                <strong className="font-semibold text-ink">1 November 2026</strong>. Iltzam turns those
+                duties into control work your organisation can answer, evidence, and defend.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/platform" className="btn btn-primary">
+                  Explore the platform
+                </Link>
+                <Link href="/sign-in" className="btn">
+                  Sign in
+                </Link>
+              </div>
+            </div>
+            {/* Silent 10-second loop: an ordinary action, invisible data, a risk
+                surfacing, Iltizam ordering it. Frozen under reduced motion. */}
+            <div className="hidden overflow-hidden rounded-xl border border-line shadow-[var(--shadow-sheet)] lg:block">
+              <HeroLoop />
+            </div>
           </div>
 
           <dl className="mt-14 grid grid-cols-2 gap-x-6 gap-y-8 border-t border-line pt-8 sm:grid-cols-3 lg:grid-cols-6">
@@ -147,6 +158,33 @@ export default function LandingPage() {
             <Stat value={GDPR_CONTROL_COUNT} label="GDPR controls · separate library" />
             <Stat value={MONITORING_RULES.length} label="Deterministic monitoring rules" />
           </dl>
+        </section>
+
+        {/* ── The film ─────────────────────────────────────────────────────── */}
+        <section id="film" className="band scroll-mt-24">
+          <div className="shell py-16 sm:py-20">
+            <p className="eyebrow text-gold-bright">The film</p>
+            <h2 className="display mt-3 text-3xl leading-tight font-semibold sm:text-4xl">
+              What You Don’t See
+            </h2>
+            <p className="mt-3 max-w-2xl text-[15px] leading-7 text-brand-muted">
+              A 60-second film about invisible data — and the moment a business finally sees it.
+            </p>
+            <div className="mt-8">
+              <FilmSection />
+            </div>
+            <p className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-brand-muted">
+              <Link href="/film?cut=30" className="hover:text-gold-bright hover:underline">
+                30-second cut
+              </Link>
+              <Link href="/film?cut=15" className="hover:text-gold-bright hover:underline">
+                15-second cut
+              </Link>
+              <Link href="/film" className="hover:text-gold-bright hover:underline">
+                Watch with sound on the film page →
+              </Link>
+            </p>
+          </div>
         </section>
 
         {/* ── The law ───────────────────────────────────────────────────────── */}
