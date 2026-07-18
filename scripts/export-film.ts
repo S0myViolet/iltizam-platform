@@ -69,22 +69,22 @@ function srtTime(s: number): string {
   return `${p(h)}:${p(m)}:${p(sec)},${p(rem, 3)}`;
 }
 
-/** ≤2 lines, wrapped near 42 chars, exact narration wording. */
+/** ≤2 lines, balanced split, exact narration wording. */
 function wrapCaption(text: string): string {
   if (text.length <= 42) return text;
   const words = text.split(" ");
-  let best = text;
+  let best: string | null = null;
   let bestDiff = Infinity;
   for (let i = 1; i < words.length; i += 1) {
     const a = words.slice(0, i).join(" ");
     const b = words.slice(i).join(" ");
     const diff = Math.abs(a.length - b.length);
-    if (a.length <= 46 && b.length <= 46 && diff < bestDiff) {
+    if (a.length <= 68 && b.length <= 68 && diff < bestDiff) {
       best = `${a}\n${b}`;
       bestDiff = diff;
     }
   }
-  return best;
+  return best ?? text;
 }
 
 function buildSrt(): string {
@@ -160,9 +160,10 @@ async function main(): Promise<void> {
     "-i", scoreWav,
     "-filter_complex",
     [
-      "[1:a]aresample=48000,apad[voice]",
-      "[2:a][voice]sidechaincompress=threshold=0.03:ratio=6:attack=8:release=450[duck]",
-      "[voice][duck]amix=inputs=2:duration=longest:weights=1 0.85,alimiter=limit=0.94[mix]",
+      // labeled pads are single-use: split the voice for sidechain + mix
+      "[1:a]aresample=48000,apad,asplit=2[vA][vB]",
+      "[2:a][vA]sidechaincompress=threshold=0.03:ratio=6:attack=8:release=450[duck]",
+      "[vB][duck]amix=inputs=2:duration=longest:weights=1 0.85,alimiter=limit=0.94[mix]",
     ].join(";"),
     "-map", "0:v", "-map", "[mix]",
     "-c:v", "libx264", "-crf", "20", "-preset", "medium", "-pix_fmt", "yuv420p",
