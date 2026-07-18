@@ -1,23 +1,23 @@
-// The landing page's film section: the "After Submit" poster — Mariam at the
-// warm window, light pool, the tiny submit panel — linking to the full film.
+// The landing page's film section: the "90-Day Transformation" poster — the
+// paper ribbon crossing the company cutaway — linking to the full film.
 import Link from "next/link";
 import { FilmPoster } from "@/components/film/scenes";
 
 export function FilmSection() {
   return (
-    <section aria-label="The Iltizam film" className="band mt-12 overflow-hidden rounded-2xl border border-brand-line">
+    <section aria-label="The Iltzam film" className="band mt-12 overflow-hidden rounded-2xl border border-brand-line">
       <div className="grid items-stretch lg:grid-cols-[7fr_5fr]">
         <Link
           href="/film"
           className="group relative block aspect-video focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold-bright lg:aspect-auto"
-          aria-label="Watch After Submit, a 48 second film"
+          aria-label="Watch The 90-Day Transformation, a 90 second film"
         >
           <FilmPoster className="absolute inset-0 h-full w-full" />
           <span className="absolute inset-0 bg-gradient-to-t from-brand/85 via-transparent to-transparent" />
           <span className="absolute bottom-0 left-0 p-6">
-            <span className="display block text-2xl font-semibold text-brand-ink">After Submit</span>
+            <span className="display block text-2xl font-semibold text-brand-ink">The 90-Day Transformation</span>
             <span className="mt-1 block text-[11px] tracking-wide text-brand-muted">
-              An Iltizam film · 48 seconds
+              An Iltzam film · 90 seconds
             </span>
           </span>
           <span className="absolute inset-0 flex items-center justify-center">
@@ -29,14 +29,14 @@ export function FilmSection() {
           </span>
         </Link>
         <div className="flex flex-col justify-center p-8 lg:p-10">
-          <p className="eyebrow text-gold-bright">The Iltizam film</p>
-          <h2 className="display mt-3 text-3xl font-semibold text-brand-ink">After Submit</h2>
+          <p className="eyebrow text-gold-bright">The Iltzam film</p>
+          <h2 className="display mt-3 text-3xl font-semibold text-brand-ink">The 90-Day Transformation</h2>
           <p className="mt-4 max-w-sm text-[15px] leading-7 text-brand-muted">
-            {"One application, one request, and the responsibility that begins after “Submit”."}
+            {"One company, ninety days on a single paper ribbon — from a scattered web of customer records to inspection-ready."}
           </p>
           <div className="mt-6">
             <Link href="/film" className="btn btn-gold-on-band">
-              Watch the film · 0:48
+              Watch the film · 1:30
             </Link>
           </div>
         </div>

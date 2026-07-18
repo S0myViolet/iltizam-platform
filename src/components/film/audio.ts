@@ -1,13 +1,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// audio.ts — "After Submit" sound, synthesized in the browser.
+// audio.ts — "The 90-Day Transformation" score, synthesized in the browser.
 //
 // No files, no samples: a warm pad (detuned triangles through a low-pass),
-// a shared noise buffer for ticks, and an event timeline per cut. The pad
-// carries the emotional line — brighter voicing while life moves forward
-// (0–19), a minor voicing with a sparse low drone under the request (26–33),
-// a resolve at the decision, a final warm chord under the brand frame.
-// Diegetic sounds are tiny: keyboard ticks, one soft submit click, a camera
-// flash, two notification ticks, two deliberate decision clicks.
+// a shared noise buffer for one-shots, and an event timeline per cut.
+// The map: a warm build under the opening and the ribbon reveal (0–16),
+// precise measurement ticks through Diagnose, soft structural thuds (low
+// filtered noise) as the Build architecture snaps into place, a rhythmic
+// pulse under Operationalise, a contained minor-voiced tension window for
+// the simulated breach (60–66.5), a resolve chord as the evidence pack
+// begins at 70, and a final warm resolve at 83 under the transformed
+// company and the brand cover.
 //
 // Everything is scheduled against AudioContext time from an arbitrary start
 // offset, so play/seek/cut-switching all work: events before the offset are
@@ -15,62 +17,60 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface AudioTimeline {
-  /** Pad voicing is bright until this second, then eases to neutral. */
-  brightUntil: number;
-  /** The uncertainty window: minor voicing + sparse low drone. */
-  minor: [number, number] | null;
-  /** Keyboard typing ticks between these seconds. */
-  keys: [number, number] | null;
-  /** Soft single UI ticks: the submit click and the two decision clicks. */
-  clicks: number[];
-  /** Camera-flash soft noise burst. */
-  flash: number | null;
-  /** Notification two-tone ticks. */
-  notifs: number[];
-  /** The resolve chord (the decision lands). */
+  /** Pad voicing is bright (the warm build) until this second. */
+  warmUntil: number;
+  /** The contained-tension window (the simulated breach): minor + low drone. */
+  tension: [number, number] | null;
+  /** Precise measurement / insertion ticks (Diagnose, dossier tabs). */
+  ticks: number[];
+  /** Soft structural thuds — walls, drawers, the halt at DAY 90. */
+  thuds: number[];
+  /** Rhythmic soft pulse window (Operationalise). */
+  pulse: [number, number] | null;
+  /** The resolve chord (the evidence pack begins). */
   resolve: number | null;
-  /** The final warm chord under the brand frame. */
+  /** The final warm chord (the transformed company → brand cover). */
   final: number | null;
 }
 
-/** Master cut (48s) — the authored sound map. */
-const TL_48: AudioTimeline = {
-  brightUntil: 19,
-  minor: [26, 33],
-  keys: [2.5, 3.2],
-  clicks: [3.2, 38.6, 39.8],
-  flash: 10.5,
-  notifs: [26.2, 41.8],
-  resolve: 42,
-  final: 45.5,
+/** Master cut (90s) — the authored sound map. */
+const TL_90: AudioTimeline = {
+  warmUntil: 16,
+  tension: [60, 66.6],
+  ticks: [
+    17.8, 19.0, 20.6, 21.9, 23.6, 24.9, 26.2, 27.4, // Diagnose measurements
+    70.5, 71.3, 72.1, 72.9, 73.7, 74.4, 75.2, 76.0, 76.8, // dossier tabs
+  ],
+  thuds: [31.7, 32.7, 33.7, 34.5, 34.8, 35.9, 37.0, 38.1, 43.4, 67.5],
+  pulse: [50.5, 60],
+  resolve: 70,
+  final: 83,
 };
 
 /** 30s cut — beats re-timed through its window table. */
 const TL_30: AudioTimeline = {
-  brightUntil: 11,
-  minor: [11, 17],
-  keys: [0.45, 1.0],
-  clicks: [1.0, 22.3, 23.4],
-  flash: 6.35,
-  notifs: [11.2, 25.0],
-  resolve: 25.2,
-  final: 28.0,
+  warmUntil: 10,
+  tension: null,
+  ticks: [10.8, 12.2, 13.6, 14.8, 24.8, 25.4, 26.0, 26.6, 27.2],
+  thuds: [16.8, 17.4, 18.0, 18.6, 19.2, 23.4],
+  pulse: null,
+  resolve: 24.6,
+  final: 28.4,
 };
 
 /** 15s cut — the essentials only. */
 const TL_15: AudioTimeline = {
-  brightUntil: 4,
-  minor: [4, 7.5],
-  keys: [0.4, 1.26],
-  clicks: [1.26, 10.5, 11.1],
-  flash: null,
-  notifs: [4.2],
-  resolve: 12.4,
-  final: 13.5,
+  warmUntil: 4,
+  tension: null,
+  ticks: [4.4, 5.3, 6.5, 9.0, 9.4, 9.8, 10.2, 10.6],
+  thuds: [7.5],
+  pulse: null,
+  resolve: 8.8,
+  final: 12.4,
 };
 
-export const AUDIO_TIMELINES: Record<"48" | "30" | "15", AudioTimeline> = {
-  "48": TL_48,
+export const AUDIO_TIMELINES: Record<"90" | "30" | "15", AudioTimeline> = {
+  "90": TL_90,
   "30": TL_30,
   "15": TL_15,
 };
@@ -78,7 +78,7 @@ export const AUDIO_TIMELINES: Record<"48" | "30" | "15", AudioTimeline> = {
 /* Pad voicings (Hz). F-rooted, warm. */
 const VOICE_BRIGHT = [87.31, 130.81, 220.0, 261.63, 392.0]; // F2 C3 A3 C4 G4 — add9 air
 const VOICE_NEUTRAL = [87.31, 130.81, 174.61, 220.0, 261.63]; // F2 C3 F3 A3 C4
-const VOICE_MINOR = [73.42, 110.0, 174.61, 220.0, 293.66]; // D2 A2 F3 A3 D4
+const VOICE_MINOR = [73.42, 110.0, 174.61, 220.0, 293.66]; // D2 A2 F3 A3 D4 — contained
 const VOICE_RESOLVE = [87.31, 130.81, 220.0, 329.63, 392.0]; // F2 C3 A3 E4 G4 — maj7
 const VOICE_FINAL = [87.31, 174.61, 220.0, 349.23, 523.25]; // F2 F3 A3 F4 C5
 
@@ -121,10 +121,16 @@ export class FilmAudio {
     const now = ctx.currentTime + 0.05;
     const at = (evT: number) => now + (evT - offset);
 
-    /* ── the pad ─────────────────────────────────────────────────────── */
+    /* ── the pad — the warm build ────────────────────────────────────── */
     const padBus = ctx.createGain();
     padBus.gain.setValueAtTime(0, now);
-    padBus.gain.linearRampToValueAtTime(PAD_LEVEL, now + 1.4);
+    /* swell in, then keep building gently until warmUntil */
+    padBus.gain.linearRampToValueAtTime(PAD_LEVEL * 0.7, now + 1.4);
+    if (tl.warmUntil > offset) {
+      padBus.gain.linearRampToValueAtTime(PAD_LEVEL, at(tl.warmUntil));
+    } else {
+      padBus.gain.setValueAtTime(PAD_LEVEL, now + 1.4);
+    }
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
     lp.frequency.value = 950;
@@ -136,8 +142,8 @@ export class FilmAudio {
     const voicingAt = (s: number): number[] => {
       if (tl.final !== null && s >= tl.final) return VOICE_FINAL;
       if (tl.resolve !== null && s >= tl.resolve) return VOICE_RESOLVE;
-      if (tl.minor && s >= tl.minor[0] && s < tl.minor[1]) return VOICE_MINOR;
-      if (s < tl.brightUntil) return VOICE_BRIGHT;
+      if (tl.tension && s >= tl.tension[0] && s < tl.tension[1]) return VOICE_MINOR;
+      if (s < tl.warmUntil) return VOICE_BRIGHT;
       return VOICE_NEUTRAL;
     };
 
@@ -160,10 +166,10 @@ export class FilmAudio {
         o.frequency.setTargetAtTime(voice[i], at(evT), GLIDE / 3);
       });
     };
-    retune(tl.brightUntil, VOICE_NEUTRAL);
-    if (tl.minor) {
-      retune(tl.minor[0], VOICE_MINOR);
-      retune(tl.minor[1], VOICE_NEUTRAL);
+    retune(tl.warmUntil, VOICE_NEUTRAL);
+    if (tl.tension) {
+      retune(tl.tension[0], VOICE_MINOR);
+      retune(tl.tension[1], VOICE_NEUTRAL);
     }
     if (tl.resolve !== null) retune(tl.resolve, VOICE_RESOLVE);
     if (tl.final !== null) {
@@ -179,14 +185,14 @@ export class FilmAudio {
       },
     });
 
-    /* ── sparse low drone inside the minor window ────────────────────── */
-    if (tl.minor && tl.minor[1] > offset) {
+    /* ── contained low drone inside the tension window ───────────────── */
+    if (tl.tension && tl.tension[1] > offset) {
       const drone = ctx.createOscillator();
       drone.type = "sine";
       drone.frequency.value = 36.71; // D1
       const dg = ctx.createGain();
       dg.gain.setValueAtTime(0, now);
-      const [m0, m1] = tl.minor;
+      const [m0, m1] = tl.tension;
       const span = m1 - m0;
       for (let k = 0; k < 3; k += 1) {
         const swell = m0 + 0.4 + (k * span) / 3;
@@ -209,71 +215,65 @@ export class FilmAudio {
       return buf;
     })());
 
-    const tick = (evT: number, freq: number, gain: number, dur: number) => {
+    const shot = (
+      evT: number,
+      freq: number,
+      gain: number,
+      dur: number,
+      type: BiquadFilterType = "bandpass",
+      q = 5,
+    ) => {
       if (evT < offset) return;
       const src = ctx.createBufferSource();
       src.buffer = noise;
-      const bp = ctx.createBiquadFilter();
-      bp.type = "bandpass";
-      bp.frequency.value = freq;
-      bp.Q.value = 5;
+      const f = ctx.createBiquadFilter();
+      f.type = type;
+      f.frequency.value = freq;
+      f.Q.value = q;
       const g = ctx.createGain();
       const t0 = at(evT);
       g.gain.setValueAtTime(gain, t0);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-      src.connect(bp);
-      bp.connect(g);
+      src.connect(f);
+      f.connect(g);
       g.connect(master);
       src.start(t0);
       src.stop(t0 + dur + 0.02);
       this.live.push({ stop: (when) => src.stop(Math.max(when, t0)) });
     };
 
-    /* keyboard typing */
-    if (tl.keys) {
-      const [k0, k1] = tl.keys;
-      for (let s = k0, i = 0; s < k1; s += 0.09, i += 1) {
-        tick(s, 2400 + (i % 3) * 260, 0.035, 0.03);
+    /* precise measurement / insertion ticks */
+    tl.ticks.forEach((s, i) => shot(s, 2100 + (i % 3) * 240, 0.05, 0.045));
+
+    /* structural thuds — low filtered noise, soft */
+    tl.thuds.forEach((s) => {
+      shot(s, 130, 0.11, 0.3, "lowpass", 0.8);
+      shot(s + 0.02, 480, 0.03, 0.08); // a small knock transient on top
+    });
+
+    /* the rhythmic pulse under Operationalise */
+    if (tl.pulse) {
+      const [p0, p1] = tl.pulse;
+      for (let s = p0, i = 0; s < p1; s += 0.55, i += 1) {
+        shot(s, i % 4 === 0 ? 760 : 980, i % 4 === 0 ? 0.035 : 0.022, 0.06);
       }
     }
-    /* the submit click and the two deliberate decision clicks */
-    tl.clicks.forEach((c) => tick(c, 1500, 0.08, 0.05));
 
-    /* camera flash — a soft, wider noise burst */
-    if (tl.flash !== null && tl.flash >= offset) {
-      const src = ctx.createBufferSource();
-      src.buffer = noise;
-      const lpf = ctx.createBiquadFilter();
-      lpf.type = "lowpass";
-      const t0 = at(tl.flash);
-      lpf.frequency.setValueAtTime(4200, t0);
-      lpf.frequency.exponentialRampToValueAtTime(380, t0 + 0.18);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.07, t0);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
-      src.connect(lpf);
-      lpf.connect(g);
-      g.connect(master);
-      src.start(t0);
-      src.stop(t0 + 0.25);
-      this.live.push({ stop: (when) => src.stop(Math.max(when, t0)) });
-    }
-
-    /* notification ticks — two rising tones */
-    tl.notifs.forEach((n) => {
-      if (n < offset) return;
+    /* the resolve and final chords ring as two-tone confirmations */
+    [tl.resolve, tl.final].forEach((s, idx) => {
+      if (s === null || s < offset) return;
       const osc = ctx.createOscillator();
       osc.type = "sine";
-      const t0 = at(n);
-      osc.frequency.setValueAtTime(880, t0);
-      osc.frequency.setValueAtTime(1174.7, t0 + 0.09);
+      const t0 = at(s);
+      osc.frequency.setValueAtTime(idx === 0 ? 523.25 : 349.23, t0);
+      osc.frequency.setValueAtTime(idx === 0 ? 659.25 : 523.25, t0 + 0.14);
       const g = ctx.createGain();
-      g.gain.setValueAtTime(0.045, t0);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.24);
+      g.gain.setValueAtTime(0.035, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.6);
       osc.connect(g);
       g.connect(master);
       osc.start(t0);
-      osc.stop(t0 + 0.26);
+      osc.stop(t0 + 0.65);
       this.live.push({ stop: (when) => osc.stop(Math.max(when, t0)) });
     });
   }

@@ -143,8 +143,9 @@ export default function LandingPage() {
                 </Link>
               </div>
             </div>
-            {/* Silent 10-second loop: an ordinary action, invisible data, a risk
-                surfacing, Iltizam ordering it. Frozen under reduced motion. */}
+            {/* Silent 10-second seam loop of the film's ribbon beats: the report
+                unfolds, DAY markers print, one finding, the dossier closes,
+                the brand line. Frozen under reduced motion. */}
             <div className="hidden overflow-hidden rounded-xl border border-line shadow-[var(--shadow-sheet)] lg:block">
               <HeroLoop />
             </div>
@@ -165,10 +166,10 @@ export default function LandingPage() {
           <div className="shell py-16 sm:py-20">
             <p className="eyebrow text-gold-bright">The film</p>
             <h2 className="display mt-3 text-3xl leading-tight font-semibold sm:text-4xl">
-              After Submit
+              The 90-Day Transformation
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-7 text-brand-muted">
-              One application, one request, and the responsibility that begins after “Submit”.
+              Diagnose. Build. Operationalise — one company, ninety days, inspection-ready.
             </p>
             <div className="mt-8">
               <FilmSection />

@@ -1,36 +1,58 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// BrandFilm.tsx — the player for "After Submit".
+// BrandFilm.tsx — the player for "The 90-Day Transformation".
 //
 // The shell owns: the poster, the rAF clock (engine.ts), the CUT WINDOW
-// TABLES that map playback time → (scene, p), the caption cues (closing
-// voiceover only — all other text in the film is diegetic and lives inside
-// the scenes), the audio timelines, controls, reduced-motion fallback, and
-// the ?filmt=<seconds> review hook (passed in as initialTime by the /film
-// page) that renders any master-cut frame as a paused still.
+// TABLES that map playback time → master time (the film is one continuous
+// world; a cut is a set of master-time windows), the narration captions
+// (the locked VO ships as synchronized lower-third captions — this doubles
+// as the captioned + sound-off version), the audio timelines, controls, the
+// reduced-motion fallback, the 16:9 / 9:16 orientation switch, and the
+// ?filmt=<seconds> review hook (passed in as initialTime by the /film page)
+// that renders any master-cut frame as a paused still.
 // ─────────────────────────────────────────────────────────────────────────────
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFilmClock, useReducedMotion } from "./engine";
-import { clamp01 } from "./math";
+import { clamp01, mix } from "./math";
 import {
   FilmDefs,
   FilmPoster,
-  SCENES,
-  STAGE_H,
-  STAGE_W,
-  type SceneId,
+  FilmStage,
+  LAYOUTS,
+  type Orientation,
 } from "./scenes";
 import { AUDIO_TIMELINES, FilmAudio } from "./audio";
 
-export type CutId = "48" | "30" | "15";
+/* ── THE LOCKED NARRATION ───────────────────────────────────────────────── */
+// Re-time here to match the recorded VO when available.
+export const NARRATION: { at: number; end: number; text: string }[] = [
+  { at: 0.5, end: 5.5, text: "With massive new data privacy fines looming, businesses need a rapid path to defense." },
+  { at: 5.8, end: 9.0, text: "Enter the 90-day inspection-ready plan." },
+  { at: 9.5, end: 16.0, text: "Take a publicly listed company holding a massive, disorganized web of highly vulnerable customer records." },
+  { at: 16.5, end: 19.5, text: "Phase one, Diagnose, twenty days." },
+  { at: 19.8, end: 29.5, text: "The system scans that chaotic web to uncover hidden vulnerabilities, running a gap analysis to determine exactly which regulatory licenses the company actually needs." },
+  { at: 30.0, end: 33.5, text: "Phase two is Build, days twenty-one to sixty." },
+  { at: 33.8, end: 41.5, text: "This constructs structural legal architecture, snapping consent registers and breach logs directly into place." },
+  { at: 41.8, end: 49.5, text: "It also appoints the specific individual who takes personal legal liability for the entire framework, the Data Protection Officer." },
+  { at: 50.0, end: 52.5, text: "Phase three, Operationalise." },
+  { at: 52.8, end: 56.5, text: "The system transitions from theory to active defense." },
+  { at: 56.8, end: 60.0, text: "Staff embed these controls into their daily workflow," },
+  { at: 60.2, end: 65.5, text: "running a simulated data breach to prove the shields actually hold under pressure." },
+  { at: 66.5, end: 70.0, text: "But notice the timeline stops exactly at ninety days." },
+  { at: 70.3, end: 77.5, text: "The goal is assembling the final evidence pack to be fully inspection-ready, without waiting on unpredictable government approvals." },
+  { at: 78.5, end: 83.0, text: "And remember that massive, incredibly vulnerable web of scattered customer records from the very beginning?" },
+  { at: 83.3, end: 90.0, text: "It is now a fully documented, legally protected system, permanently locked in and ready for the regulators." },
+];
 
+export type CutId = "90" | "30" | "15";
+
+/** A window maps cut-local playback [start, end] onto master time [tIn, tOut]. */
 interface CutWindow {
-  scene: SceneId;
   start: number;
   end: number;
-  pIn: number;
-  pOut: number;
+  tIn: number;
+  tOut: number;
 }
 
 interface Caption {
@@ -46,85 +68,91 @@ interface CutDef {
   captions: Caption[];
 }
 
-/* The closing voiceover — the only caption lines in the film. */
-const VO_1 = "People share more than information.";
-const VO_2 = "They share trust.";
-const VO_3 = "What happens next is your responsibility.";
+/** Shorter cuts caption only the full sentences that fit — never rewritten. */
+const N = (i: number) => NARRATION[i].text;
 
 const CUTS: Record<CutId, CutDef> = {
-  /* Master cut — the full 48 seconds, uneven on purpose. */
-  "48": {
-    duration: 48,
-    label: "48s",
-    windows: [
-      { scene: "s1", start: 0, end: 8, pIn: 0, pOut: 1 },
-      { scene: "s2", start: 8, end: 19, pIn: 0, pOut: 1 },
-      { scene: "s3", start: 19, end: 26, pIn: 0, pOut: 1 },
-      { scene: "s4", start: 26, end: 33, pIn: 0, pOut: 1 },
-      { scene: "s5", start: 33, end: 41.5, pIn: 0, pOut: 1 },
-      { scene: "s6", start: 41.5, end: 48, pIn: 0, pOut: 1 },
-    ],
-    captions: [
-      { from: 42.0, to: 43.6, text: VO_1 },
-      { from: 43.9, to: 45.3, text: VO_2 },
-      { from: 45.6, to: 47.2, text: VO_3 },
-    ],
+  /* Master cut — the full 90 seconds, one continuous camera move. */
+  "90": {
+    duration: 90,
+    label: "90s",
+    windows: [{ start: 0, end: 90, tIn: 0, tOut: 90 }],
+    captions: NARRATION.map((n) => ({ from: n.at, to: n.end, text: n.text })),
   },
-  /* 30s — drops the still scene (S3); compresses the breath, keeps the story. */
+  /* 30s — report→ribbon, web, one Diagnose finding, Build+DPO, Day 90+dossier, brand. */
   "30": {
     duration: 30,
     label: "30s",
     windows: [
-      { scene: "s1", start: 0, end: 5, pIn: 0.25, pOut: 1 },
-      { scene: "s2", start: 5, end: 11, pIn: 0, pOut: 1 },
-      { scene: "s4", start: 11, end: 17, pIn: 0, pOut: 1 },
-      { scene: "s5", start: 17, end: 25, pIn: 0, pOut: 1 },
-      { scene: "s6", start: 25, end: 30, pIn: 0.05, pOut: 1 },
+      { start: 0, end: 5, tIn: 0.4, tOut: 9 },
+      { start: 5, end: 10, tIn: 9, tOut: 16.5 },
+      { start: 10, end: 16, tIn: 16.5, tOut: 24 },
+      { start: 16, end: 23, tIn: 29.5, tOut: 49.5 },
+      { start: 23, end: 28, tIn: 66.5, tOut: 77.5 },
+      { start: 28, end: 30, tIn: 85.2, tOut: 90 },
     ],
     captions: [
-      { from: 25.2, to: 26.4, text: VO_1 },
-      { from: 26.7, to: 27.8, text: VO_2 },
-      { from: 28.0, to: 29.3, text: VO_3 },
+      { from: 0.5, to: 3.6, text: N(1) },
+      { from: 4.9, to: 9.9, text: N(2) },
+      { from: 10.3, to: 13.2, text: N(3) },
+      { from: 16.2, to: 19.2, text: N(5) },
+      { from: 23.4, to: 26.6, text: N(12) },
     ],
   },
-  /* 15s — submit, request, decision, brand. One caption. */
+  /* 15s — ribbon reveal, one finding, dossier + DAY 90, brand. */
   "15": {
     duration: 15,
     label: "15s",
     windows: [
-      { scene: "s1", start: 0, end: 4, pIn: 0.28, pOut: 0.66 },
-      { scene: "s4", start: 4, end: 7.5, pIn: 0, pOut: 0.5 },
-      { scene: "s5", start: 7.5, end: 12, pIn: 0, pOut: 1 },
-      { scene: "s6", start: 12, end: 15, pIn: 0.55, pOut: 1 },
+      { start: 0, end: 4, tIn: 4.4, tOut: 9.4 },
+      { start: 4, end: 7, tIn: 18.5, tOut: 22.5 },
+      { start: 7, end: 11, tIn: 66.5, tOut: 74.5 },
+      { start: 11, end: 15, tIn: 84.6, tOut: 90 },
     ],
-    captions: [{ from: 12.5, to: 14.2, text: VO_3 }],
+    captions: [
+      { from: 0.4, to: 3.4, text: N(1) },
+      { from: 4.3, to: 6.9, text: N(3) },
+      { from: 7.4, to: 10.6, text: N(12) },
+    ],
   },
 };
 
-/** Resolve playback time to a frame through the active cut's window table. */
-function FrameAt({ cut, t }: { cut: CutDef; t: number }) {
+/** Resolve playback time to master time through the active cut's windows. */
+function masterTimeAt(cut: CutDef, t: number): number {
   const w =
     cut.windows.find((win) => t < win.end) ??
     cut.windows[cut.windows.length - 1];
   const local = clamp01((t - w.start) / (w.end - w.start));
-  const p = w.pIn + local * (w.pOut - w.pIn);
-  const scene = SCENES[w.scene];
-  const C = scene.C;
-  return <C p={p} t={p * scene.dur} />;
+  return mix(w.tIn, w.tOut, local);
+}
+
+function FrameAt({
+  cut,
+  t,
+  orientation,
+}: {
+  cut: CutDef;
+  t: number;
+  orientation: Orientation;
+}) {
+  return <FilmStage t={masterTimeAt(cut, t)} orientation={orientation} />;
 }
 
 function formatTime(s: number): string {
   const whole = Math.floor(s);
-  return `0:${whole.toString().padStart(2, "0")}`;
+  const m = Math.floor(whole / 60);
+  return `${m}:${(whole % 60).toString().padStart(2, "0")}`;
 }
 
 export function BrandFilm({
   initialTime,
-  initialCut = "48",
+  initialCut = "90",
+  orientation = "16:9",
 }: {
   /** Review hook (?filmt=seconds): mount paused on this master-cut frame. */
   initialTime?: number;
   initialCut?: CutId;
+  orientation?: Orientation;
 }) {
   const review = initialTime !== undefined && Number.isFinite(initialTime);
   const [cutId, setCutId] = useState<CutId>(initialCut);
@@ -132,6 +160,7 @@ export function BrandFilm({
   const [started, setStarted] = useState(review);
   const [muted, setMuted] = useState(false);
   const reduced = useReducedMotion();
+  const layout = LAYOUTS[orientation];
 
   const audioRef = useRef<FilmAudio | null>(null);
   const getAudio = () => (audioRef.current ??= new FilmAudio());
@@ -194,7 +223,12 @@ export function BrandFilm({
     [cut, t],
   );
 
-  /* Reduced motion, outside review mode: a still with the closing lines. */
+  const stageClass =
+    orientation === "9:16"
+      ? "relative mx-auto aspect-[9/16] w-full max-w-[420px]"
+      : "relative aspect-video";
+
+  /* Reduced motion, outside review mode: a still with the plan in words. */
   if (reduced && !review) {
     return (
       <figure className="overflow-hidden rounded-2xl border border-brand-line bg-brand">
@@ -202,15 +236,15 @@ export function BrandFilm({
           <FilmPoster className="absolute inset-0 h-full w-full" />
           <div className="absolute inset-0 bg-gradient-to-t from-brand/95 via-brand/30 to-transparent" />
           <figcaption className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-            <p className="display text-2xl font-semibold text-brand-ink">After Submit</p>
+            <p className="display text-2xl font-semibold text-brand-ink">The 90-Day Transformation</p>
             <p className="mt-1 text-xs text-brand-muted">
-              An Iltizam film · 48 seconds · motion is paused by your system preference
+              An Iltzam film · 90 seconds · motion is paused by your system preference
             </p>
-            <blockquote className="display mt-4 max-w-md space-y-1 text-[15px] leading-6 text-brand-ink/90">
-              <p>{VO_1}</p>
-              <p>{VO_2}</p>
-              <p>{VO_3}</p>
-              <p className="text-gold-bright">{"What happens after “Submit” matters."}</p>
+            <blockquote className="display mt-4 max-w-xl space-y-1 text-[15px] leading-6 text-brand-ink/90">
+              <p>{NARRATION[1].text}</p>
+              <p>{NARRATION[12].text}</p>
+              <p>{NARRATION[15].text}</p>
+              <p className="text-gold-bright">{"From scattered data to inspection-ready in 90 days."}</p>
             </blockquote>
           </figcaption>
         </div>
@@ -220,25 +254,24 @@ export function BrandFilm({
 
   return (
     <figure className="overflow-hidden rounded-2xl border border-brand-line bg-brand shadow-[0_18px_50px_-20px_rgba(0,0,0,0.6)]">
-      <div className="relative aspect-video">
+      <div className={stageClass}>
         {started ? (
           <>
             <svg
-              viewBox={`0 0 ${STAGE_W} ${STAGE_H}`}
+              viewBox={`0 0 ${layout.w} ${layout.h}`}
               className="absolute inset-0 h-full w-full"
-              aria-label="After Submit — an Iltizam film"
+              aria-label="The 90-Day Transformation — an Iltzam film"
               role="img"
             >
               <FilmDefs />
-              <rect width={STAGE_W} height={STAGE_H} fill="#17130f" />
-              <FrameAt cut={cut} t={t} />
+              <FrameAt cut={cut} t={t} orientation={orientation} />
             </svg>
 
-            {/* the only captions in the film: the closing voiceover */}
+            {/* the narration as synchronized lower-third captions */}
             {caption ? (
               <p
                 aria-live="polite"
-                className="display absolute inset-x-0 bottom-[6%] mx-auto max-w-2xl px-6 text-center text-base text-[#f0ecdf] [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] sm:text-lg"
+                className="absolute inset-x-0 bottom-[5%] mx-auto w-fit max-w-[88%] rounded-md bg-[#26292e]/80 px-4 py-1.5 text-center text-[13px] leading-5 text-[#f4f0e5] sm:text-[15px] sm:leading-6"
               >
                 {caption.text}
               </p>
@@ -251,7 +284,7 @@ export function BrandFilm({
                 onClick={() => startPlayback(0)}
                 className="absolute inset-0 flex items-center justify-center bg-brand/40 text-brand-ink transition-colors hover:bg-brand/50"
               >
-                <span className="rounded-full border border-gold/70 px-5 py-2 text-sm font-medium text-gold-bright">
+                <span className="rounded-full border border-gold/70 bg-brand/70 px-5 py-2 text-sm font-medium text-gold-bright">
                   Watch again
                 </span>
               </button>
@@ -263,16 +296,16 @@ export function BrandFilm({
             type="button"
             onClick={() => startPlayback(0)}
             className="group absolute inset-0 block w-full text-left"
-            aria-label="Play After Submit, a 48 second film"
+            aria-label="Play The 90-Day Transformation, a 90 second film"
           >
             <FilmPoster className="absolute inset-0 h-full w-full" />
             <span className="absolute inset-0 bg-gradient-to-t from-brand/90 via-transparent to-transparent" />
             <span className="absolute bottom-0 left-0 p-6 sm:p-8">
               <span className="display block text-3xl font-semibold text-brand-ink">
-                After Submit
+                The 90-Day Transformation
               </span>
               <span className="mt-1 block text-xs tracking-wide text-brand-muted">
-                An Iltizam film · 48 seconds
+                An Iltzam film · 90 seconds
               </span>
             </span>
             <span className="absolute inset-0 flex items-center justify-center">

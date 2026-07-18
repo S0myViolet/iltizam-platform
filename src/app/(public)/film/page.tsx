@@ -1,32 +1,29 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { BrandFilm, type CutId } from "@/components/film/BrandFilm";
+import type { Orientation } from "@/components/film/scenes";
+import { NarrationList } from "./NarrationList";
 
 export const metadata: Metadata = {
-  title: "After Submit — an Iltizam film",
+  title: "The 90-Day Transformation — an Iltzam film",
   description:
-    "One application, one request, and the responsibility that begins after “Submit”. A 48-second film.",
+    "One company, ninety days: Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. A 90-second film.",
 };
 
-/* The closing voiceover, and the film's final on-screen line. */
-const CLOSING_LINES = [
-  "People share more than information.",
-  "They share trust.",
-  "What happens next is your responsibility.",
-  "What happens after “Submit” matters.",
-];
-
-/* Every piece of on-screen text in the film — diegetic, never captioned. */
+/* Key printed type inside the world — the ribbon and its stations. */
 const ON_SCREEN_TEXT = [
-  { text: "Application submitted", where: "S1 · after the click" },
-  { text: "Welcome to the team", where: "S2 · the first-day badge" },
-  {
-    text: "Could you please delete the ID copy I submitted when I applied?",
-    where: "S4 · the request",
-  },
-  { text: "4 locations identified", where: "S5 · the Iltizam card" },
-  { text: "Human review required", where: "S5 · the finding" },
-  { text: "Owner assigned", where: "S5 · the first click" },
-  { text: "Request completed", where: "S5 · the quiet last line" },
+  { text: "New privacy obligations · Inspection exposure rising", where: "the report" },
+  { text: "DAY 1 · DAY 20 · DAY 60 · DAY 90", where: "printed on the ribbon" },
+  { text: "DIAGNOSE · BUILD · OPERATIONALISE", where: "printed on the ribbon" },
+  { text: "A scattered web of customer data.", where: "the tangled company" },
+  { text: "SENSITIVE DATA · CROSS-BORDER TRANSFER · CONSENT EVIDENCE · RETENTION PERIOD", where: "the four findings" },
+  { text: "Data mapped · Gaps identified · Licensing requirements defined", where: "Diagnose closes" },
+  { text: "CONSENT REGISTER · BREACH LOG · PROCESSING REGISTER · RETENTION SCHEDULE", where: "the Build drawers" },
+  { text: "DATA PROTECTION OFFICER — ACCOUNTABILITY ASSIGNED", where: "the appointment" },
+  { text: "FROM POLICY TO PRACTICE", where: "Operationalise" },
+  { text: "SIMULATION ACTIVE → INCIDENT CONTAINED → RESPONSE VERIFIED", where: "the simulated breach" },
+  { text: "EVIDENCE COMPLETE · INSPECTION-READY · DAY 90", where: "the evidence pack" },
+  { text: "Regulator review — external timeline", where: "beyond the ribbon" },
 ];
 
 export default async function FilmPage({
@@ -37,45 +34,68 @@ export default async function FilmPage({
   const sp = await searchParams;
   const rawT = typeof sp.filmt === "string" ? Number.parseFloat(sp.filmt) : NaN;
   const initialTime = Number.isFinite(rawT) ? rawT : undefined;
-  const initialCut: CutId =
-    sp.cut === "30" || sp.cut === "15" ? sp.cut : "48";
+  const initialCut: CutId = sp.cut === "30" || sp.cut === "15" ? sp.cut : "90";
+  const orientation: Orientation = sp.ar === "916" ? "9:16" : "16:9";
 
   return (
     <main className="pb-16">
       <header className="band">
         <div className="shell pt-12 pb-10 sm:pt-14">
-          <p className="eyebrow text-gold-bright">The Iltizam film · 48 seconds</p>
+          <p className="eyebrow text-gold-bright">The Iltzam film · 90 seconds</p>
           <h1 className="display mt-4 max-w-2xl text-4xl leading-[1.15] font-semibold">
-            After Submit
+            The 90-Day Transformation
           </h1>
           <p className="mt-4 max-w-xl text-[15px] leading-7 text-brand-muted">
-            {"One woman, one company, one request. No narration until the very end — just what happens to two files after the button is pressed."}
+            {"One company, one paper ribbon, ninety days. Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. The narration runs as captions, so the film works with sound on or off."}
+          </p>
+          <p className="mt-5 flex items-center gap-2 text-[12px] text-brand-muted">
+            <span className="mr-1">Format:</span>
+            <Link
+              href="/film"
+              className={`rounded-md border px-2.5 py-1 font-medium transition-colors ${
+                orientation === "16:9"
+                  ? "border-gold/70 text-gold-bright"
+                  : "border-brand-line hover:text-brand-ink"
+              }`}
+            >
+              Landscape 16:9
+            </Link>
+            <Link
+              href="/film?ar=916"
+              className={`rounded-md border px-2.5 py-1 font-medium transition-colors ${
+                orientation === "9:16"
+                  ? "border-gold/70 text-gold-bright"
+                  : "border-brand-line hover:text-brand-ink"
+              }`}
+            >
+              Vertical 9:16
+            </Link>
           </p>
         </div>
       </header>
 
       <div className="shell -mt-2 pt-6">
-        <BrandFilm initialTime={initialTime} initialCut={initialCut} />
+        <BrandFilm
+          initialTime={initialTime}
+          initialCut={initialCut}
+          orientation={orientation}
+        />
 
         <div className="mt-10 grid gap-10 lg:grid-cols-2">
-          <section aria-label="Closing lines">
-            <p className="eyebrow text-gold-text">The closing lines</p>
-            <blockquote className="display mt-4 space-y-2 text-lg leading-8 text-ink">
-              {CLOSING_LINES.map((l) => (
-                <p key={l}>{l}</p>
-              ))}
-            </blockquote>
+          <section aria-label="The narration">
+            <p className="eyebrow text-gold-text">The narration</p>
+            <NarrationList />
           </section>
 
-          <section aria-label="On-screen text">
-            <p className="eyebrow text-gold-text">Every word on screen</p>
+          <section aria-label="Printed in the world">
+            <p className="eyebrow text-gold-text">Printed in the world</p>
             <ul className="mt-4 flex flex-col">
               {ON_SCREEN_TEXT.map((l) => (
                 <li
                   key={l.text}
                   className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-line py-2.5 first:border-t"
                 >
-                  <span className="text-[14px] text-ink">{l.text}</span>
+                  <span className="text-[13px] text-ink">{l.text}</span>
                   <span className="text-[11px] tracking-wide text-ink3">{l.where}</span>
                 </li>
               ))}
@@ -84,7 +104,9 @@ export default async function FilmPage({
         </div>
 
         <p className="mt-10 border-t-2 border-line pt-5 text-[12.5px] text-ink3">
-          An Iltizam film — written, designed and animated in code by the Iltizam team.
+          An Iltzam film — written, designed and animated in code by the Iltzam team.
+          The caption timings live in one table and re-time to the recorded voiceover
+          when it is supplied.
         </p>
       </div>
     </main>
