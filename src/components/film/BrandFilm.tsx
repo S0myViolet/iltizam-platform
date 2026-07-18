@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// BrandFilm.tsx — the player for "The 90-Day Transformation".
+// BrandFilm.tsx — the player for "From Exposure to Control".
 //
 // The shell owns: the poster, the rAF clock (engine.ts), the CUT WINDOW
 // TABLES that map playback time → master time (the film is one continuous
@@ -24,38 +24,12 @@ import {
 } from "./scenes";
 import { AUDIO_TIMELINES, FilmAudio, type AudioTimeline } from "./audio";
 
-/* ── THE NARRATION — transcribed from the recorded voiceover ────────────── */
-// public/film/narration.m4a (74.7s) — the uploaded recording with its spoken
-// lead-in ("I'm switching to a more professional narration") trimmed off.
-// The recording is the source of truth: these sentences were transcribed
-// from it (offline speech-to-text + phonetic cleanup), and every `at`/`end`
-// is that sentence's word-level timestamp in the trimmed audio. To correct
-// a misheard word, edit `text` only; move timings only if the voice and
-// caption visibly disagree — captions, scene sync (SYNC below) and the
-// score all follow this one table.
-export const NARRATION: { at: number; end: number; text: string }[] = [
-  { at: 0.36, end: 2.59, text: "Data is no longer just information." },
-  { at: 2.73, end: 4.41, text: "It is exposure." },
-  { at: 5.07, end: 14.1, text: "For today's businesses, a single inspection can expose years of scattered records, weak controls, and unanswered compliance risks." },
-  { at: 14.43, end: 16.54, text: "Picture a publicly listed company." },
-  { at: 16.62, end: 23.41, text: "Thousands of customer records, spread across departments, buried in systems, files, and everyday processes." },
-  { at: 23.55, end: 25.98, text: "Valuable — yet unprotected." },
-  { at: 26.31, end: 29.67, text: "This is where the ninety-day inspection-ready timeline begins." },
-  { at: 29.79, end: 32.59, text: "Phase one: Diagnose — in just twenty days." },
-  { at: 32.67, end: 34.92, text: "Hidden gaps are brought into the light." },
-  { at: 35.13, end: 38.2, text: "Phase two: Build — from day twenty-one to sixty." },
-  { at: 38.28, end: 45.6, text: "Policies, logs, and accountability are put firmly in place, led by a named Data Protection Officer." },
-  { at: 45.84, end: 47.86, text: "Phase three: Operationalise." },
-  { at: 47.94, end: 50.4, text: "Compliance moves from paper to practice." },
-  { at: 50.64, end: 51.7, text: "Teams are trained." },
-  { at: 51.78, end: 53.11, text: "Controls are lived." },
-  { at: 53.19, end: 56.19, text: "And a breach simulation proves the response holds." },
-  { at: 56.31, end: 59.31, text: "By day ninety, the business is inspection-ready." },
-  { at: 59.49, end: 62.7, text: "Defensible. Structured. And built to last." },
-  { at: 62.94, end: 66.48, text: "No delays. No surprises. Just clarity." },
-  { at: 66.63, end: 69.42, text: "And that exposed, chaotic web of data?" },
-  { at: 69.51, end: 73.1, text: "It becomes controlled. Organized. Protected." },
-];
+/* ── THE NARRATION — the recorded voiceover, word for word ──────────────── */
+// The single timing table lives in narration.ts (plain data, shared with the
+// scenes, the frame surface and the export pipeline); re-exported here for
+// the pages that historically import it from BrandFilm.
+export { NARRATION } from "./narration";
+import { NARRATION, FILM_DURATION } from "./narration";
 
 /* The recorded read, two encodings of the same take: AAC for quality,
  * MP3 because open-source Chromium builds ship no AAC decoder. */
@@ -64,42 +38,10 @@ export const NARRATION_SOURCES = [
   { src: "/film/narration.mp3", type: "audio/mpeg" },
 ] as const;
 
-/** Full-cut length: the trimmed recording runs 74.7s; brand holds to 78. */
-const FULL_DURATION = 78;
-
-/* ── Scene sync ─────────────────────────────────────────────────────────────
- * The world in scenes.tsx is still authored on the original 90-second master
- * timeline. Each anchor pairs a recorded-narration second with the master
- * beat that moment should land on; the windows built from them warp the
- * camera so every beat arrives as the voice reaches it:
- * the company cutaway on "Picture a publicly listed company", the DAY 1
- * station on "the ninety-day inspection-ready timeline begins", the drawers
- * on "Policies, logs, and accountability", the DPO desk on "led by a named
- * Data Protection Officer", the printed FROM POLICY TO PRACTICE on
- * "Compliance moves from paper to practice", the containment on "a breach
- * simulation", the DAY 90 halt on "By day ninety", the look-back on "that
- * exposed, chaotic web", and the transformed company + brand on the close. */
-const SYNC: [playback: number, master: number][] = [
-  [0, 0],
-  [5.07, 4.0],
-  [14.43, 9.5],
-  [26.31, 15.3],
-  [29.79, 17.8],
-  [32.67, 22.0],
-  [35.13, 30.0],
-  [38.28, 33.8],
-  [42.54, 42.0],
-  [45.84, 50.0],
-  [47.94, 52.8],
-  [50.64, 56.8],
-  [53.19, 60.2],
-  [56.31, 66.5],
-  [59.49, 70.3],
-  [62.94, 74.8],
-  [66.63, 78.5],
-  [69.51, 83.3],
-  [FULL_DURATION, 90],
-];
+/** Full-cut length. The world in scenes.tsx is authored directly in
+ * recorded time, so the full cut needs no warp — playback time IS master
+ * time IS audio time. */
+const FULL_DURATION = FILM_DURATION;
 
 export type CutId = "90" | "30" | "15";
 
@@ -127,55 +69,50 @@ interface CutDef {
 /** Shorter cuts caption only the full sentences that fit — never rewritten. */
 const N = (i: number) => NARRATION[i].text;
 
-const SYNC_WINDOWS: CutWindow[] = SYNC.slice(0, -1).map(([s, m], i) => ({
-  start: s,
-  end: SYNC[i + 1][0],
-  tIn: m,
-  tOut: SYNC[i + 1][1],
-}));
-
 const CUTS: Record<CutId, CutDef> = {
-  /* Full cut — one continuous camera move, warped onto the recorded VO. */
+  /* Full cut — identity: the recorded narration's own clock. */
   "90": {
     duration: FULL_DURATION,
     label: "Full",
-    windows: SYNC_WINDOWS,
+    windows: [{ start: 0, end: FULL_DURATION, tIn: 0, tOut: FULL_DURATION }],
     captions: NARRATION.map((n) => ({ from: n.at, to: n.end, text: n.text })),
   },
-  /* 30s — report→ribbon, web, one Diagnose finding, Build+DPO, Day 90+dossier, brand. */
+  /* 30s — exposure, the company, the plan, the gaps, the DPO, Day 90, brand. */
   "30": {
     duration: 30,
     label: "30s",
     windows: [
-      { start: 0, end: 5, tIn: 0.4, tOut: 9 },
-      { start: 5, end: 10, tIn: 9, tOut: 16.5 },
-      { start: 10, end: 16, tIn: 16.5, tOut: 24 },
-      { start: 16, end: 23, tIn: 29.5, tOut: 49.5 },
-      { start: 23, end: 28, tIn: 66.5, tOut: 77.5 },
-      { start: 28, end: 30, tIn: 85.2, tOut: 90 },
+      { start: 0, end: 4.5, tIn: 0, tOut: 4.5 },
+      { start: 4.5, end: 9, tIn: 14.43, tOut: 18.9 },
+      { start: 9, end: 12.4, tIn: 26.31, tOut: 29.7 },
+      { start: 12.4, end: 16.4, tIn: 31.3, tOut: 35.3 },
+      { start: 16.4, end: 20.4, tIn: 41.9, tOut: 45.9 },
+      { start: 20.4, end: 24.4, tIn: 56.31, tOut: 60.3 },
+      { start: 24.4, end: 30, tIn: 71.2, tOut: 76.8 },
     ],
     captions: [
-      { from: 0.5, to: 3.6, text: N(0) },
-      { from: 4.9, to: 9.9, text: N(3) },
-      { from: 10.3, to: 13.2, text: N(6) },
-      { from: 16.2, to: 19.2, text: N(9) },
-      { from: 23.4, to: 26.6, text: N(16) },
+      { from: 0.4, to: 3.2, text: N(0) },
+      { from: 4.6, to: 7.4, text: N(3) },
+      { from: 9.1, to: 12.2, text: N(6) },
+      { from: 12.6, to: 16.2, text: N(8) },
+      { from: 20.6, to: 24.2, text: N(14) },
+      { from: 24.6, to: 28.4, text: N(20) },
     ],
   },
-  /* 15s — ribbon reveal, one finding, dossier + DAY 90, brand. */
+  /* 15s — exposure, the plan, Day 90, brand. */
   "15": {
     duration: 15,
     label: "15s",
     windows: [
-      { start: 0, end: 4, tIn: 4.4, tOut: 9.4 },
-      { start: 4, end: 7, tIn: 18.5, tOut: 22.5 },
-      { start: 7, end: 11, tIn: 66.5, tOut: 74.5 },
-      { start: 11, end: 15, tIn: 84.6, tOut: 90 },
+      { start: 0, end: 3.5, tIn: 0, tOut: 3.5 },
+      { start: 3.5, end: 7, tIn: 26.31, tOut: 29.8 },
+      { start: 7, end: 11, tIn: 56.31, tOut: 60.3 },
+      { start: 11, end: 15, tIn: 73.2, tOut: 77.2 },
     ],
     captions: [
-      { from: 0.4, to: 3.4, text: N(0) },
-      { from: 4.3, to: 6.9, text: N(3) },
-      { from: 7.4, to: 10.6, text: N(16) },
+      { from: 0.3, to: 3.2, text: N(0) },
+      { from: 3.7, to: 6.8, text: N(6) },
+      { from: 7.2, to: 10.8, text: N(14) },
     ],
   },
 };
@@ -189,36 +126,8 @@ function masterTimeAt(cut: CutDef, t: number): number {
   return mix(w.tIn, w.tOut, local);
 }
 
-/** Inverse warp for the full cut: master second → recorded-playback second. */
-function playbackTimeAt(m: number): number {
-  const w =
-    SYNC_WINDOWS.find((win) => m < win.tOut) ??
-    SYNC_WINDOWS[SYNC_WINDOWS.length - 1];
-  const local = clamp01((m - w.tIn) / (w.tOut - w.tIn));
-  return mix(w.start, w.end, local);
-}
-
-/* The synthesized score is authored in master time; the full cut now plays
- * in recorded-narration time, so its event map warps through the anchors. */
-const SCORE_FULL: AudioTimeline = (() => {
-  const tl = AUDIO_TIMELINES["90"];
-  return {
-    warmUntil: playbackTimeAt(tl.warmUntil),
-    tension: tl.tension
-      ? [playbackTimeAt(tl.tension[0]), playbackTimeAt(tl.tension[1])]
-      : null,
-    ticks: tl.ticks.map(playbackTimeAt),
-    thuds: tl.thuds.map(playbackTimeAt),
-    pulse: tl.pulse
-      ? [playbackTimeAt(tl.pulse[0]), playbackTimeAt(tl.pulse[1])]
-      : null,
-    resolve: tl.resolve === null ? null : playbackTimeAt(tl.resolve),
-    final: tl.final === null ? null : playbackTimeAt(tl.final),
-  };
-})();
-
-const scoreFor = (id: CutId): AudioTimeline =>
-  id === "90" ? SCORE_FULL : AUDIO_TIMELINES[id];
+/* The score map is authored in recorded time, same clock as the scenes. */
+const scoreFor = (id: CutId): AudioTimeline => AUDIO_TIMELINES[id];
 
 /** With the recorded voice on top the score sits back as a bed. */
 const scoreLevelFor = (id: CutId): number => (id === "90" ? 0.4 : 1);
@@ -365,15 +274,15 @@ export function BrandFilm({
           <FilmPoster className="absolute inset-0 h-full w-full" />
           <div className="absolute inset-0 bg-gradient-to-t from-brand/95 via-brand/30 to-transparent" />
           <figcaption className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
-            <p className="display text-2xl font-semibold text-brand-ink">The 90-Day Transformation</p>
+            <p className="display text-2xl font-semibold text-brand-ink">From Exposure to Control</p>
             <p className="mt-1 text-xs text-brand-muted">
-              An Iltzam film · 78 seconds · motion is paused by your system preference
+              An Iltizam film · 78 seconds · motion is paused by your system preference
             </p>
             <blockquote className="display mt-4 max-w-xl space-y-1 text-[15px] leading-6 text-brand-ink/90">
               <p>{NARRATION[0].text}</p>
-              <p>{NARRATION[16].text}</p>
+              <p>{NARRATION[14].text}</p>
               <p>{NARRATION[20].text}</p>
-              <p className="text-gold-bright">{"From scattered data to inspection-ready in 90 days."}</p>
+              <p className="text-gold-bright">{"From exposure to control in 90 days."}</p>
             </blockquote>
           </figcaption>
         </div>
@@ -396,7 +305,7 @@ export function BrandFilm({
             <svg
               viewBox={`0 0 ${layout.w} ${layout.h}`}
               className="absolute inset-0 h-full w-full"
-              aria-label="The 90-Day Transformation — an Iltzam film"
+              aria-label="From Exposure to Control — an Iltizam film"
               role="img"
             >
               <FilmDefs />
@@ -432,16 +341,16 @@ export function BrandFilm({
             type="button"
             onClick={() => startPlayback(0)}
             className="group absolute inset-0 block w-full text-left"
-            aria-label="Play The 90-Day Transformation, a 78 second narrated film"
+            aria-label="Play From Exposure to Control, a 78 second narrated film"
           >
             <FilmPoster className="absolute inset-0 h-full w-full" />
             <span className="absolute inset-0 bg-gradient-to-t from-brand/90 via-transparent to-transparent" />
             <span className="absolute bottom-0 left-0 p-6 sm:p-8">
               <span className="display block text-3xl font-semibold text-brand-ink">
-                The 90-Day Transformation
+                From Exposure to Control
               </span>
               <span className="mt-1 block text-xs tracking-wide text-brand-muted">
-                An Iltzam film · 78 seconds · narrated
+                An Iltizam film · 78 seconds · narrated
               </span>
             </span>
             <span className="absolute inset-0 flex items-center justify-center">

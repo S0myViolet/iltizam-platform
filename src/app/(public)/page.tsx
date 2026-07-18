@@ -166,10 +166,10 @@ export default function LandingPage() {
           <div className="shell py-16 sm:py-20">
             <p className="eyebrow text-gold-bright">The film</p>
             <h2 className="display mt-3 text-3xl leading-tight font-semibold sm:text-4xl">
-              The 90-Day Transformation
+              From Exposure to Control
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-7 text-brand-muted">
-              Diagnose. Build. Operationalise — one company, ninety days, inspection-ready.
+              Diagnose. Build. Operationalise — one company, from scattered data to inspection-ready in 90 days.
             </p>
             <div className="mt-8">
               <FilmSection />

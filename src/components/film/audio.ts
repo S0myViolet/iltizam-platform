@@ -33,40 +33,44 @@ export interface AudioTimeline {
   final: number | null;
 }
 
-/** Master cut (90s) — the authored sound map. */
+/** Full cut — authored in recorded-narration time (same clock as scenes). */
 const TL_90: AudioTimeline = {
-  warmUntil: 16,
-  tension: [60, 66.6],
+  warmUntil: 14.4, // the opening + the passage of layers
+  tension: [53.19, 55.9], // the controlled breach simulation
   ticks: [
-    17.8, 19.0, 20.6, 21.9, 23.6, 24.9, 26.2, 27.4, // Diagnose measurements
-    70.5, 71.3, 72.1, 72.9, 73.7, 74.4, 75.2, 76.0, 76.8, // dossier tabs
+    31.6, 32.3, 33.0, 33.7, // Diagnose inspection frames
+    57.4, 57.9, 58.4, 58.9, 59.4, 59.9, 60.4, 60.9, // evidence-pack tabs
   ],
-  thuds: [31.7, 32.7, 33.7, 34.5, 34.8, 35.9, 37.0, 38.1, 43.4, 67.5],
-  pulse: [50.5, 60],
-  resolve: 70,
-  final: 83,
+  thuds: [
+    29.9, 35.25, 45.95, // the three phase gates rise
+    36.9, 37.7, 38.5, 39.3, 40.1, 40.9, // register drawers seat
+    56.5, // the DAY 90 halt
+  ],
+  pulse: [47.9, 53.1], // Operationalise in daily use
+  resolve: 57.0, // the evidence pack begins
+  final: 74.1, // the brand plate
 };
 
 /** 30s cut — beats re-timed through its window table. */
 const TL_30: AudioTimeline = {
-  warmUntil: 10,
+  warmUntil: 9,
   tension: null,
-  ticks: [10.8, 12.2, 13.6, 14.8, 24.8, 25.4, 26.0, 26.6, 27.2],
-  thuds: [16.8, 17.4, 18.0, 18.6, 19.2, 23.4],
+  ticks: [12.8, 13.6, 14.4, 15.2],
+  thuds: [9.2, 12.5, 16.6, 17.4, 18.2, 20.6],
   pulse: null,
-  resolve: 24.6,
-  final: 28.4,
+  resolve: 21.0,
+  final: 27.2,
 };
 
 /** 15s cut — the essentials only. */
 const TL_15: AudioTimeline = {
-  warmUntil: 4,
+  warmUntil: 3.5,
   tension: null,
-  ticks: [4.4, 5.3, 6.5, 9.0, 9.4, 9.8, 10.2, 10.6],
-  thuds: [7.5],
+  ticks: [4.2, 5.0, 5.8, 6.6],
+  thuds: [3.8, 7.3],
   pulse: null,
-  resolve: 8.8,
-  final: 12.4,
+  resolve: 7.6,
+  final: 12.0,
 };
 
 export const AUDIO_TIMELINES: Record<"90" | "30" | "15", AudioTimeline> = {
@@ -250,6 +254,25 @@ export class FilmAudio {
       src.stop(t0 + dur + 0.02);
       this.live.push({ stop: (when) => src.stop(Math.max(when, t0)) });
     };
+
+    /* office room tone — a barely-there air bed under everything */
+    {
+      const air = ctx.createBufferSource();
+      air.buffer = noise;
+      air.loop = true;
+      const af = ctx.createBiquadFilter();
+      af.type = "lowpass";
+      af.frequency.value = 240;
+      af.Q.value = 0.5;
+      const ag = ctx.createGain();
+      ag.gain.setValueAtTime(0, now);
+      ag.gain.linearRampToValueAtTime(0.013, now + 1.2);
+      air.connect(af);
+      af.connect(ag);
+      ag.connect(master);
+      air.start(now);
+      this.live.push({ stop: (when) => { ag.gain.setTargetAtTime(0, when, 0.2); air.stop(when + 0.8); } });
+    }
 
     /* precise measurement / insertion ticks */
     tl.ticks.forEach((s, i) => shot(s, 2100 + (i % 3) * 240, 0.05, 0.045));
