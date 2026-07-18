@@ -92,11 +92,20 @@ export class FilmAudio {
   private live: { stop: (when: number) => void }[] = [];
   private noise: AudioBuffer | null = null;
   private muted = false;
+  private level = 1;
 
   setMuted(m: boolean): void {
     this.muted = m;
     if (this.master && this.ctx) {
-      this.master.gain.setTargetAtTime(m ? 0 : 1, this.ctx.currentTime, 0.05);
+      this.master.gain.setTargetAtTime(m ? 0 : this.level, this.ctx.currentTime, 0.05);
+    }
+  }
+
+  /** Overall score level — sits back to a bed under recorded narration. */
+  setLevel(v: number): void {
+    this.level = v;
+    if (this.master && this.ctx && !this.muted) {
+      this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
     }
   }
 
@@ -114,7 +123,7 @@ export class FilmAudio {
     void ctx.resume();
 
     const master = ctx.createGain();
-    master.gain.value = this.muted ? 0 : 1;
+    master.gain.value = this.muted ? 0 : this.level;
     master.connect(ctx.destination);
     this.master = master;
 

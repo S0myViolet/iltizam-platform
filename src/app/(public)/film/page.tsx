@@ -7,7 +7,7 @@ import { NarrationList } from "./NarrationList";
 export const metadata: Metadata = {
   title: "The 90-Day Transformation — an Iltzam film",
   description:
-    "One company, ninety days: Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. A 90-second film.",
+    "One company, ninety days: Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. An 80-second narrated film.",
 };
 
 /* Key printed type inside the world — the ribbon and its stations. */
@@ -41,12 +41,12 @@ export default async function FilmPage({
     <main className="pb-16">
       <header className="band">
         <div className="shell pt-12 pb-10 sm:pt-14">
-          <p className="eyebrow text-gold-bright">The Iltzam film · 90 seconds</p>
+          <p className="eyebrow text-gold-bright">The Iltzam film · 80 seconds</p>
           <h1 className="display mt-4 max-w-2xl text-4xl leading-[1.15] font-semibold">
             The 90-Day Transformation
           </h1>
           <p className="mt-4 max-w-xl text-[15px] leading-7 text-brand-muted">
-            {"One company, one paper ribbon, ninety days. Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. The narration runs as captions, so the film works with sound on or off."}
+            {"One company, one paper ribbon, ninety days. Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. The full cut plays the recorded narration; the same lines run as captions, so the film works with sound on or off."}
           </p>
           <p className="mt-5 flex items-center gap-2 text-[12px] text-brand-muted">
             <span className="mr-1">Format:</span>
@@ -105,8 +105,8 @@ export default async function FilmPage({
 
         <p className="mt-10 border-t-2 border-line pt-5 text-[12.5px] text-ink3">
           An Iltzam film — written, designed and animated in code by the Iltzam team.
-          The caption timings live in one table and re-time to the recorded voiceover
-          when it is supplied.
+          Captions, camera and score are synchronized to the recorded voiceover,
+          timed from the pauses in the recording itself.
         </p>
       </div>
     </main>

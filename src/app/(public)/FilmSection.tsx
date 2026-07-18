@@ -10,14 +10,14 @@ export function FilmSection() {
         <Link
           href="/film"
           className="group relative block aspect-video focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold-bright lg:aspect-auto"
-          aria-label="Watch The 90-Day Transformation, a 90 second film"
+          aria-label="Watch The 90-Day Transformation, an 80 second narrated film"
         >
           <FilmPoster className="absolute inset-0 h-full w-full" />
           <span className="absolute inset-0 bg-gradient-to-t from-brand/85 via-transparent to-transparent" />
           <span className="absolute bottom-0 left-0 p-6">
             <span className="display block text-2xl font-semibold text-brand-ink">The 90-Day Transformation</span>
             <span className="mt-1 block text-[11px] tracking-wide text-brand-muted">
-              An Iltzam film · 90 seconds
+              An Iltzam film · 80 seconds · narrated
             </span>
           </span>
           <span className="absolute inset-0 flex items-center justify-center">
@@ -36,7 +36,7 @@ export function FilmSection() {
           </p>
           <div className="mt-6">
             <Link href="/film" className="btn btn-gold-on-band">
-              Watch the film · 1:30
+              Watch the film · 1:20
             </Link>
           </div>
         </div>

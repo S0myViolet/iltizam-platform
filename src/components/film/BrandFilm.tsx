@@ -22,27 +22,66 @@ import {
   LAYOUTS,
   type Orientation,
 } from "./scenes";
-import { AUDIO_TIMELINES, FilmAudio } from "./audio";
+import { AUDIO_TIMELINES, FilmAudio, type AudioTimeline } from "./audio";
 
-/* ── THE LOCKED NARRATION ───────────────────────────────────────────────── */
-// Re-time here to match the recorded VO when available.
+/* ── THE LOCKED NARRATION — timed to the recorded voiceover ─────────────── */
+// public/film/narration.m4a (78.3s). Timings are measured from the
+// recording itself: ffmpeg silencedetect found the speech bursts, and the
+// sixteen sentences were aligned to them by length. If a sentence lands
+// early/late against the actual read, adjust its `at`/`end` here — captions,
+// scene sync (SYNC below) and the score all follow this one table.
 export const NARRATION: { at: number; end: number; text: string }[] = [
-  { at: 0.5, end: 5.5, text: "With massive new data privacy fines looming, businesses need a rapid path to defense." },
-  { at: 5.8, end: 9.0, text: "Enter the 90-day inspection-ready plan." },
-  { at: 9.5, end: 16.0, text: "Take a publicly listed company holding a massive, disorganized web of highly vulnerable customer records." },
-  { at: 16.5, end: 19.5, text: "Phase one, Diagnose, twenty days." },
-  { at: 19.8, end: 29.5, text: "The system scans that chaotic web to uncover hidden vulnerabilities, running a gap analysis to determine exactly which regulatory licenses the company actually needs." },
-  { at: 30.0, end: 33.5, text: "Phase two is Build, days twenty-one to sixty." },
-  { at: 33.8, end: 41.5, text: "This constructs structural legal architecture, snapping consent registers and breach logs directly into place." },
-  { at: 41.8, end: 49.5, text: "It also appoints the specific individual who takes personal legal liability for the entire framework, the Data Protection Officer." },
-  { at: 50.0, end: 52.5, text: "Phase three, Operationalise." },
-  { at: 52.8, end: 56.5, text: "The system transitions from theory to active defense." },
-  { at: 56.8, end: 60.0, text: "Staff embed these controls into their daily workflow," },
-  { at: 60.2, end: 65.5, text: "running a simulated data breach to prove the shields actually hold under pressure." },
-  { at: 66.5, end: 70.0, text: "But notice the timeline stops exactly at ninety days." },
-  { at: 70.3, end: 77.5, text: "The goal is assembling the final evidence pack to be fully inspection-ready, without waiting on unpredictable government approvals." },
-  { at: 78.5, end: 83.0, text: "And remember that massive, incredibly vulnerable web of scattered customer records from the very beginning?" },
-  { at: 83.3, end: 90.0, text: "It is now a fully documented, legally protected system, permanently locked in and ready for the regulators." },
+  { at: 0.5, end: 6.15, text: "With massive new data privacy fines looming, businesses need a rapid path to defense." },
+  { at: 6.35, end: 7.95, text: "Enter the 90-day inspection-ready plan." },
+  { at: 8.71, end: 17.6, text: "Take a publicly listed company holding a massive, disorganized web of highly vulnerable customer records." },
+  { at: 18.07, end: 20.05, text: "Phase one, Diagnose, twenty days." },
+  { at: 20.28, end: 29.55, text: "The system scans that chaotic web to uncover hidden vulnerabilities, running a gap analysis to determine exactly which regulatory licenses the company actually needs." },
+  { at: 29.94, end: 33.25, text: "Phase two is Build, days twenty-one to sixty." },
+  { at: 33.41, end: 40.05, text: "This constructs structural legal architecture, snapping consent registers and breach logs directly into place." },
+  { at: 40.16, end: 49.15, text: "It also appoints the specific individual who takes personal legal liability for the entire framework, the Data Protection Officer." },
+  { at: 49.48, end: 51.45, text: "Phase three, Operationalise." },
+  { at: 51.58, end: 54.15, text: "The system transitions from theory to active defense." },
+  { at: 54.24, end: 56.7, text: "Staff embed these controls into their daily workflow," },
+  { at: 56.82, end: 59.75, text: "running a simulated data breach to prove the shields actually hold under pressure." },
+  { at: 59.97, end: 62.95, text: "But notice the timeline stops exactly at ninety days." },
+  { at: 63.14, end: 68.75, text: "The goal is assembling the final evidence pack to be fully inspection-ready, without waiting on unpredictable government approvals." },
+  { at: 68.91, end: 72.95, text: "And remember that massive, incredibly vulnerable web of scattered customer records from the very beginning?" },
+  { at: 73.11, end: 76.6, text: "It is now a fully documented, legally protected system, permanently locked in and ready for the regulators." },
+];
+
+/* The recorded read, two encodings of the same take: AAC for quality,
+ * MP3 because open-source Chromium builds ship no AAC decoder. */
+export const NARRATION_SOURCES = [
+  { src: "/film/narration.m4a", type: "audio/mp4" },
+  { src: "/film/narration.mp3", type: "audio/mpeg" },
+] as const;
+
+/** Full-cut length: the recording runs 78.3s; the brand cover holds to 80. */
+const FULL_DURATION = 80;
+
+/* ── Scene sync ─────────────────────────────────────────────────────────────
+ * The world in scenes.tsx is still authored on the original 90-second master
+ * timeline. Each anchor pairs a recorded-narration second with the master
+ * second that sentence was authored at; the windows built from them warp the
+ * camera so every beat lands where the voice actually says it. */
+const SYNC: [playback: number, master: number][] = [
+  [0, 0],
+  [6.35, 5.8],
+  [8.71, 9.5],
+  [18.07, 16.5],
+  [20.28, 19.8],
+  [29.94, 30.0],
+  [33.41, 33.8],
+  [40.16, 41.8],
+  [49.48, 50.0],
+  [51.58, 52.8],
+  [54.24, 56.8],
+  [56.82, 60.2],
+  [59.97, 66.5],
+  [63.14, 70.3],
+  [68.91, 78.5],
+  [73.11, 83.3],
+  [FULL_DURATION, 90],
 ];
 
 export type CutId = "90" | "30" | "15";
@@ -71,12 +110,19 @@ interface CutDef {
 /** Shorter cuts caption only the full sentences that fit — never rewritten. */
 const N = (i: number) => NARRATION[i].text;
 
+const SYNC_WINDOWS: CutWindow[] = SYNC.slice(0, -1).map(([s, m], i) => ({
+  start: s,
+  end: SYNC[i + 1][0],
+  tIn: m,
+  tOut: SYNC[i + 1][1],
+}));
+
 const CUTS: Record<CutId, CutDef> = {
-  /* Master cut — the full 90 seconds, one continuous camera move. */
+  /* Full cut — one continuous camera move, warped onto the recorded VO. */
   "90": {
-    duration: 90,
-    label: "90s",
-    windows: [{ start: 0, end: 90, tIn: 0, tOut: 90 }],
+    duration: FULL_DURATION,
+    label: "Full",
+    windows: SYNC_WINDOWS,
     captions: NARRATION.map((n) => ({ from: n.at, to: n.end, text: n.text })),
   },
   /* 30s — report→ribbon, web, one Diagnose finding, Build+DPO, Day 90+dossier, brand. */
@@ -126,6 +172,40 @@ function masterTimeAt(cut: CutDef, t: number): number {
   return mix(w.tIn, w.tOut, local);
 }
 
+/** Inverse warp for the full cut: master second → recorded-playback second. */
+function playbackTimeAt(m: number): number {
+  const w =
+    SYNC_WINDOWS.find((win) => m < win.tOut) ??
+    SYNC_WINDOWS[SYNC_WINDOWS.length - 1];
+  const local = clamp01((m - w.tIn) / (w.tOut - w.tIn));
+  return mix(w.start, w.end, local);
+}
+
+/* The synthesized score is authored in master time; the full cut now plays
+ * in recorded-narration time, so its event map warps through the anchors. */
+const SCORE_FULL: AudioTimeline = (() => {
+  const tl = AUDIO_TIMELINES["90"];
+  return {
+    warmUntil: playbackTimeAt(tl.warmUntil),
+    tension: tl.tension
+      ? [playbackTimeAt(tl.tension[0]), playbackTimeAt(tl.tension[1])]
+      : null,
+    ticks: tl.ticks.map(playbackTimeAt),
+    thuds: tl.thuds.map(playbackTimeAt),
+    pulse: tl.pulse
+      ? [playbackTimeAt(tl.pulse[0]), playbackTimeAt(tl.pulse[1])]
+      : null,
+    resolve: tl.resolve === null ? null : playbackTimeAt(tl.resolve),
+    final: tl.final === null ? null : playbackTimeAt(tl.final),
+  };
+})();
+
+const scoreFor = (id: CutId): AudioTimeline =>
+  id === "90" ? SCORE_FULL : AUDIO_TIMELINES[id];
+
+/** With the recorded voice on top the score sits back as a bed. */
+const scoreLevelFor = (id: CutId): number => (id === "90" ? 0.4 : 1);
+
 function FrameAt({
   cut,
   t,
@@ -164,10 +244,18 @@ export function BrandFilm({
 
   const audioRef = useRef<FilmAudio | null>(null);
   const getAudio = () => (audioRef.current ??= new FilmAudio());
+  /* The recorded narration plays on the full cut only — the 30s/15s cuts
+   * are montage cuts and keep captions + score. Playback time on the full
+   * cut IS recording time, so the element follows the clock directly. */
+  const narrationRef = useRef<HTMLAudioElement | null>(null);
+  const hasNarration = cutId === "90";
 
   const clock = useFilmClock(cut.duration, {
     initialTime: review ? initialTime : 0,
-    onEnd: () => audioRef.current?.stop(),
+    onEnd: () => {
+      audioRef.current?.stop();
+      narrationRef.current?.pause();
+    },
   });
   const { t, playing, ended, play, pause, seek } = clock;
 
@@ -178,32 +266,45 @@ export function BrandFilm({
       const origin = from ?? (ended ? 0 : t);
       if (from !== undefined) seek(from);
       setStarted(true);
-      getAudio().start(AUDIO_TIMELINES[cutId], origin);
+      getAudio().setLevel(scoreLevelFor(cutId));
+      getAudio().start(scoreFor(cutId), origin);
+      const voice = narrationRef.current;
+      if (hasNarration && voice) {
+        voice.currentTime = origin;
+        voice.muted = muted;
+        void voice.play().catch(() => {});
+      }
       play();
     },
-    [cutId, ended, play, seek, t],
+    [cutId, ended, hasNarration, muted, play, seek, t],
   );
 
   const pausePlayback = useCallback(() => {
     pause();
     audioRef.current?.stop();
+    narrationRef.current?.pause();
   }, [pause]);
 
   const handleSeek = useCallback(
     (to: number) => {
       seek(to);
+      const voice = narrationRef.current;
+      if (voice) voice.currentTime = Math.min(to, voice.duration || to);
       if (playing) {
         audioRef.current?.stop();
-        getAudio().start(AUDIO_TIMELINES[cutId], to);
+        getAudio().setLevel(scoreLevelFor(cutId));
+        getAudio().start(scoreFor(cutId), to);
+        if (hasNarration && voice) void voice.play().catch(() => {});
       }
     },
-    [cutId, playing, seek],
+    [cutId, hasNarration, playing, seek],
   );
 
   const switchCut = useCallback(
     (next: CutId) => {
       if (next === cutId) return;
       pausePlayback();
+      if (narrationRef.current) narrationRef.current.currentTime = 0;
       setCutId(next);
       // the clock is re-created with the new duration; jump home
       seek(0);
@@ -211,9 +312,20 @@ export function BrandFilm({
     [cutId, pausePlayback, seek],
   );
 
+  /* The rAF clock is the source of truth; nudge the voice back if the
+   * element drifts (tab throttling, decode hiccups). */
+  useEffect(() => {
+    if (!playing || !hasNarration) return;
+    const voice = narrationRef.current;
+    if (voice && !voice.paused && Math.abs(voice.currentTime - t) > 0.25) {
+      voice.currentTime = t;
+    }
+  }, [t, playing, hasNarration]);
+
   const toggleMute = useCallback(() => {
     setMuted((m) => {
       getAudio().setMuted(!m);
+      if (narrationRef.current) narrationRef.current.muted = !m;
       return !m;
     });
   }, []);
@@ -238,7 +350,7 @@ export function BrandFilm({
           <figcaption className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
             <p className="display text-2xl font-semibold text-brand-ink">The 90-Day Transformation</p>
             <p className="mt-1 text-xs text-brand-muted">
-              An Iltzam film · 90 seconds · motion is paused by your system preference
+              An Iltzam film · 80 seconds · motion is paused by your system preference
             </p>
             <blockquote className="display mt-4 max-w-xl space-y-1 text-[15px] leading-6 text-brand-ink/90">
               <p>{NARRATION[1].text}</p>
@@ -254,6 +366,13 @@ export function BrandFilm({
 
   return (
     <figure className="overflow-hidden rounded-2xl border border-brand-line bg-brand shadow-[0_18px_50px_-20px_rgba(0,0,0,0.6)]">
+      {/* the recorded narration; mounted from the start so it preloads.
+          Captions render as the synced lower-third layer over the stage. */}
+      <audio ref={narrationRef} preload="auto">
+        {NARRATION_SOURCES.map((s) => (
+          <source key={s.src} src={s.src} type={s.type} />
+        ))}
+      </audio>
       <div className={stageClass}>
         {started ? (
           <>
@@ -296,7 +415,7 @@ export function BrandFilm({
             type="button"
             onClick={() => startPlayback(0)}
             className="group absolute inset-0 block w-full text-left"
-            aria-label="Play The 90-Day Transformation, a 90 second film"
+            aria-label="Play The 90-Day Transformation, an 80 second narrated film"
           >
             <FilmPoster className="absolute inset-0 h-full w-full" />
             <span className="absolute inset-0 bg-gradient-to-t from-brand/90 via-transparent to-transparent" />
@@ -305,7 +424,7 @@ export function BrandFilm({
                 The 90-Day Transformation
               </span>
               <span className="mt-1 block text-xs tracking-wide text-brand-muted">
-                An Iltzam film · 90 seconds
+                An Iltzam film · 80 seconds · narrated
               </span>
             </span>
             <span className="absolute inset-0 flex items-center justify-center">

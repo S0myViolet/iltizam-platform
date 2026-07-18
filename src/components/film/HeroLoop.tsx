@@ -269,7 +269,7 @@ export function HeroLoop() {
         <rect width={W} height={H} fill="url(#hlHatch)" opacity={0.5} />
       </svg>
       <p className="pointer-events-none absolute bottom-3 left-4 text-[11px] tracking-wide text-[#6d675c]">
-        {"The 90-Day Transformation — an Iltzam film · 90s"}
+        {"The 90-Day Transformation — an Iltzam film · 80s"}
       </p>
     </div>
   );

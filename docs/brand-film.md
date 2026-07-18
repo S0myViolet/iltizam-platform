@@ -1,45 +1,64 @@
 # The 90-Day Transformation — the Iltzam brand film
 
-A ~90-second brand film, written, designed and animated entirely in code
+An 80-second narrated brand film, written, designed and animated entirely in code
 (`src/components/film/`). One continuous tactile world — a company cutaway on
 warm ivory paper — threaded by a physical paper ribbon that unfolds
 left→right and carries the plan's printed type. The camera is a single slow
 world-translate along the ribbon; it never cuts back, never resets.
 
-The film is built around a **locked narration**. No recorded audio exists in
-the repo, so the narration ships as synchronized lower-third captions —
-always on, which doubles as the captioned + sound-off version — with a
-synthesized score underneath.
+The film is built around a **locked narration**, now backed by the
+**recorded voiceover** at `public/film/narration.m4a` (78.3s, AAC 48 kHz).
+The full cut plays the recording (with the synthesized score ducked to a bed
+underneath); the same sentences run as synchronized lower-third captions —
+always on, which doubles as the captioned + sound-off version. The 30s/15s
+montage cuts stay caption + score only.
 
 ## The locked narration
 
 Word-for-word; do not edit these strings. The single timing table lives at
 the top of `src/components/film/BrandFilm.tsx` as
-`NARRATION: { at, end, text }[]`, commented
-`// Re-time here to match the recorded VO when available.`
+`NARRATION: { at, end, text }[]`. The `at`/`end` values below are **measured
+from the recording**: ffmpeg `silencedetect` (−30 dB, ≥0.3s) located the 24
+speech bursts, and the 16 sentences were aligned to them by sentence length,
+preferring boundaries at the longest pauses.
 
 | # | at–end (s) | Sentence |
 |---|-----------|----------|
-| 1 | 0.5–5.5 | With massive new data privacy fines looming, businesses need a rapid path to defense. |
-| 2 | 5.8–9.0 | Enter the 90-day inspection-ready plan. |
-| 3 | 9.5–16.0 | Take a publicly listed company holding a massive, disorganized web of highly vulnerable customer records. |
-| 4 | 16.5–19.5 | Phase one, Diagnose, twenty days. |
-| 5 | 19.8–29.5 | The system scans that chaotic web to uncover hidden vulnerabilities, running a gap analysis to determine exactly which regulatory licenses the company actually needs. |
-| 6 | 30.0–33.5 | Phase two is Build, days twenty-one to sixty. |
-| 7 | 33.8–41.5 | This constructs structural legal architecture, snapping consent registers and breach logs directly into place. |
-| 8 | 41.8–49.5 | It also appoints the specific individual who takes personal legal liability for the entire framework, the Data Protection Officer. |
-| 9 | 50.0–52.5 | Phase three, Operationalise. |
-| 10 | 52.8–56.5 | The system transitions from theory to active defense. |
-| 11 | 56.8–60.0 | Staff embed these controls into their daily workflow, |
-| 12 | 60.2–65.5 | running a simulated data breach to prove the shields actually hold under pressure. |
-| 13 | 66.5–70.0 | But notice the timeline stops exactly at ninety days. |
-| 14 | 70.3–77.5 | The goal is assembling the final evidence pack to be fully inspection-ready, without waiting on unpredictable government approvals. |
-| 15 | 78.5–83.0 | And remember that massive, incredibly vulnerable web of scattered customer records from the very beginning? |
-| 16 | 83.3–90.0 | It is now a fully documented, legally protected system, permanently locked in and ready for the regulators. |
+| 1 | 0.50–6.15 | With massive new data privacy fines looming, businesses need a rapid path to defense. |
+| 2 | 6.35–7.95 | Enter the 90-day inspection-ready plan. |
+| 3 | 8.71–17.60 | Take a publicly listed company holding a massive, disorganized web of highly vulnerable customer records. |
+| 4 | 18.07–20.05 | Phase one, Diagnose, twenty days. |
+| 5 | 20.28–29.55 | The system scans that chaotic web to uncover hidden vulnerabilities, running a gap analysis to determine exactly which regulatory licenses the company actually needs. |
+| 6 | 29.94–33.25 | Phase two is Build, days twenty-one to sixty. |
+| 7 | 33.41–40.05 | This constructs structural legal architecture, snapping consent registers and breach logs directly into place. |
+| 8 | 40.16–49.15 | It also appoints the specific individual who takes personal legal liability for the entire framework, the Data Protection Officer. |
+| 9 | 49.48–51.45 | Phase three, Operationalise. |
+| 10 | 51.58–54.15 | The system transitions from theory to active defense. |
+| 11 | 54.24–56.70 | Staff embed these controls into their daily workflow, |
+| 12 | 56.82–59.75 | running a simulated data breach to prove the shields actually hold under pressure. |
+| 13 | 59.97–62.95 | But notice the timeline stops exactly at ninety days. |
+| 14 | 63.14–68.75 | The goal is assembling the final evidence pack to be fully inspection-ready, without waiting on unpredictable government approvals. |
+| 15 | 68.91–72.95 | And remember that massive, incredibly vulnerable web of scattered customer records from the very beginning? |
+| 16 | 73.11–76.60 | It is now a fully documented, legally protected system, permanently locked in and ready for the regulators. |
 
-When a recorded voiceover is supplied, re-time the `at`/`end` values in that
-one table to the read — captions, the master cut and both short cuts pick the
-change up automatically. Nothing else needs to move.
+### How the visuals follow the recording
+
+The world in `scenes.tsx` is still authored on the original 90-second master
+timeline — nothing there moved. `SYNC` in `BrandFilm.tsx` pairs each recorded
+sentence start with the master second that sentence was authored at, and the
+full cut's window table warps the camera through those anchors
+(piecewise-linear, the same machinery the 30s/15s cuts always used). The
+synthesized score's event map is warped through the same anchors and its
+level drops to 40% under the voice. The full cut is therefore **80 seconds**
+(recording 78.3s + a brand-cover hold).
+
+To nudge a sentence: change its `at` in `NARRATION` **and** the matching
+playback value in `SYNC` — captions, camera and score all follow.
+
+> Alignment caveat: the sentence boundaries are inferred from pause analysis,
+> not from listening. Sentences 1–9 fit the read's pacing closely; the read
+> speeds up noticeably from sentence 10 on, so if any caption in the last
+> stretch feels early or late, adjust that row (and its `SYNC` anchor).
 
 ## The world and the ribbon
 
@@ -124,7 +143,8 @@ Cuts are window tables mapping playback time onto master-time ranges — the
 world and camera are untouched. Captions in the shorter cuts are trimmed to
 full narration sentences that fit; never rewritten.
 
-- **90s master** — one window (0–90 → 0–90), all sixteen sentences.
+- **Full (80s)** — the sixteen `SYNC` windows warping recorded time onto the
+  90s master timeline; all sixteen sentences, plus the recorded voiceover.
 - **30s** — report→ribbon 0–5, web 5–10, one Diagnose finding 10–16,
   Build+DPO 16–23, Day-90+dossier 23–28, brand 28–30. Captions: sentences
   2, 3, 4, 6, 13.
@@ -149,14 +169,20 @@ fallback.
 
 ## Review stills
 
-`/film?filmt=<seconds>` mounts the master cut paused at that frame
-(`&ar=916` for the vertical format). Useful checkpoints: 3 (the report),
-12 (the web), 24 (a Diagnose finding), 37 (the Build drawers), 46 (the DPO),
-58 (Operationalise), 63 (the contained breach), 72 (the dossier), 86 (brand).
+`/film?filmt=<seconds>` mounts the full cut paused at that frame
+(`&ar=916` for the vertical format). Since the full cut plays in
+recorded-narration time, `filmt` is a recording second. Useful checkpoints:
+3 (the report), 12 (the web), 25 (a Diagnose finding), 36 (the Build
+drawers), 45 (the DPO), 53 (Operationalise), 58 (the contained breach),
+65 (the dossier), 77 (brand).
 
 ## Voiceover note
 
-The narration is locked copy. The film is timed to a natural ad read of it;
-when a recorded VO is produced, drop the audio in, re-time the `NARRATION`
-table to the actual read, and the captions become subtitles over the voice —
-nothing else in the film needs to change.
+The narration is locked copy, and the recorded read now ships at
+`public/film/narration.m4a`. The full cut plays it via an `<audio>` element
+that follows the film clock (start, pause, seek and mute all stay in step; a
+watchdog re-snaps the element if it drifts more than 0.25s), the score ducks
+to a 40% bed underneath, and the captions run over the voice as subtitles.
+To replace the recording: overwrite the file, re-measure the pauses, and
+update `NARRATION` + `SYNC` in `BrandFilm.tsx` (see "How the visuals follow
+the recording" above).
