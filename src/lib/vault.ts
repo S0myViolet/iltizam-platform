@@ -10,9 +10,15 @@ import fs from "fs";
 import path from "path";
 import { createHash } from "crypto";
 import ExcelJS from "exceljs";
+import JSZip from "jszip";
 
 export const VAULT_PROVIDER = "local_demo_vault";
 export const VAULT_NAME = "Nile Digital Services Demo Data Vault";
+
+/** Every wall-clock stamp inside generated XLSX bytes is pinned here —
+ * docProps created/modified and each zip entry's DOS mtime — otherwise two
+ * generations straddling a 1–2s boundary produce different checksums. */
+const VAULT_EPOCH = new Date(Date.UTC(2026, 6, 11));
 
 export function vaultDir(): string {
   return process.env.DEMO_VAULT_DIR ?? path.join(process.cwd(), "demo-data", "nile-digital-services");
@@ -119,6 +125,8 @@ type Row = Record<string, string | number | boolean | null>;
 
 async function writeXlsx(fileName: string, sheet: string, rows: Row[]): Promise<void> {
   const wb = new ExcelJS.Workbook();
+  wb.created = VAULT_EPOCH;
+  wb.modified = VAULT_EPOCH;
   const ws = wb.addWorksheet(sheet);
   if (rows.length > 0) {
     const cols = Object.keys(rows[0]);
@@ -126,7 +134,11 @@ async function writeXlsx(fileName: string, sheet: string, rows: Row[]): Promise<
     ws.getRow(1).font = { bold: true };
     for (const row of rows) ws.addRow(cols.map((c) => row[c]));
   }
-  await wb.xlsx.writeFile(path.join(vaultDir(), fileName));
+  const buf = await wb.xlsx.writeBuffer();
+  const zip = await JSZip.loadAsync(Buffer.from(buf));
+  for (const entry of Object.values(zip.files)) entry.date = VAULT_EPOCH;
+  const bytes = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+  fs.writeFileSync(path.join(vaultDir(), fileName), bytes);
 }
 
 function writeCsv(fileName: string, rows: Row[]): void {
