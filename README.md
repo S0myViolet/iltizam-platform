@@ -5,7 +5,7 @@ starting with **Egypt's PDPL** (Law 151/2020 + Executive Regulations 816/2025) a
 **EU GDPR** — without reading legal text. Organizations answer plain-language yes/no
 controls, get deterministic readiness scores, see a prioritised gap register, assign
 owners, attach and **review** evidence, run an automated monitoring demonstration
-against a connector, and export the entire backend as a 22-sheet Excel workbook.
+against a connector, and export the entire backend as a 26-sheet Excel workbook.
 
 > This tool helps organise compliance work and identify potential gaps. It does not
 > replace legal advice. Final legal interpretation should be reviewed by qualified counsel.
@@ -97,7 +97,7 @@ src/
   lib/monitoring.ts         ← pure rule evaluator (all/any condition trees)
   lib/scan.ts               ← staged demonstration scan pipeline (all persisted)
   lib/seeding.ts            ← idempotent seeders + loud count verification
-  lib/excel.ts              ← 22-sheet workbook builder (uses the central engines)
+  lib/excel.ts              ← 26-sheet workbook builder (uses the central engines)
   lib/explorer.ts           ← data-explorer registry (21 datasets, sanitized)
   lib/assessments.ts        ← assessment service layer
   lib/audit.ts / reset.ts / connectors.ts / storage.ts

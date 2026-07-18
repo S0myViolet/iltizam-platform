@@ -1,6 +1,6 @@
 "use client";
 
-// Renders the locked narration from the ONE timing table in BrandFilm.tsx.
+// Renders the recorded narration from the ONE timing table in BrandFilm.tsx.
 // (A client component so the server page never has to unwrap the client
 // module's exports — the table itself stays single-sourced.)
 import { NARRATION } from "@/components/film/BrandFilm";

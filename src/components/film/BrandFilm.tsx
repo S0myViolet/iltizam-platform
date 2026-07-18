@@ -4,8 +4,8 @@
 // The shell owns: the poster, the rAF clock (engine.ts), the CUT WINDOW
 // TABLES that map playback time → master time (the film is one continuous
 // world; a cut is a set of master-time windows), the narration captions
-// (the locked VO ships as synchronized lower-third captions — this doubles
-// as the captioned + sound-off version), the audio timelines, controls, the
+// (the recorded VO's transcript ships as synchronized lower-third captions —
+// this doubles as the captioned + sound-off version), the audio, controls, the
 // reduced-motion fallback, the 16:9 / 9:16 orientation switch, and the
 // ?filmt=<seconds> review hook (passed in as initialTime by the /film page)
 // that renders any master-cut frame as a paused still.
@@ -24,29 +24,37 @@ import {
 } from "./scenes";
 import { AUDIO_TIMELINES, FilmAudio, type AudioTimeline } from "./audio";
 
-/* ── THE LOCKED NARRATION — timed to the recorded voiceover ─────────────── */
-// public/film/narration.m4a (78.3s). Timings are measured from the
-// recording itself: ffmpeg silencedetect found the speech bursts, and the
-// sixteen sentences were aligned to them by length. If a sentence lands
-// early/late against the actual read, adjust its `at`/`end` here — captions,
-// scene sync (SYNC below) and the score all follow this one table.
+/* ── THE NARRATION — transcribed from the recorded voiceover ────────────── */
+// public/film/narration.m4a (74.7s) — the uploaded recording with its spoken
+// lead-in ("I'm switching to a more professional narration") trimmed off.
+// The recording is the source of truth: these sentences were transcribed
+// from it (offline speech-to-text + phonetic cleanup), and every `at`/`end`
+// is that sentence's word-level timestamp in the trimmed audio. To correct
+// a misheard word, edit `text` only; move timings only if the voice and
+// caption visibly disagree — captions, scene sync (SYNC below) and the
+// score all follow this one table.
 export const NARRATION: { at: number; end: number; text: string }[] = [
-  { at: 0.5, end: 6.15, text: "With massive new data privacy fines looming, businesses need a rapid path to defense." },
-  { at: 6.35, end: 7.95, text: "Enter the 90-day inspection-ready plan." },
-  { at: 8.71, end: 17.6, text: "Take a publicly listed company holding a massive, disorganized web of highly vulnerable customer records." },
-  { at: 18.07, end: 20.05, text: "Phase one, Diagnose, twenty days." },
-  { at: 20.28, end: 29.55, text: "The system scans that chaotic web to uncover hidden vulnerabilities, running a gap analysis to determine exactly which regulatory licenses the company actually needs." },
-  { at: 29.94, end: 33.25, text: "Phase two is Build, days twenty-one to sixty." },
-  { at: 33.41, end: 40.05, text: "This constructs structural legal architecture, snapping consent registers and breach logs directly into place." },
-  { at: 40.16, end: 49.15, text: "It also appoints the specific individual who takes personal legal liability for the entire framework, the Data Protection Officer." },
-  { at: 49.48, end: 51.45, text: "Phase three, Operationalise." },
-  { at: 51.58, end: 54.15, text: "The system transitions from theory to active defense." },
-  { at: 54.24, end: 56.7, text: "Staff embed these controls into their daily workflow," },
-  { at: 56.82, end: 59.75, text: "running a simulated data breach to prove the shields actually hold under pressure." },
-  { at: 59.97, end: 62.95, text: "But notice the timeline stops exactly at ninety days." },
-  { at: 63.14, end: 68.75, text: "The goal is assembling the final evidence pack to be fully inspection-ready, without waiting on unpredictable government approvals." },
-  { at: 68.91, end: 72.95, text: "And remember that massive, incredibly vulnerable web of scattered customer records from the very beginning?" },
-  { at: 73.11, end: 76.6, text: "It is now a fully documented, legally protected system, permanently locked in and ready for the regulators." },
+  { at: 0.36, end: 2.59, text: "Data is no longer just information." },
+  { at: 2.73, end: 4.41, text: "It is exposure." },
+  { at: 5.07, end: 14.1, text: "For today's businesses, a single inspection can expose years of scattered records, weak controls, and unanswered compliance risks." },
+  { at: 14.43, end: 16.54, text: "Picture a publicly listed company." },
+  { at: 16.62, end: 23.41, text: "Thousands of customer records, spread across departments, buried in systems, files, and everyday processes." },
+  { at: 23.55, end: 25.98, text: "Valuable — yet unprotected." },
+  { at: 26.31, end: 29.67, text: "This is where the ninety-day inspection-ready timeline begins." },
+  { at: 29.79, end: 32.59, text: "Phase one: Diagnose — in just twenty days." },
+  { at: 32.67, end: 34.92, text: "Hidden gaps are brought into the light." },
+  { at: 35.13, end: 38.2, text: "Phase two: Build — from day twenty-one to sixty." },
+  { at: 38.28, end: 45.6, text: "Policies, logs, and accountability are put firmly in place, led by a named Data Protection Officer." },
+  { at: 45.84, end: 47.86, text: "Phase three: Operationalise." },
+  { at: 47.94, end: 50.4, text: "Compliance moves from paper to practice." },
+  { at: 50.64, end: 51.7, text: "Teams are trained." },
+  { at: 51.78, end: 53.11, text: "Controls are lived." },
+  { at: 53.19, end: 56.19, text: "And a breach simulation proves the response holds." },
+  { at: 56.31, end: 59.31, text: "By day ninety, the business is inspection-ready." },
+  { at: 59.49, end: 62.7, text: "Defensible. Structured. And built to last." },
+  { at: 62.94, end: 66.48, text: "No delays. No surprises. Just clarity." },
+  { at: 66.63, end: 69.42, text: "And that exposed, chaotic web of data?" },
+  { at: 69.51, end: 73.1, text: "It becomes controlled. Organized. Protected." },
 ];
 
 /* The recorded read, two encodings of the same take: AAC for quality,
@@ -56,31 +64,40 @@ export const NARRATION_SOURCES = [
   { src: "/film/narration.mp3", type: "audio/mpeg" },
 ] as const;
 
-/** Full-cut length: the recording runs 78.3s; the brand cover holds to 80. */
-const FULL_DURATION = 80;
+/** Full-cut length: the trimmed recording runs 74.7s; brand holds to 78. */
+const FULL_DURATION = 78;
 
 /* ── Scene sync ─────────────────────────────────────────────────────────────
  * The world in scenes.tsx is still authored on the original 90-second master
  * timeline. Each anchor pairs a recorded-narration second with the master
- * second that sentence was authored at; the windows built from them warp the
- * camera so every beat lands where the voice actually says it. */
+ * beat that moment should land on; the windows built from them warp the
+ * camera so every beat arrives as the voice reaches it:
+ * the company cutaway on "Picture a publicly listed company", the DAY 1
+ * station on "the ninety-day inspection-ready timeline begins", the drawers
+ * on "Policies, logs, and accountability", the DPO desk on "led by a named
+ * Data Protection Officer", the printed FROM POLICY TO PRACTICE on
+ * "Compliance moves from paper to practice", the containment on "a breach
+ * simulation", the DAY 90 halt on "By day ninety", the look-back on "that
+ * exposed, chaotic web", and the transformed company + brand on the close. */
 const SYNC: [playback: number, master: number][] = [
   [0, 0],
-  [6.35, 5.8],
-  [8.71, 9.5],
-  [18.07, 16.5],
-  [20.28, 19.8],
-  [29.94, 30.0],
-  [33.41, 33.8],
-  [40.16, 41.8],
-  [49.48, 50.0],
-  [51.58, 52.8],
-  [54.24, 56.8],
-  [56.82, 60.2],
-  [59.97, 66.5],
-  [63.14, 70.3],
-  [68.91, 78.5],
-  [73.11, 83.3],
+  [5.07, 4.0],
+  [14.43, 9.5],
+  [26.31, 15.3],
+  [29.79, 17.8],
+  [32.67, 22.0],
+  [35.13, 30.0],
+  [38.28, 33.8],
+  [42.54, 42.0],
+  [45.84, 50.0],
+  [47.94, 52.8],
+  [50.64, 56.8],
+  [53.19, 60.2],
+  [56.31, 66.5],
+  [59.49, 70.3],
+  [62.94, 74.8],
+  [66.63, 78.5],
+  [69.51, 83.3],
   [FULL_DURATION, 90],
 ];
 
@@ -138,11 +155,11 @@ const CUTS: Record<CutId, CutDef> = {
       { start: 28, end: 30, tIn: 85.2, tOut: 90 },
     ],
     captions: [
-      { from: 0.5, to: 3.6, text: N(1) },
-      { from: 4.9, to: 9.9, text: N(2) },
-      { from: 10.3, to: 13.2, text: N(3) },
-      { from: 16.2, to: 19.2, text: N(5) },
-      { from: 23.4, to: 26.6, text: N(12) },
+      { from: 0.5, to: 3.6, text: N(0) },
+      { from: 4.9, to: 9.9, text: N(3) },
+      { from: 10.3, to: 13.2, text: N(6) },
+      { from: 16.2, to: 19.2, text: N(9) },
+      { from: 23.4, to: 26.6, text: N(16) },
     ],
   },
   /* 15s — ribbon reveal, one finding, dossier + DAY 90, brand. */
@@ -156,9 +173,9 @@ const CUTS: Record<CutId, CutDef> = {
       { start: 11, end: 15, tIn: 84.6, tOut: 90 },
     ],
     captions: [
-      { from: 0.4, to: 3.4, text: N(1) },
+      { from: 0.4, to: 3.4, text: N(0) },
       { from: 4.3, to: 6.9, text: N(3) },
-      { from: 7.4, to: 10.6, text: N(12) },
+      { from: 7.4, to: 10.6, text: N(16) },
     ],
   },
 };
@@ -350,12 +367,12 @@ export function BrandFilm({
           <figcaption className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
             <p className="display text-2xl font-semibold text-brand-ink">The 90-Day Transformation</p>
             <p className="mt-1 text-xs text-brand-muted">
-              An Iltzam film · 80 seconds · motion is paused by your system preference
+              An Iltzam film · 78 seconds · motion is paused by your system preference
             </p>
             <blockquote className="display mt-4 max-w-xl space-y-1 text-[15px] leading-6 text-brand-ink/90">
-              <p>{NARRATION[1].text}</p>
-              <p>{NARRATION[12].text}</p>
-              <p>{NARRATION[15].text}</p>
+              <p>{NARRATION[0].text}</p>
+              <p>{NARRATION[16].text}</p>
+              <p>{NARRATION[20].text}</p>
               <p className="text-gold-bright">{"From scattered data to inspection-ready in 90 days."}</p>
             </blockquote>
           </figcaption>
@@ -415,7 +432,7 @@ export function BrandFilm({
             type="button"
             onClick={() => startPlayback(0)}
             className="group absolute inset-0 block w-full text-left"
-            aria-label="Play The 90-Day Transformation, an 80 second narrated film"
+            aria-label="Play The 90-Day Transformation, a 78 second narrated film"
           >
             <FilmPoster className="absolute inset-0 h-full w-full" />
             <span className="absolute inset-0 bg-gradient-to-t from-brand/90 via-transparent to-transparent" />
@@ -424,7 +441,7 @@ export function BrandFilm({
                 The 90-Day Transformation
               </span>
               <span className="mt-1 block text-xs tracking-wide text-brand-muted">
-                An Iltzam film · 80 seconds · narrated
+                An Iltzam film · 78 seconds · narrated
               </span>
             </span>
             <span className="absolute inset-0 flex items-center justify-center">

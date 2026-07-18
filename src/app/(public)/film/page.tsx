@@ -7,7 +7,7 @@ import { NarrationList } from "./NarrationList";
 export const metadata: Metadata = {
   title: "The 90-Day Transformation — an Iltzam film",
   description:
-    "One company, ninety days: Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. An 80-second narrated film.",
+    "One company, ninety days: Diagnose, Build, Operationalise — from a scattered web of customer records to inspection-ready. A 78-second narrated film.",
 };
 
 /* Key printed type inside the world — the ribbon and its stations. */
@@ -41,7 +41,7 @@ export default async function FilmPage({
     <main className="pb-16">
       <header className="band">
         <div className="shell pt-12 pb-10 sm:pt-14">
-          <p className="eyebrow text-gold-bright">The Iltzam film · 80 seconds</p>
+          <p className="eyebrow text-gold-bright">The Iltzam film · 78 seconds</p>
           <h1 className="display mt-4 max-w-2xl text-4xl leading-[1.15] font-semibold">
             The 90-Day Transformation
           </h1>

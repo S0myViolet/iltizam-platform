@@ -1144,7 +1144,7 @@ function BuildSection({ t }: { t: number }): ReactElement {
           {openT > 0.6 ? (
             <g opacity={sub(openT, 0.6, 1)}>
               <text x={planX + 10} y={planY + 16} fontFamily={MONO} fontSize={8.5} letterSpacing="0.14em" fill={GRAPHITE}>
-                {"LEGAL ARCHITECTURE — PLAN"}
+                {"COMPLIANCE FRAMEWORK — PLAN"}
               </text>
               <g stroke={INKBLUE} strokeWidth={1.4} fill="none">
                 <path d={`M ${planX + 14} ${planY + 30} h 90 v 50 h -90 Z`} pathLength={1} strokeDasharray={1} strokeDashoffset={1 - sub(drawP, 0, 0.45)} />
@@ -1343,7 +1343,9 @@ function OpsSection({ t }: { t: number }): ReactElement {
           o={sub(t, 56.4, 56.9)}
         />
       ) : null}
-      <EdType x={5350} y={134} text="FROM POLICY TO PRACTICE" size={18} spacing={0.18} o={sub(t, 57.2, 58.4)} />
+      {/* Printed while the recorded line "Compliance moves from paper to
+          practice" plays (master ≈52.8–56.8 through the SYNC warp). */}
+      <EdType x={5350} y={134} text="FROM POLICY TO PRACTICE" size={18} spacing={0.18} o={sub(t, 53.2, 54.4)} />
     </g>
   );
 }
