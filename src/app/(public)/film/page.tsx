@@ -1,107 +1,91 @@
-// /film — the cinema page for "What You Don't See". A dark room: the film
-// large and centered, the full voiceover as a readable transcript beneath it
-// for accessibility, and quiet cut selection via ?cut= links.
-
 import type { Metadata } from "next";
-import Link from "next/link";
-import { FilmPlayer } from "./FilmPlayer";
+import { BrandFilm, type CutId } from "@/components/film/BrandFilm";
 
 export const metadata: Metadata = {
-  title: "What You Don't See — an Iltizam film",
+  title: "After Submit — an Iltizam film",
   description:
-    "A 60-second film about invisible data — and the moment a business finally sees it.",
+    "One application, one request, and the responsibility that begins after “Submit”. A 48-second film.",
 };
 
-const CUTS = [
-  { value: "60", label: "60-second film", href: "/film" },
-  { value: "30", label: "30-second cut", href: "/film?cut=30" },
-  { value: "15", label: "15-second cut", href: "/film?cut=15" },
-] as const;
+/* The closing voiceover, and the film's final on-screen line. */
+const CLOSING_LINES = [
+  "People share more than information.",
+  "They share trust.",
+  "What happens next is your responsibility.",
+  "What happens after “Submit” matters.",
+];
 
-type Cut = (typeof CUTS)[number]["value"];
-
-/** The full 60-second voiceover, in order, as spoken. */
-const TRANSCRIPT = [
-  "Every morning, a business wakes up and begins to move.",
-  "Files open. Payroll runs. A contract goes out for signature.",
-  "And underneath all of it — something you don't see. Data, moving.",
-  "Most of it flows exactly where it should.",
-  "But some of it frays. Some of it quietly copies itself.",
-  "Some of it slips outside the walls built to hold it, or crosses a border no one meant it to cross.",
-  "And some of it simply sits — forgotten, and still yours to protect.",
-  "You can't act on what you can't see.",
-  "Iltizam watches the movement itself — deterministic rules, mapped to Egypt's PDPL and the GDPR — and brings every finding to a person.",
-  "Automated finding. Human review. A name against every risk.",
-  "See what matters. Act with confidence.",
-  "Iltizam. Automated data protection monitoring, built around human review.",
+/* Every piece of on-screen text in the film — diegetic, never captioned. */
+const ON_SCREEN_TEXT = [
+  { text: "Application submitted", where: "S1 · after the click" },
+  { text: "Welcome to the team", where: "S2 · the first-day badge" },
+  {
+    text: "Could you please delete the ID copy I submitted when I applied?",
+    where: "S4 · the request",
+  },
+  { text: "4 locations identified", where: "S5 · the Iltizam card" },
+  { text: "Human review required", where: "S5 · the finding" },
+  { text: "Owner assigned", where: "S5 · the first click" },
+  { text: "Request completed", where: "S5 · the quiet last line" },
 ];
 
 export default async function FilmPage({
   searchParams,
 }: {
-  searchParams: Promise<{ cut?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params = await searchParams;
-  const raw = Array.isArray(params.cut) ? params.cut[0] : params.cut;
-  const cut: Cut = raw === "30" || raw === "15" ? raw : "60";
+  const sp = await searchParams;
+  const rawT = typeof sp.filmt === "string" ? Number.parseFloat(sp.filmt) : NaN;
+  const initialTime = Number.isFinite(rawT) ? rawT : undefined;
+  const initialCut: CutId =
+    sp.cut === "30" || sp.cut === "15" ? sp.cut : "48";
 
   return (
-    <main className="min-h-full bg-[#0c0d10] pb-20 text-[#e8e2d6]">
-      <div className="mx-auto w-full max-w-6xl px-4 pt-10 sm:px-6 lg:px-10">
-        {/* top bar */}
-        <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <p className="font-mono text-[10px] tracking-[0.18em] text-[#8d867a] uppercase">
-            An Iltizam film
+    <main className="pb-16">
+      <header className="band">
+        <div className="shell pt-12 pb-10 sm:pt-14">
+          <p className="eyebrow text-gold-bright">The Iltizam film · 48 seconds</p>
+          <h1 className="display mt-4 max-w-2xl text-4xl leading-[1.15] font-semibold">
+            After Submit
+          </h1>
+          <p className="mt-4 max-w-xl text-[15px] leading-7 text-brand-muted">
+            {"One woman, one company, one request. No narration until the very end — just what happens to two files after the button is pressed."}
           </p>
-          <Link
-            href="/"
-            className="text-[13px] text-[#8d867a] underline-offset-4 transition-colors hover:text-[#e8e2d6] hover:underline"
-          >
-            ← Back to the site
-          </Link>
         </div>
-        <h1 className="display mt-3 text-3xl font-semibold sm:text-4xl">
-          What You Don&apos;t See
-        </h1>
+      </header>
 
-        {/* the film */}
-        <div className="mt-8 overflow-hidden rounded-xl border border-[#23262c] shadow-[0_50px_110px_-60px_rgba(0,0,0,0.95)]">
-          <FilmPlayer cut={cut} />
+      <div className="shell -mt-2 pt-6">
+        <BrandFilm initialTime={initialTime} initialCut={initialCut} />
+
+        <div className="mt-10 grid gap-10 lg:grid-cols-2">
+          <section aria-label="Closing lines">
+            <p className="eyebrow text-gold-text">The closing lines</p>
+            <blockquote className="display mt-4 space-y-2 text-lg leading-8 text-ink">
+              {CLOSING_LINES.map((l) => (
+                <p key={l}>{l}</p>
+              ))}
+            </blockquote>
+          </section>
+
+          <section aria-label="On-screen text">
+            <p className="eyebrow text-gold-text">Every word on screen</p>
+            <ul className="mt-4 flex flex-col">
+              {ON_SCREEN_TEXT.map((l) => (
+                <li
+                  key={l.text}
+                  className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-line py-2.5 first:border-t"
+                >
+                  <span className="text-[14px] text-ink">{l.text}</span>
+                  <span className="text-[11px] tracking-wide text-ink3">{l.where}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
 
-        {/* cut selector */}
-        <nav aria-label="Film cuts" className="mt-5 flex flex-wrap items-center gap-x-8 gap-y-2">
-          {CUTS.map((c) => (
-            <Link
-              key={c.value}
-              href={c.href}
-              aria-current={cut === c.value ? "true" : undefined}
-              className={`text-[13px] underline-offset-4 transition-colors hover:underline ${
-                cut === c.value ? "text-[#e8e2d6]" : "text-[#8d867a] hover:text-[#e8e2d6]"
-              }`}
-            >
-              {c.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* transcript */}
-        <section aria-label="Voiceover transcript" className="mt-16 max-w-3xl">
-          <p className="font-mono text-[10px] tracking-[0.18em] text-[#8d867a] uppercase">
-            Transcript
-          </p>
-          <div className="mt-6 flex flex-col gap-5 border-l border-[#23262c] pl-6">
-            {TRANSCRIPT.map((line) => (
-              <p key={line} className="display text-[17px] leading-8 text-[#b9b2a4]">
-                {line}
-              </p>
-            ))}
-          </div>
-          <p className="mt-10 text-[12.5px] leading-6 text-[#6b6f76]">
-            All people and data in this film are fictional. Every risk shown is one
-            Iltizam&apos;s deterministic rules detect.
-          </p>
-        </section>
+        <p className="mt-10 border-t-2 border-line pt-5 text-[12.5px] text-ink3">
+          An Iltizam film — written, designed and animated in code by the Iltizam team.
+        </p>
       </div>
     </main>
   );

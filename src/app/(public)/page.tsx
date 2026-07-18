@@ -11,7 +11,7 @@ import { PDPL_EXPECTED } from "@/data/pdpl-controls";
 import { MONITORING_RULES } from "@/data/monitoring-rules";
 import { LandingNav } from "./LandingNav";
 import { FilmSection } from "./FilmSection";
-import HeroLoop from "@/components/film/HeroLoop";
+import { HeroLoop } from "@/components/film/HeroLoop";
 
 export const metadata: Metadata = {
   title: "Iltzam — Managed compliance for Egypt’s PDPL",
@@ -165,10 +165,10 @@ export default function LandingPage() {
           <div className="shell py-16 sm:py-20">
             <p className="eyebrow text-gold-bright">The film</p>
             <h2 className="display mt-3 text-3xl leading-tight font-semibold sm:text-4xl">
-              What You Don’t See
+              After Submit
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-7 text-brand-muted">
-              A 60-second film about invisible data — and the moment a business finally sees it.
+              One application, one request, and the responsibility that begins after “Submit”.
             </p>
             <div className="mt-8">
               <FilmSection />

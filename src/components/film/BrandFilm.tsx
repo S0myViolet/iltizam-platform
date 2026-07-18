@@ -1,382 +1,340 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// BrandFilm.tsx — the player for "After Submit".
+//
+// The shell owns: the poster, the rAF clock (engine.ts), the CUT WINDOW
+// TABLES that map playback time → (scene, p), the caption cues (closing
+// voiceover only — all other text in the film is diegetic and lives inside
+// the scenes), the audio timelines, controls, reduced-motion fallback, and
+// the ?filmt=<seconds> review hook (passed in as initialTime by the /film
+// page) that renders any master-cut frame as a paused still.
+// ─────────────────────────────────────────────────────────────────────────────
 "use client";
 
-/**
- * BrandFilm — the player for "What You Don't See".
- *
- * A 16:9 letterboxed stage driven by a single rAF clock (pure function of t):
- * poster → hand-choreographed SVG scenes → lower-third serif captions.
- * Cuts ("60" | "30" | "15") are alternative window+cue tables over the same
- * seven scenes. Sound is synthesized (WebAudio), OFF by default, and only
- * ever started from a user gesture.
- */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFilmClock, useReducedMotion } from "./engine";
+import { clamp01 } from "./math";
+import {
+  FilmDefs,
+  FilmPoster,
+  SCENES,
+  STAGE_H,
+  STAGE_W,
+  type SceneId,
+} from "./scenes";
+import { AUDIO_TIMELINES, FilmAudio } from "./audio";
 
-import { useEffect, useRef, useState } from "react";
+export type CutId = "48" | "30" | "15";
 
-import { FilmAudio } from "./audio";
-import { clamp01, easeOut, seg, useFilmClock, type TimelineCue } from "./engine";
-import { FilmDefs, MONO, SCENES, SERIF } from "./scenes";
-
-declare global {
-  interface Window {
-    __filmSeek?: (t: number) => void;
-  }
-}
-
-type Cut = "60" | "30" | "15";
-
-type SceneWindow = {
-  scene: number; // index into SCENES
+interface CutWindow {
+  scene: SceneId;
   start: number;
   end: number;
-  p0?: number; // scene-local progress sub-range, for partial replays
-  p1?: number;
-};
-
-const WINDOWS: Record<Cut, SceneWindow[]> = {
-  "60": [
-    { scene: 0, start: 0, end: 7 },
-    { scene: 1, start: 7, end: 16 },
-    { scene: 2, start: 16, end: 27 },
-    { scene: 3, start: 27, end: 34 },
-    { scene: 4, start: 34, end: 44 },
-    { scene: 5, start: 44, end: 52 },
-    { scene: 6, start: 52, end: 60 },
-  ],
-  "30": [
-    { scene: 0, start: 0, end: 4 },
-    { scene: 1, start: 4, end: 10, p1: 0.6 }, // two of the three actions
-    { scene: 2, start: 10, end: 17 },
-    { scene: 3, start: 17, end: 20, p1: 0.6 },
-    { scene: 4, start: 20, end: 26 },
-    { scene: 5, start: 26, end: 29, p1: 0.8 },
-    { scene: 6, start: 29, end: 30, p0: 0.62, p1: 0.95 }, // brand frame only
-  ],
-  "15": [
-    { scene: 2, start: 0, end: 6, p1: 0.45 }, // dark space: threads + one risk beat
-    { scene: 4, start: 6, end: 11, p1: 0.75 }, // the comb
-    { scene: 6, start: 11, end: 15, p0: 0.5, p1: 1 }, // brand frame
-  ],
-};
-
-const CUES: Record<Cut, TimelineCue[]> = {
-  "60": [
-    { at: 0.8, end: 5.5, text: "Every business begins with trust." },
-    { at: 7.4, end: 9.6, text: "A name shared." },
-    { at: 9.8, end: 12.2, text: "A document uploaded." },
-    { at: 12.4, end: 15.4, text: "A customer remembered." },
-    { at: 16.4, end: 19.4, text: "But behind every ordinary action, data moves." },
-    { at: 20.4, end: 22.4, text: "Some is exposed." },
-    { at: 22.6, end: 24.6, text: "Some travels too far." },
-    { at: 24.8, end: 26.8, text: "Some stays longer than it should." },
-    { at: 27.6, end: 30.4, text: "Most of the time, no one sees it." },
-    { at: 34.6, end: 38.2, text: "Iltizam brings what is hidden into view." },
-    {
-      at: 38.8,
-      end: 43.4,
-      text: "It checks your data against clear rules and shows your team what needs attention.",
-    },
-    { at: 44.4, end: 46.2, text: "Your people review the findings." },
-    { at: 46.6, end: 48.4, text: "Your people make the decision." },
-    { at: 48.8, end: 51.6, text: "Iltizam makes sure nothing important stays invisible." },
-    { at: 52.4, end: 54.6, text: "Because protecting data is not only about compliance." },
-    { at: 54.8, end: 57.2, text: "It is about protecting the trust your business was built on." },
-  ],
-  "30": [
-    { at: 0.5, end: 3.5, text: "Every business begins with trust." },
-    { at: 4.3, end: 6.2, text: "A name shared." },
-    { at: 6.5, end: 9.4, text: "A document uploaded." },
-    { at: 10.4, end: 13.2, text: "But behind every ordinary action, data moves." },
-    { at: 13.6, end: 15.1, text: "Some is exposed." },
-    { at: 15.3, end: 16.8, text: "Some travels too far." },
-    { at: 17.4, end: 19.6, text: "Most of the time, no one sees it." },
-    { at: 20.5, end: 23.3, text: "Iltizam brings what is hidden into view." },
-    {
-      at: 23.6,
-      end: 25.8,
-      text: "It checks your data against clear rules and shows your team what needs attention.",
-    },
-    { at: 26.3, end: 28.7, text: "Iltizam makes sure nothing important stays invisible." },
-  ],
-  "15": [
-    { at: 0.4, end: 4.5, text: "Behind every ordinary action, data moves." },
-    { at: 6.4, end: 10.4, text: "Iltizam brings what is hidden into view." },
-  ],
-};
-
-const FADE = 0.7; // crossfade between scene windows, seconds
-
-function fmt(s: number): string {
-  const m = Math.floor(s / 60);
-  const r = Math.floor(s % 60);
-  return `${m}:${r < 10 ? "0" : ""}${r}`;
+  pIn: number;
+  pOut: number;
 }
 
-/** The full frame at time t: crossfaded scene layers inside one SVG. */
-function Frame({ cut, t }: { cut: Cut; t: number }) {
-  const windows = WINDOWS[cut];
-  return (
-    <svg viewBox="0 0 1600 900" className="block h-full w-full" aria-hidden="true">
-      <FilmDefs />
-      <rect x={0} y={0} width={1600} height={900} fill="url(#filmBg)" />
-      {windows.map((w, i) => {
-        const last = i === windows.length - 1;
-        if (t < w.start || t >= w.end + (last ? 0.001 : FADE)) return null;
-        const raw = clamp01((t - w.start) / (w.end - w.start));
-        const p0 = w.p0 ?? 0;
-        const p = clamp01(p0 + ((w.p1 ?? 1) - p0) * raw);
-        const aIn = i === 0 ? 1 : seg(t, w.start, w.start + FADE);
-        const aOut = last ? 1 : 1 - seg(t, w.end, w.end + FADE);
-        const Scene = SCENES[w.scene];
-        return (
-          <g key={i} opacity={Math.min(aIn, aOut)}>
-            <Scene p={p} t={t} />
-          </g>
-        );
-      })}
-    </svg>
-  );
+interface Caption {
+  from: number;
+  to: number;
+  text: string;
 }
 
-export default function BrandFilm({ cut = "60", className = "" }: { cut?: Cut; className?: string }) {
-  const windows = WINDOWS[cut];
-  const cues = CUES[cut];
-  const duration = windows[windows.length - 1].end;
+interface CutDef {
+  duration: number;
+  label: string;
+  windows: CutWindow[];
+  captions: Caption[];
+}
 
-  const { t, playing, play, pause, seek } = useFilmClock({ duration, autoPlay: false });
-  const [started, setStarted] = useState(false);
-  const [soundOn, setSoundOn] = useState(false); // default MUTED
-  const [captionsOn, setCaptionsOn] = useState(true); // default ON
-  const [reducedMotion, setReducedMotion] = useState(false);
-  const [forceControls, setForceControls] = useState(false);
+/* The closing voiceover — the only caption lines in the film. */
+const VO_1 = "People share more than information.";
+const VO_2 = "They share trust.";
+const VO_3 = "What happens next is your responsibility.";
+
+const CUTS: Record<CutId, CutDef> = {
+  /* Master cut — the full 48 seconds, uneven on purpose. */
+  "48": {
+    duration: 48,
+    label: "48s",
+    windows: [
+      { scene: "s1", start: 0, end: 8, pIn: 0, pOut: 1 },
+      { scene: "s2", start: 8, end: 19, pIn: 0, pOut: 1 },
+      { scene: "s3", start: 19, end: 26, pIn: 0, pOut: 1 },
+      { scene: "s4", start: 26, end: 33, pIn: 0, pOut: 1 },
+      { scene: "s5", start: 33, end: 41.5, pIn: 0, pOut: 1 },
+      { scene: "s6", start: 41.5, end: 48, pIn: 0, pOut: 1 },
+    ],
+    captions: [
+      { from: 42.0, to: 43.6, text: VO_1 },
+      { from: 43.9, to: 45.3, text: VO_2 },
+      { from: 45.6, to: 47.2, text: VO_3 },
+    ],
+  },
+  /* 30s — drops the still scene (S3); compresses the breath, keeps the story. */
+  "30": {
+    duration: 30,
+    label: "30s",
+    windows: [
+      { scene: "s1", start: 0, end: 5, pIn: 0.25, pOut: 1 },
+      { scene: "s2", start: 5, end: 11, pIn: 0, pOut: 1 },
+      { scene: "s4", start: 11, end: 17, pIn: 0, pOut: 1 },
+      { scene: "s5", start: 17, end: 25, pIn: 0, pOut: 1 },
+      { scene: "s6", start: 25, end: 30, pIn: 0.05, pOut: 1 },
+    ],
+    captions: [
+      { from: 25.2, to: 26.4, text: VO_1 },
+      { from: 26.7, to: 27.8, text: VO_2 },
+      { from: 28.0, to: 29.3, text: VO_3 },
+    ],
+  },
+  /* 15s — submit, request, decision, brand. One caption. */
+  "15": {
+    duration: 15,
+    label: "15s",
+    windows: [
+      { scene: "s1", start: 0, end: 4, pIn: 0.28, pOut: 0.66 },
+      { scene: "s4", start: 4, end: 7.5, pIn: 0, pOut: 0.5 },
+      { scene: "s5", start: 7.5, end: 12, pIn: 0, pOut: 1 },
+      { scene: "s6", start: 12, end: 15, pIn: 0.55, pOut: 1 },
+    ],
+    captions: [{ from: 12.5, to: 14.2, text: VO_3 }],
+  },
+};
+
+/** Resolve playback time to a frame through the active cut's window table. */
+function FrameAt({ cut, t }: { cut: CutDef; t: number }) {
+  const w =
+    cut.windows.find((win) => t < win.end) ??
+    cut.windows[cut.windows.length - 1];
+  const local = clamp01((t - w.start) / (w.end - w.start));
+  const p = w.pIn + local * (w.pOut - w.pIn);
+  const scene = SCENES[w.scene];
+  const C = scene.C;
+  return <C p={p} t={p * scene.dur} />;
+}
+
+function formatTime(s: number): string {
+  const whole = Math.floor(s);
+  return `0:${whole.toString().padStart(2, "0")}`;
+}
+
+export function BrandFilm({
+  initialTime,
+  initialCut = "48",
+}: {
+  /** Review hook (?filmt=seconds): mount paused on this master-cut frame. */
+  initialTime?: number;
+  initialCut?: CutId;
+}) {
+  const review = initialTime !== undefined && Number.isFinite(initialTime);
+  const [cutId, setCutId] = useState<CutId>(initialCut);
+  const cut = CUTS[cutId];
+  const [started, setStarted] = useState(review);
+  const [muted, setMuted] = useState(false);
+  const reduced = useReducedMotion();
+
   const audioRef = useRef<FilmAudio | null>(null);
-  const tLatest = useRef(0);
+  const getAudio = () => (audioRef.current ??= new FilmAudio());
 
-  /* prefers-reduced-motion → poster + caption script instead of animation */
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => setReducedMotion(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
+  const clock = useFilmClock(cut.duration, {
+    initialTime: review ? initialTime : 0,
+    onEnd: () => audioRef.current?.stop(),
+  });
+  const { t, playing, ended, play, pause, seek } = clock;
 
-  /* debug/test hook: ?filmt=SECONDS renders that exact frame, paused */
-  useEffect(() => {
-    window.__filmSeek = seek;
-    const raw = new URLSearchParams(window.location.search).get("filmt");
-    if (raw !== null) {
-      const v = Number(raw);
-      if (Number.isFinite(v)) {
-        setStarted(true);
-        setForceControls(true);
-        seek(v);
-      }
-    }
-    return () => {
-      delete window.__filmSeek;
-    };
-  }, [seek]);
+  useEffect(() => () => audioRef.current?.dispose(), []);
 
-  /* keep the score locked to the film clock */
-  useEffect(() => {
-    tLatest.current = t;
-    audioRef.current?.update(t);
-  }, [t]);
+  const startPlayback = useCallback(
+    (from?: number) => {
+      const origin = from ?? (ended ? 0 : t);
+      if (from !== undefined) seek(from);
+      setStarted(true);
+      getAudio().start(AUDIO_TIMELINES[cutId], origin);
+      play();
+    },
+    [cutId, ended, play, seek, t],
+  );
 
-  const handlePlay = () => {
-    setStarted(true);
-    play();
-    if (soundOn) audioRef.current?.start(tLatest.current);
-  };
-  const handlePause = () => {
+  const pausePlayback = useCallback(() => {
     pause();
     audioRef.current?.stop();
-  };
-  const toggleSound = () => {
-    if (!soundOn) {
-      const a = audioRef.current ?? (audioRef.current = new FilmAudio());
-      a.setMuted(false);
-      if (playing) a.start(tLatest.current); // user gesture — allowed
-      setSoundOn(true);
-    } else {
-      audioRef.current?.setMuted(true);
-      audioRef.current?.stop();
-      setSoundOn(false);
-    }
-  };
+  }, [pause]);
 
-  const stageClasses =
-    "relative mx-auto aspect-video w-full max-w-[1100px] overflow-hidden border border-[#3a3f47] bg-[#131518]";
+  const handleSeek = useCallback(
+    (to: number) => {
+      seek(to);
+      if (playing) {
+        audioRef.current?.stop();
+        getAudio().start(AUDIO_TIMELINES[cutId], to);
+      }
+    },
+    [cutId, playing, seek],
+  );
 
-  /* ── Reduced motion: poster frame + the caption script as text ─────────── */
-  if (reducedMotion) {
+  const switchCut = useCallback(
+    (next: CutId) => {
+      if (next === cutId) return;
+      pausePlayback();
+      setCutId(next);
+      // the clock is re-created with the new duration; jump home
+      seek(0);
+    },
+    [cutId, pausePlayback, seek],
+  );
+
+  const toggleMute = useCallback(() => {
+    setMuted((m) => {
+      getAudio().setMuted(!m);
+      return !m;
+    });
+  }, []);
+
+  const caption = useMemo(
+    () => cut.captions.find((c) => t >= c.from && t <= c.to) ?? null,
+    [cut, t],
+  );
+
+  /* Reduced motion, outside review mode: a still with the closing lines. */
+  if (reduced && !review) {
     return (
-      <div className={`bg-[#0c0d10] py-6 ${className}`}>
-        <div className={stageClasses}>
-          <Frame cut="60" t={22.6} />
-          <PosterTitles />
-        </div>
-        <div className="mx-auto mt-8 max-w-[52ch] px-6">
-          {cues.map((c) => (
-            <p
-              key={c.at}
-              className="mb-3 text-center text-[17px] leading-7 text-[#e8e2d6]"
-              style={{ fontFamily: SERIF }}
-            >
-              {c.text}
+      <figure className="overflow-hidden rounded-2xl border border-brand-line bg-brand">
+        <div className="relative aspect-video">
+          <FilmPoster className="absolute inset-0 h-full w-full" />
+          <div className="absolute inset-0 bg-gradient-to-t from-brand/95 via-brand/30 to-transparent" />
+          <figcaption className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
+            <p className="display text-2xl font-semibold text-brand-ink">After Submit</p>
+            <p className="mt-1 text-xs text-brand-muted">
+              An Iltizam film · 48 seconds · motion is paused by your system preference
             </p>
-          ))}
+            <blockquote className="display mt-4 max-w-md space-y-1 text-[15px] leading-6 text-brand-ink/90">
+              <p>{VO_1}</p>
+              <p>{VO_2}</p>
+              <p>{VO_3}</p>
+              <p className="text-gold-bright">{"What happens after “Submit” matters."}</p>
+            </blockquote>
+          </figcaption>
         </div>
-      </div>
+      </figure>
     );
   }
 
-  const showControls = started && (forceControls || !playing);
-
   return (
-    <div className={`bg-[#0c0d10] py-6 ${className}`}>
-      <div className={`group ${stageClasses}`}>
-        {/* the poster is always the S3 dark space, whatever the cut */}
-        {started ? <Frame cut={cut} t={t} /> : <Frame cut="60" t={22.6} />}
+    <figure className="overflow-hidden rounded-2xl border border-brand-line bg-brand shadow-[0_18px_50px_-20px_rgba(0,0,0,0.6)]">
+      <div className="relative aspect-video">
+        {started ? (
+          <>
+            <svg
+              viewBox={`0 0 ${STAGE_W} ${STAGE_H}`}
+              className="absolute inset-0 h-full w-full"
+              aria-label="After Submit — an Iltizam film"
+              role="img"
+            >
+              <FilmDefs />
+              <rect width={STAGE_W} height={STAGE_H} fill="#17130f" />
+              <FrameAt cut={cut} t={t} />
+            </svg>
 
-        {/* poster */}
-        {!started ? (
+            {/* the only captions in the film: the closing voiceover */}
+            {caption ? (
+              <p
+                aria-live="polite"
+                className="display absolute inset-x-0 bottom-[6%] mx-auto max-w-2xl px-6 text-center text-base text-[#f0ecdf] [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] sm:text-lg"
+              >
+                {caption.text}
+              </p>
+            ) : null}
+
+            {/* replay veil */}
+            {ended ? (
+              <button
+                type="button"
+                onClick={() => startPlayback(0)}
+                className="absolute inset-0 flex items-center justify-center bg-brand/40 text-brand-ink transition-colors hover:bg-brand/50"
+              >
+                <span className="rounded-full border border-gold/70 px-5 py-2 text-sm font-medium text-gold-bright">
+                  Watch again
+                </span>
+              </button>
+            ) : null}
+          </>
+        ) : (
+          /* ── poster ─────────────────────────────────────────────────── */
           <button
             type="button"
-            onClick={handlePlay}
-            className="absolute inset-0 flex w-full cursor-pointer flex-col items-center justify-center bg-[#131518]/55 text-center focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[#6fa39c]"
-            aria-label="Play the film"
+            onClick={() => startPlayback(0)}
+            className="group absolute inset-0 block w-full text-left"
+            aria-label="Play After Submit, a 48 second film"
           >
-            <span
-              className="text-[11px] font-medium tracking-[0.22em] text-[#8d867a] uppercase"
-              style={{ fontFamily: MONO }}
-            >
-              Iltizam — a film about invisible data
+            <FilmPoster className="absolute inset-0 h-full w-full" />
+            <span className="absolute inset-0 bg-gradient-to-t from-brand/90 via-transparent to-transparent" />
+            <span className="absolute bottom-0 left-0 p-6 sm:p-8">
+              <span className="display block text-3xl font-semibold text-brand-ink">
+                After Submit
+              </span>
+              <span className="mt-1 block text-xs tracking-wide text-brand-muted">
+                An Iltizam film · 48 seconds
+              </span>
             </span>
-            <span
-              className="mt-3 text-4xl text-[#e8e2d6] sm:text-5xl"
-              style={{ fontFamily: SERIF, letterSpacing: "0.01em" }}
-            >
-              What You Don&apos;t See
-            </span>
-            <span className="mt-8 flex h-16 w-16 items-center justify-center rounded-full border border-[#8d867a]/60 transition-colors group-hover:border-[#e8e2d6]/80">
-              <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6" aria-hidden="true">
-                <path d="M7 4.5 19 12 7 19.5Z" fill="#e8e2d6" />
-              </svg>
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full border border-gold/80 bg-brand/60 transition-transform group-hover:scale-105">
+                <svg viewBox="0 0 24 24" className="ml-1 h-6 w-6" aria-hidden="true">
+                  <path d="M7 4.5 L19 12 L7 19.5 Z" fill="var(--gold-bright)" />
+                </svg>
+              </span>
             </span>
           </button>
-        ) : null}
-
-        {/* captions — pure function of t */}
-        {started && captionsOn ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-[13%] flex justify-center px-8">
-            {cues.map((c) => {
-              const a = Math.min(seg(t, c.at, c.at + 0.5), 1 - seg(t, c.end - 0.4, c.end));
-              if (a <= 0) return null;
-              const rise = (1 - easeOut(seg(t, c.at, c.at + 0.5))) * 4;
-              return (
-                <p
-                  key={c.at}
-                  className="text-center text-[16px] leading-7 text-[#e8e2d6] sm:text-[19px]"
-                  style={{
-                    fontFamily: SERIF,
-                    maxWidth: "44ch",
-                    opacity: a,
-                    transform: `translateY(${rise}px)`,
-                    textShadow: "0 1px 14px rgba(12,13,16,0.8)",
-                  }}
-                >
-                  {c.text}
-                </p>
-              );
-            })}
-          </div>
-        ) : null}
-
-        {/* controls */}
-        {started ? (
-          <div
-            className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0c0d10]/90 to-transparent px-4 pt-8 pb-3 transition-opacity duration-300 ${
-              showControls ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
-            }`}
-          >
-            <input
-              type="range"
-              min={0}
-              max={duration}
-              step={0.02}
-              value={t}
-              onChange={(e) => seek(Number(e.target.value))}
-              aria-label="Film timeline"
-              className="block h-1 w-full cursor-pointer appearance-none rounded-full bg-[#3a3f47] accent-[#6fa39c]"
-            />
-            <div className="mt-2 flex items-center gap-4">
-              <button
-                type="button"
-                onClick={playing ? handlePause : handlePlay}
-                aria-label={playing ? "Pause" : "Play"}
-                className="flex h-8 w-8 items-center justify-center text-[#e8e2d6] hover:text-white"
-              >
-                {playing ? (
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-                    <path d="M6 4h4v16H6ZM14 4h4v16h-4Z" fill="currentColor" />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" className="ml-0.5 h-4 w-4" aria-hidden="true">
-                    <path d="M7 4.5 19 12 7 19.5Z" fill="currentColor" />
-                  </svg>
-                )}
-              </button>
-              <span className="text-xs text-[#8d867a] tabular-nums" style={{ fontFamily: MONO }}>
-                {fmt(t)} / {fmt(duration)}
-              </span>
-              <span className="flex-1" />
-              <button
-                type="button"
-                onClick={toggleSound}
-                aria-pressed={soundOn}
-                className={`text-[11px] font-medium tracking-[0.14em] uppercase transition-colors ${
-                  soundOn ? "text-[#e8e2d6]" : "text-[#6b6f76] hover:text-[#8d867a]"
-                }`}
-                style={{ fontFamily: MONO }}
-              >
-                Sound {soundOn ? "on" : "off"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setCaptionsOn((v) => !v)}
-                aria-pressed={captionsOn}
-                className={`text-[11px] font-medium tracking-[0.14em] uppercase transition-colors ${
-                  captionsOn ? "text-[#e8e2d6]" : "text-[#6b6f76] hover:text-[#8d867a]"
-                }`}
-                style={{ fontFamily: MONO }}
-              >
-                Captions
-              </button>
-            </div>
-          </div>
-        ) : null}
+        )}
       </div>
-    </div>
-  );
-}
 
-/** Title overlay reused by the reduced-motion poster. */
-function PosterTitles() {
-  return (
-    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-[#131518]/55 text-center">
-      <span
-        className="text-[11px] font-medium tracking-[0.22em] text-[#8d867a] uppercase"
-        style={{ fontFamily: MONO }}
-      >
-        Iltizam — a film about invisible data
-      </span>
-      <span
-        className="mt-3 text-4xl text-[#e8e2d6] sm:text-5xl"
-        style={{ fontFamily: SERIF, letterSpacing: "0.01em" }}
-      >
-        What You Don&apos;t See
-      </span>
-    </div>
+      {/* ── controls ─────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-brand-line px-3 py-2.5 text-brand-muted sm:px-4">
+        <button
+          type="button"
+          onClick={() => (playing ? pausePlayback() : startPlayback())}
+          className="rounded-md px-2 py-1 text-[13px] font-medium text-brand-ink transition-colors hover:bg-brand2 focus-visible:outline-2 focus-visible:outline-gold-bright"
+        >
+          {playing ? "Pause" : started && !ended ? "Play" : "Play film"}
+        </button>
+        <span className="font-mono text-[11px] tabular-nums">
+          {formatTime(t)} / {formatTime(cut.duration)}
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={cut.duration}
+          step={0.01}
+          value={t}
+          onChange={(e) => {
+            setStarted(true);
+            handleSeek(Number.parseFloat(e.target.value));
+          }}
+          aria-label="Seek"
+          className="min-w-24 flex-1 accent-[var(--gold-bright)]"
+        />
+        <span className="inline-flex overflow-hidden rounded-md border border-brand-line" role="group" aria-label="Cut length">
+          {(Object.keys(CUTS) as CutId[]).map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => switchCut(id)}
+              className={`border-l border-brand-line px-2.5 py-1 text-[11px] font-medium first:border-l-0 transition-colors ${
+                id === cutId
+                  ? "bg-brand2 text-gold-bright"
+                  : "text-brand-muted hover:text-brand-ink"
+              }`}
+            >
+              {CUTS[id].label}
+            </button>
+          ))}
+        </span>
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="rounded-md px-2 py-1 text-[11px] font-medium transition-colors hover:bg-brand2 hover:text-brand-ink"
+        >
+          {muted ? "Sound off" : "Sound on"}
+        </button>
+      </div>
+    </figure>
   );
 }

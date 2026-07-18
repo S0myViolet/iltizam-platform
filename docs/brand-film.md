@@ -1,399 +1,331 @@
-# WHAT YOU DON'T SEE
+# After Submit — the Iltizam brand film
 
-**A 60-second brand film for Iltizam — creative bible, v1.0 (production-locked)**
-Client: Iltizam · Automated data protection monitoring (EG-PDPL + EU-GDPR, deterministic rules, human review)
-Medium: hand-choreographed SVG animation shipped inside the public website. Not a product demo. A film.
-Governing truth constraint: monitoring is deterministic rules plus human review — never AI magic. The film must remain fully understandable with sound muted.
+48 seconds · one woman · one company · one request · no voiceover until the end
 
----
-
-## 1. Final creative concept
-
-**Title:** *What You Don't See*
-**Logline:** Beneath the ordinary morning of an ordinary business, personal data is quietly moving — and some of it is moving wrong. The film descends below the surface of work, shows the movement itself, and returns with one change: now somebody can see it, and a named person decides what to do.
-**Core message:** You can't act on what you can't see. Iltizam makes data movement visible — with rules you can read and a human on every finding — so a business can act with confidence.
-
-**Emotional progression (the seven stages, one per scene):**
-
-1. **Familiarity** — a dawn office everyone recognizes. Nothing is wrong. Nothing is dramatized.
-2. **Trust** — the daily work: files, payroll, a contract. People hand data over because they trust the business.
-3. **Invisible complexity** — the camera drops beneath the floor of the work into dark space: the data threads were always there.
-4. **Growing tension** — some threads fray, duplicate, escape, cross a border, go stale. Structural wrongness, never horror. The viewer leans in; nobody screams.
-5. **Clarity** — a quiet teal order passes through the tangle. Findings surface as small parchment records, not dashboards.
-6. **Human control** — a person — not a system — reads the finding, and a name is put against the risk.
-7. **Confidence** — back in the office, the light has turned to plain daylight. The window becomes the brand frame.
-
-**Why the film never shows the product first:** the product's entire value is a *change in perception*. If we open on software, we sell software. By opening on a familiar morning and earning the descent into what the audience has never seen, the product arrives as the answer to a feeling the film has already created — and it arrives small: a parchment card and a person's name, exactly as modest and exactly as decisive as the real product. Fear imagery is banned for the same reason: Iltizam's promise is composure, so the film must be composed.
+This document is the single source of truth for the film that lives in
+`src/components/film/`. The master cut, the 30s and 15s cuts, the hero loop,
+the poster and the sound map are all specified here in absolute seconds; the
+code implements these numbers and nothing else.
 
 ---
 
-## 2. Scene-by-scene storyboard — 60-second master
+## 1. Concept
 
-Stage is a fixed SVG `viewBox="0 0 1600 900"`. All camera moves are transforms of the world group; the frame never cuts hard except where noted.
+**After Submit** follows two files — a CV and an ID scan — from the moment
+Mariam Hassan presses **Submit** on a job application, through the ordinary
+life of a company where those files quietly multiply, to the day she asks for
+one of them back, and the human decision that answers her.
 
-### S1 · 0–7s · "Morning" — familiarity
-- **Intent:** establish the world as safe, ordinary, dignified. Zero threat.
-- **Action:** charcoal office at dawn. A tall window plane throws warm #e8dcc4 light across architectural planes (#23262c / #2c3038 / #343943). Two silhouette figures arrive: one places a cup on a desk (a real, weighted posture beat), one leans toward a screen. Breathing scale 1±0.004, one slow head turn. No data threads yet — one faint teal thread ghosts at 8% opacity, subliminal.
-- **Data-thread behavior:** withheld. The absence is the setup.
-- **Camera:** single slow push-in from wide (scale 1.00 → 1.06 over 7s, easeInOut).
-- **Sound:** near-silence; low pad fades in at −24 LU; room-tone shimmer.
-- **Caption/VO:** *"Every morning, a business wakes up and begins to move."*
+The film replaced an earlier systematic seven-stage explainer. That structure
+was discarded deliberately:
 
-### S2 · 7–14s · "The work" — trust
-- **Intent:** show the data being *given* — trust as an action, not a word.
-- **Action:** closer on the desks. The HR figure drags a document rectangle across a screen toward a quiet rounded-rect labeled `SHARED`; a `PAYROLL` rect pulses once as a run completes; a contract document slides toward `MAIL`. A third silhouette (the applicant) hands a document across a desk — the handover beat.
-- **Data-thread behavior:** the dragged document leaves a faint teal wake — the first visible thread, born from a human gesture.
-- **Camera:** gentle lateral glide right (translateX −60px over 7s), still one continuous take.
-- **Sound:** keyboard ticks ~8–14s (sparse, humanly irregular); pad holds; a single soft piano note at 9.5s.
-- **Caption/VO:** *"Files open. Payroll runs. A contract goes out for signature."*
+- **It explained a system; it didn't earn a feeling.** Seven capability
+  stages read as a product tour. Nobody remembers a tour.
+- **It looked like software.** System boxes with mono labels, dark network
+  planes, glowing connective lines — exactly the visual language a data
+  protection company should be suspicious of.
+- **It had even pacing**, and even pacing has no emphasis. Everything equally
+  weighted is equally forgettable.
 
-### S3 · 14–22s · "Beneath" — invisible complexity
-- **Intent:** the reveal. The office was the surface; this is the circulatory system.
-- **Action:** the camera follows the cursor-drag thread down through the desk plane. The office dims to faint outlines above; dark space (#131518 → #1c1f24) opens below. A field of long teal bezier threads (#6fa39c, opacity .35–.7, strokeWidth 1.2–2, dash "2 14", slow dashoffset flow) runs between quiet system rects: `HR DRIVE`, `PAYROLL`, `SHARED`, `MAIL`, `CLOUD`, `VENDOR` — mono labels #6b6f76, 11px, .08em tracking. Everything flows correctly. It is beautiful, not sinister.
-- **Data-thread behavior:** SAFE threads only — long smooth curves, steady flow, staggered births.
-- **Camera:** vertical descent (translateY, 14–16s) settling into a slow drift; the follow-the-thread move begins here.
-- **Sound:** the data pulse at ~18s — one low sine swell as the full field is revealed; pad widens.
-- **Caption/VO:** *"And underneath all of it — something you don't see. Data, moving."* then *"Most of it flows exactly where it should."*
+### The one-story principle
 
-### S4 · 22–33s · "The fray" — growing tension
-- **Intent:** the five risks, shown structurally — the geometry itself goes wrong. No icons, no alarms.
-- **Action & data-thread behavior,** one behavior at a time, each given room:
-  - **22.0–24.5 · Fraying:** one thread splits into three diverging amber (#b0762a) strands mid-flight.
-  - **24.5–26.5 · Duplication:** a thread grows two ghost copies offset 3–6px at 30% opacity, drifting slightly out of register.
-  - **26.5–29.0 · Exposure:** a thread slips through a gap in the `SHARED` rounded-rect outline and continues outside its system.
-  - **29.0–31.0 · Distance:** a thread crosses a faint vertical border line and continues off-frame right, unbroken.
-  - **31.0–33.5 · Staleness:** a thread coils into a static spiral near `HR DRIVE`; its flow stops; it dims to 20%.
-- **Camera:** the follow-the-thread glide tracks the fraying thread, then hands off to each behavior with small reframes — never a whip pan.
-- **Sound:** a low tension drone enters under the pad at 22s and thickens by degrees; the staleness beat is nearly silent.
-- **Caption/VO:** *"But some of it frays. Some of it quietly copies itself."* / *"Some of it slips outside the walls built to hold it, or crosses a border no one meant it to cross."* / *"And some of it simply sits — forgotten, and still yours to protect."*
+One protagonist, one company, one request, told in order, with no cutaways to
+abstractions. Every frame must be a *place* — a room, a desk, a window, a
+sheet of paper. If a frame reads as a software diagram, it is wrong and gets
+reworked. The product appears only where the story earns it.
 
-### S5 · 33–43s · "Seen" — clarity
-- **Intent:** Iltizam arrives as *perception*, not machinery. Deterministic order, calmly applied.
-- **Action:** a thin teal comb — a soft vertical sweep of #6fa39c at 10% — passes left to right through the tangle. Threads settle into ordered lanes; the amber fray crossfades to a single teal line. As each risk is combed, a small parchment card (#efeadf, ink #141927, thin left rail) fades in at slight perspective (`skewY(-2deg) scale(0.9)`), floating in the dark space: the company card, then the two finding cards (gold rails). Cards are diegetic panels — never a full-screen dashboard.
-- **Data-thread behavior:** morph from scattered curves to lanes (staggered easeInOut); flow rate steadies and synchronizes.
-- **Camera:** pulls back just enough to hold three cards and the ordered field in one composition.
-- **Sound:** the drone resolves out; piano returns with a two-note figure; the comb has a barely-audible airy sweep.
-- **Caption/VO:** *"You can't act on what you can't see."* then *"Iltizam watches the movement itself — deterministic rules, mapped to Egypt's PDPL and the GDPR — and brings every finding to a person."*
+### The two-interface-glimpses budget
 
-### S6 · 43–52s · "The decision" — human control
-- **Intent:** the product's soul: a human reads, a human decides, a name is attached.
-- **Action:** the camera rises back through the plane to the office. The DPO silhouette leans toward a screen — deliberate, capable posture, a small confirming nod (head-turn arc, 2°). The evidence card and the owner card appear beside the screen; at ~47s the confirmation chime lands exactly as *"Owner assigned — Omar Fathy"* fades in. The last tangled amber line in the background straightens to teal in sync with the chime.
-- **Data-thread behavior:** the straightening line is the scene's only thread event — resolution as geometry.
-- **Camera:** slow rise + settle; then locked off for the decision beat. Stillness is the point.
-- **Sound:** confirmation chime ~47s (two notes, struck softly); pad warms.
-- **Caption/VO:** *"Automated finding. Human review. A name against every risk."*
+The interface may appear **exactly twice**, totalling **under 15% of
+runtime**:
 
-### S7 · 52–60s · "Morning, again" — confidence
-- **Intent:** same office, changed light, changed posture. Then the brand.
-- **Action:** the camera drifts to the window. Dawn #e8dcc4 has become neutral daylight #d9d5cb. The window's reflection on the desk gathers into the ILTZAM certificate tile (the film's only gold #ab8434 beyond card rails); the window frame match-morphs into the brand frame rectangle. Wordmark `ILTZAM` (tracked serif, per `src/components/Wordmark.tsx`), then *"See what matters."* / *"Act with confidence."*, then the secondary line.
-- **Data-thread behavior:** one safe teal thread continues flowing through the bottom of the brand frame — the world keeps working.
-- **Camera:** the window-becomes-brand-frame move: glide + scale until the window mullions align with the frame border, then a 1.6s morph. Full stop at 58s.
-- **Sound:** resolve at ~54s — the pad lands on its home chord (add9), piano final note, 2s tail into silence.
-- **Caption/VO:** *"See what matters. Act with confidence."* then *"Iltizam. Automated data protection monitoring, built around human review."*
+1. **S1, ~1.5s effective** — the tiny submit panel on Mariam's laptop
+   (diegetic; her software, not ours).
+2. **S5, ~6s effective** — the Iltizam parchment card: the earned reveal,
+   the only product UI in the film.
+
+Everything else — badge, form, payslip screen, message thread, phone — is
+diegetic set dressing with no product branding.
+
+### The closing-VO-only policy
+
+There are **no captions and no narration until 42.0s**. All words before that
+are diegetic: they exist inside the world, on screens and paper, small and
+quiet. The player's caption table therefore contains only the three closing
+voiceover lines (plus nothing else, in any cut).
 
 ---
 
-## 3. Voiceover script (verbatim — client-approved)
+## 2. The motif
 
-This is the approved script as shipped and as published in the on-site transcript (`src/app/(public)/film/page.tsx`). It supersedes the v2 draft opening (*"Every business begins with trust."*); the trust beat now lives in S1–S2's imagery rather than the narration. No word may be altered without client sign-off.
+A fine warm **reflection line** — 1px, `#e8dcc4` at 30–50% opacity, drawn as
+a short gradient segment brightest at its head — slides across *physical
+surfaces*, always following the document. It is light moving over wood and
+paper, never a glowing network line.
 
-> Every morning, a business wakes up and begins to move.
->
-> Files open. Payroll runs. A contract goes out for signature.
->
-> And underneath all of it — something you don't see. Data, moving.
->
-> Most of it flows exactly where it should.
->
-> But some of it frays. Some of it quietly copies itself.
->
-> Some of it slips outside the walls built to hold it, or crosses a border no one meant it to cross.
->
-> And some of it simply sits — forgotten, and still yours to protect.
->
-> You can't act on what you can't see.
->
-> Iltizam watches the movement itself — deterministic rules, mapped to Egypt's PDPL and the GDPR — and brings every finding to a person.
->
-> Automated finding. Human review. A name against every risk.
->
-> See what matters. Act with confidence.
->
-> Iltizam. Automated data protection monitoring, built around human review.
+- **Born** in S1: it slides off the closing laptop lid, across the desk, and
+  exits frame right (1.2s).
+- **Precedes** every duplication in S2's counterpoint.
+- **Retracts** in S5: after the decision, the lines converge toward one
+  point and disappear — everything is accounted for.
 
-Delivery: measured, low, unhurried — a documentarian, not an announcer. No urgency read anywhere; the tension is carried by the score and the geometry.
+### The repeated shape
+
+Documents are **small paper rects with a folded corner** (a triangle notch).
+The same shape every time: in the tray, in the drawer, drifting out of frame,
+resting on a shelf, folding closed at the end. Copies carry a faint amber
+tint (`#b0762a` at ~16%) — the only use of amber in the film.
 
 ---
 
-## 4. On-screen copy inventory
+## 3. Palette
 
-### 4.1 Caption cues (60s master)
+Warmer and more physical than the old film. Charcoal keeps depth, but this
+film lives in **warm daylight**:
 
-Captions are the VO text, display serif (`var(--font-display, Georgia)`, fallback Georgia / 'Times New Roman' / serif), #e8e2d6, centered lower third, max-width 44ch, fade + 4px rise in (0.45s), gentle fade out (0.5s). Captions default ON.
+| Role                    | Value                          |
+| ----------------------- | ------------------------------ |
+| Window light (morning)  | `#e8dcc4 → #f0e8d8`            |
+| Window light (evening)  | `#e6c18a → #b07a42`, dimmer    |
+| Warm interior planes    | `#2a2723`, `#3a352e` (warm greys, never cool) |
+| Wood desk tones         | `#4a3f33`                      |
+| Paper                   | `#efeadf`                      |
+| Silhouettes             | `#171310` (warm near-black)    |
+| Teal `#0d6f64`          | **reserved**: the Iltizam card + the resolution |
+| Amber `#b0762a`         | **only** the faint document-copy tint and the finding rail |
+| Motif line              | `#e8dcc4`, 1px, 30–50%         |
 
-| # | In | Out | Line |
-|---|------|------|------|
-| 1 | 0.8 | 6.2 | Every morning, a business wakes up and begins to move. |
-| 2 | 7.6 | 13.4 | Files open. Payroll runs. A contract goes out for signature. |
-| 3 | 14.8 | 18.8 | And underneath all of it — something you don't see. Data, moving. |
-| 4 | 19.2 | 21.8 | Most of it flows exactly where it should. |
-| 5 | 22.6 | 26.4 | But some of it frays. Some of it quietly copies itself. |
-| 6 | 26.8 | 30.9 | Some of it slips outside the walls built to hold it, or crosses a border no one meant it to cross. |
-| 7 | 31.4 | 35.0 | And some of it simply sits — forgotten, and still yours to protect. |
-| 8 | 35.6 | 38.2 | You can't act on what you can't see. |
-| 9 | 38.8 | 43.8 | Iltizam watches the movement itself — deterministic rules, mapped to Egypt's PDPL and the GDPR — and brings every finding to a person. |
-| 10 | 45.0 | 49.6 | Automated finding. Human review. A name against every risk. |
-| 11 | 52.6 | 56.2 | See what matters. Act with confidence. |
-| 12 | 56.6 | 59.6 | Iltizam. Automated data protection monitoring, built around human review. |
-
-Cues 7 and 9 deliberately bridge scene boundaries — captions may cross cuts; imagery may not interrupt a caption.
-
-### 4.2 Product glimpse cards (S5–S6 only; exact strings, no substitutes)
-
-Parchment #efeadf, ink #141927, 12–13px, mono for rule codes, thin left rail (gold #ab8434 = open finding, teal #0d6f64 = context/resolution). Each card unique — no repeated identical cards.
-
-| Card | Scene / time | Rail | Line 1 (mono, small) | Line 2 (serif) |
-|------|-------------|------|----------------------|----------------|
-| A | S5 · in 36.0 | teal | Nile Digital Services | 18 data sources reviewed |
-| B | S5 · in 38.5 | gold | Public sharing detected · MON-ACCESS-001 | Automated finding requiring human review. |
-| C | S5 · in 40.5 | gold | Cross-border transfer review · MON-TRANSFER-001 | EG-PDPL control mapped · EG-SEC-03 |
-| D | S6 · in 44.5 | teal | Evidence candidate found | — |
-| E | S6 · in 47.0 | teal | Owner assigned — Omar Fathy | — |
-
-(The silent hero loop reuses "Nile Digital Services" + "Automated finding requiring human review." on its single card — see §12.)
-
-### 4.3 Brand frame copy (S7, in order)
-
-1. `ILTZAM` — wordmark treatment per `src/components/Wordmark.tsx` (tracked-uppercase serif; the certificate-tile mark, gold permitted here only).
-2. *See what matters.*
-3. *Act with confidence.*
-4. Secondary, smaller: *Automated data protection monitoring, built around human review.*
-
-Eyebrow text anywhere in the film (e.g., "AN ILTIZAM FILM" on the poster) is small-caps mono, #8d867a, 0.18em tracking.
+Forbidden: system-boxes-with-mono-labels diagrams, black-void network scenes,
+cool greys, red.
 
 ---
 
-## 5. Camera direction
+## 4. Shooting script (master cut, absolute seconds)
 
-- **One take, felt.** The 60s master behaves like a single continuous move with two match cuts. Movements are glides (translate/scale of the world group, easeInOut, ≥4s each). No whip pans. No constant motion — S6 holds a locked-off frame for ~4s on the decision.
-- **The push-in (S1):** 6% scale over 7 seconds. Barely perceptible; establishes patience.
-- **The descent (S2→S3):** the camera *follows the thread* born from the cursor-drag, down through the desk plane. This is the film's signature move and must read as curiosity, not falling.
-- **Follow-the-thread (S3–S5):** the camera tracks individual threads laterally; each risk behavior earns a small reframe (≤120px travel, ≥1.5s). Attention is redirected by light and thread motion first, camera second.
-- **Match cuts:** (a) amber ghost-row → parchment card row at 33s (§7); (b) straightened thread → the teal rail of the owner card at 47s.
-- **The ending:** the window-becomes-brand-frame move. The camera glides until the window's mullions align with a centered 16:9 inner rectangle, the warm plane fades, and the frame border *is* the brand frame. No cut — the office literally becomes the logo's home.
+Scenes are React components taking `(p, t)` — `p` is cut-mapped progress,
+`t = p × scene duration` is scene-local master seconds. Framing varies:
+off-center weight, over-shoulder implied by layering, partial obstruction by
+foreground planes.
 
----
+### S1 · "Submit" · 0–8s (breathes)
 
-## 6. Character direction
+A warm room: tall window right with a morning light pool, desk, Mariam
+(silhouette, seated, low bun, 3/4 by composition) at a laptop. A foreground
+plant/shelf plane obstructs the left frame edge. On the laptop a **tiny
+diegetic panel** (paper card, ≤180px at stage scale): two attachment chips —
+`CV_Mariam_Hassan.pdf`, `ID_scan.jpg` — and a Submit button.
 
-Six recurring figures. In the animated build all are silhouettes: near-black #0e1013 head circle + one smooth shoulder/torso path, faint 1px stone rim-light #8d867a at 25% opacity. No faces, no limb articulation. Identity is carried entirely by posture, placement, and what each figure touches.
+- **3.2** — cursor clicks Submit. Button depresses, panel fades. Near the
+  laptop, 13px, quiet: **"Application submitted"**.
+- **3.4–4.6** — *the motif is born*: the reflection line slides off the lid,
+  across the desk, exits frame right.
+- **5–7** — HOLD. Mariam turns her head slightly toward the window. Nothing
+  else moves. Let it breathe.
+- **7–8** — she reaches; the laptop lid rotates flat; the light dims 5%.
 
-| Figure | Role in film | Posture signature (animation) | Live-action casting note (Plan B) |
-|--------|--------------|-------------------------------|-----------------------------------|
-| DPO | S6 protagonist; glimpsed in S1 | Upright, still, leans *toward* the screen, one slow confirming nod | 35–50, any gender. Capable, not frightened — reads findings the way a good editor reads proofs. Absolutely no furrowed-brow "cyber worry" acting. |
-| HR | S2 drag-to-SHARED beat | Seated, forward, deliberate mouse gesture | Mid-career, unhurried. The drag is routine, not careless — the point is that risk needs no villain. |
-| IT owner (Omar Fathy) | Named on card E; passes through S6 background | Standing, hands-in-pockets calm, turns head when the chime lands | 28–40. Practical presence; work clothes, lanyard, no hoodie cliché. |
-| Marketing | S2 contract-to-MAIL beat | Half-standing, reaching to place a document | Bright, quick energy — the fastest mover in the office, kept subtle. |
-| Customer | S1 arrival; the cup beat | Relaxed shoulders, sets a cup down with real weight | Ordinary person, ordinary morning. Their data is the film's cargo; they never look at a screen. |
-| Applicant | S2 handover beat | Slightly formal posture, hands a document across a desk | Young, hopeful, neat. The handover is trust made physical. |
+### S2 · "Time moves" · 8–19s (quick, uneven fragments)
 
-Live-action wardrobe: muted mid-tones (charcoal, stone, olive, warm grey) — nothing that reads as costume. No model casting; faces chosen for warmth and plausibility. No stock smiles anywhere — the emotional register is quiet competence. Performance direction on set: "you have done this a thousand mornings."
+Fragment cuts of 1.5 / 2.5 / 1 / 2 / 4 seconds, crossfaded on motion (each
+fragment drifts as it fades), every one a different composition:
 
----
+- **(a) 8–9.5 · interview** — wide frame, two silhouettes across a table,
+  one nods.
+- **(b) 9.5–12 · first day** — a badge card slides in: **"Welcome to the
+  team"**; at ~10.5 a soft **white flash** (the access-card photo); after the
+  flash Mariam's silhouette holds a badge.
+- **(c) 12–13 · a form** — paper close-up; a pen line draws itself across
+  the sheet.
+- **(d) 13–15 · payroll** — a screen slab; a row of keystroke dots appears.
+  No readable numbers.
+- **(e) 15–19 · THE QUIET COUNTERPOINT** — the folded-corner document in an
+  HR tray. It **duplicates**: one copy slides down-left into a drawer slab
+  that closes; a third drifts right and exits the frame (a vendor — no
+  label). Each movement is preceded by the motif crossing the surface.
 
-## 7. Motion direction — connected transitions
+### S3 · "Months later" · 19–26s (slower)
 
-Every transition transforms an object the viewer is already watching. Nothing appears from nowhere.
+The office wider and busier: four figure silhouettes at desks, neutral midday
+light, more furniture planes. In the mid/background, **four faint
+folded-corner rects** rest where they were left — a shelf, a slightly open
+drawer, a broad open tray, one half out of the right frame edge — 25–35%
+opacity, one slowly dimming (dust settling). No labels, no warnings. A slow
+push-in (1.00 → 1.06). Nothing else happens; the unease is the stillness.
 
-1. **Cursor-drag becomes thread (13.4–15.0s):** the HR drag gesture's motion path detaches from the screen as a live teal thread and dives; the camera follows it into S3.
-2. **Thread through wall (S3–S4):** threads pass through the architectural planes without breaking — a continuity statement: walls don't stop data. The exposure risk (26.5s) inverts this grammar: that thread exits through a *gap in its system's outline*, which is the wrongness.
-3. **Spreadsheet row into inventory (32.8–34.0s):** the duplication ghost-copy — a row-like amber sliver — slides right, decelerates, and re-materializes as the first line of parchment card A. The mess literally becomes the record.
-4. **Tangled line straightening on resolution (46.5–47.5s):** the last amber tangle pulls taut into a single teal lane in sync with the confirmation chime and card E. Resolution is shown as geometry relaxing, not as a checkmark.
-5. **Reflection into logo (53–56s):** the window's warm reflection pooled on the desk contracts and sharpens into the gold certificate-tile mark, which docks beside the wordmark as the window frame completes its morph into the brand frame (§5).
+### S4 · "The request" · 26–33s (turning point)
 
-Idle-motion law: breathing scale 1±0.004, head turns ≤2° over ≥3s. Any element not currently narrating holds still or flows at its resting rate.
+Cut to a message thread on a paper-toned screen slab. A bubble types out
+character by character (26.2–28.8, notification tick at 26.2):
 
----
+> "Could you please delete the ID copy I submitted when I applied?"
 
-## 8. Sound direction
+29.5–33: the HR desk. Two folder slabs open in sequence — copies 1 and 2,
+found. A **third slab opens on nothing certain** — just shadow. The figure's
+head turns; a second silhouette walks in; both lean toward one screen. The
+music turns uncertain. No panic. No red.
 
-**Policy: sound-off first.** The film is choreographed to be complete silent; score and effects are reinforcement only, and audio never starts without an explicit user gesture (§16).
+### S5 · "Seen" · 33–41.5s (the earned reveal — the only product UI)
 
-**Score structure (synthesized, no samples, no network):**
+The compliance manager at a desk. A calm parchment card fades up beside the
+screen (≤40% frame width, slight perspective):
 
-| Window | Element | Character |
-|--------|---------|-----------|
-| 0–7s | Pad enters | Warm, low, two detuned sines through a gentle lowpass; −24 LU, patient |
-| 8–14s | Keyboard ticks | Filtered noise bursts, humanly irregular (8–14s window), max 1 per 700ms |
-| 9.5s | First piano note | Single struck tone, long decay |
-| ~18s | Data pulse | One low sine swell under the S3 reveal |
-| 22–33s | Tension drone | A slow minor-second rub added beneath the pad; thickens by degrees, never stabs |
-| 33–43s | Resolution begins | Drone filters out with the comb; two-note piano figure returns |
-| ~47s | Confirmation chime | Two soft struck tones (perfect fourth), synced to card E |
-| ~54s | Resolve | Pad lands on home add9 chord; final piano note; 2s tail to silence by 58s |
+1. **"Mariam Hassan"** (serif)
+2. `Recruitment identity record` (mono, quiet)
+3. **"4 locations identified"**
 
-**WebAudio implementation notes (Plan A):** one `AudioContext` created inside the user's play-with-sound gesture. Oscillator + `GainNode` envelopes for pad/piano/chime; `BufferSource` white noise through a bandpass for ticks; every event scheduled from the same master clock `t` that drives the visuals (`ctx.currentTime` offset mapped to film time), so scrubbing and the `filmt=` hook stay consistent. Master `DynamicsCompressor` as a safety limiter; total output conservative (≈ −18 LUFS integrated). Mute/unmute is a single master gain; no audio nodes exist until the gesture.
+Four small rows light up 0.5s apart (34.3→36.05): *HR folder · Onboarding
+archive · External processor · Recruitment duplicate*. Then the finding, with
+an amber left rail: **"Identity record retained beyond recruitment purpose"**
++ **"Human review required"**.
 
----
+**37.5–41.5 · THE HUMAN DECISION** (the most important beat — given time):
 
-## 9. Transition plan
+- The manager leans in and **reads**. 1.2s hold; nothing moves.
+- A cursor moves *deliberately*. **Click 1 (38.6)** — the finding gains a
+  thin teal rail; **"Owner assigned"** appears. **Click 2 (39.8)** — confirm.
+- Out in the room the four scattered rects respond: **three fold closed**
+  (the corner triangle grows, the rect collapses) and fade; **one settles
+  into a proper drawer** that closes.
+- The motif reflection lines retract toward one point.
+- A quiet last line on the card, small: **"Request completed"** (~40.8).
 
-| Boundary | Time | Device | Duration |
-|----------|------|--------|----------|
-| Cold open → S1 | 0.0s | Fade up from black | 0.8s |
-| S1 → S2 | 7.0s | Continuous glide; cup-placement beat covers the reframe | 0.6s |
-| S2 → S3 | 13.4–15.0s | Cursor-drag becomes thread; camera follows it down through the desk plane (thread-through-wall grammar established) | 1.6s |
-| S3 → S4 | 22.0s | No cut — light dims 8%, first fray begins mid-frame | 0.8s |
-| S4 → S5 | 32.8–34.0s | Spreadsheet row into inventory: ghost-row match-cuts into parchment card A; comb sweep enters frame-left | 1.2s |
-| S5 → S6 | 43.0s | Camera rises following the ordered thread; thread match-cuts into the teal rail of the S6 cards | 1.0s |
-| S6 → S7 | 52.0s | Final tangle straightens; reflection gathers into the mark; window-becomes-brand-frame morph | 1.6s |
-| S7 → end | 59.2–60.0s | All motion stops except one flowing thread; captions out; hold final frame | 0.8s |
+### S6 · "Evening" · 41.5–48s
 
----
+The S1 composition at evening — warmer, dimmer, the light pool falling the
+other way. Mariam by the same window; the phone slab in her hand shows
+**"Your request has been completed."** Her shoulders ease 2px. Nothing more.
 
-## 10. Color and lighting direction
+**The only voiceover** (serif captions, lower third):
 
-**Locked palette — no additions:**
+| Cue        | Line                                          |
+| ---------- | --------------------------------------------- |
+| 42.0–43.6  | People share more than information.           |
+| 43.9–45.3  | They share trust.                             |
+| 45.6–47.2  | What happens next is your responsibility.     |
 
-| Use | Hex |
-|-----|-----|
-| World background gradient | #131518 → #1c1f24 |
-| Architectural planes | #23262c / #2c3038 / #343943 |
-| Dawn window light | #e8dcc4 (warm) |
-| Neutral daylight (S7) | #d9d5cb |
-| Silhouettes | #0e1013 + rim #8d867a @ 25% |
-| SAFE threads | #6fa39c @ .35–.7 |
-| RISK threads | #b0762a |
-| System outlines / labels | #3a3f47 / #6b6f76 |
-| Parchment cards / card ink | #efeadf / #141927 |
-| Card rails | gold #ab8434 · teal #0d6f64 |
-| Captions | #e8e2d6 |
-| Letterbox / page surround | #0c0d10 |
-
-**Lighting arc:** dawn warmth (S1–S2, #e8dcc4 planes at low opacity) → the warm light thins as we descend → pure dark space (S3–S4, the world is only threads and outlines) → teal clarity (S5, the comb raises ambient teal by a few percent) → returning warmth (S6) → neutral daylight #d9d5cb (S7): the same room, seen soberly.
-
-**Gold discipline:** gold #ab8434 appears only as the thin left rails on open-finding cards and in the final brand frame (mark + rail). Never as a wash, never on threads, never in lighting. Navy+gold washes are forbidden outright.
-
----
-
-## 11. The three cuts
-
-All three cuts are the same shipped component: `<BrandFilm cut="60" | "30" | "15" />` — one engine, three timelines.
-
-### 60s master
-The full map in §2: S1 0–7 · S2 7–14 · S3 14–22 · S4 22–33 · S5 33–43 · S6 43–52 · S7 52–60.
-
-### 30s cut
-Scene map (locked): **S1 0–4 · S2 4–10 · S3 10–17 · S4 17–20 · S5 20–26 · S6 26–29 · S7 29–30.**
-S4 keeps two risks only (fraying 17–18.5, cross-border 18.5–20); S5 shows cards A and B only; S7 is a one-second hard brand frame (the window morph pre-completed). Trimmed VO — approved lines only; trims marked †:
-
-| In | Out | Line |
-|------|------|------|
-| 0.6 | 3.6 | Every morning, a business wakes up and begins to move. |
-| 4.6 | 9.4 | And underneath all of it — something you don't see. Data, moving. |
-| 10.6 | 16.4 | Most of it flows exactly where it should. But some of it frays. Some of it quietly copies itself. |
-| 17.2 | 19.8 | Some of it crosses a border no one meant it to cross. † |
-| 20.6 | 25.6 | Iltizam watches the movement itself — deterministic rules — and brings every finding to a person. † |
-| 26.2 | 28.4 | Automated finding. Human review. |
-| 28.8 | 30.0 | *(on-screen only, brand frame)* See what matters. Act with confidence. |
-
-### 15s social cut
-Map (locked): **dark-space hook 0–6 · comb 6–11 · brand 11–15.** Opens cold inside S3/S4 dark space (one fray + one border-cross already in progress), the comb orders the field 6–11 with card B only, brand frame 11–15. Its two lines:
-
-| In | Out | Line |
-|------|------|------|
-| 0.8 | 5.4 | And underneath all of it — something you don't see. Data, moving. |
-| 11.4 | 14.6 | See what matters. Act with confidence. |
-
-Social cut ships captions burned into the choreography (it will autoplay muted on social surfaces; §16's no-audio-autoplay rule applies everywhere).
+At **45.5** the window rect darkens and grows into the ink brand frame — the
+window-to-frame **match cut**. 45.5–48: small line *"What happens after
+“Submit” matters."*, then the gold certificate mark + letterspaced **ILTZAM**
++ *"See the responsibility." / "Protect the trust."* + tiny secondary
+*"Automated data protection monitoring, guided by human review."*
 
 ---
 
-## 12. Silent website hero loop
+## 5. Pacing map (uneven on purpose)
 
-Shipped as `src/components/film/HeroLoop.tsx` — a self-contained 10s vignette in the film's language, independent of the film engine (its own tiny rAF clock; every property a pure function of loop-time t).
+```
+S1  Submit          ████████                    8.0s   slow — breathes
+S2  Time moves      ███████████                11.0s   fast fragments: 1.5/2.5/1/2/4
+S3  Months later    ███████                     7.0s   slow — stillness
+S4  The request     ███████                     7.0s   medium — typing, then search
+S5  Seen            ████████▌                   8.5s   slow → deliberate
+S6  Evening         ██████▌                     6.5s   slow → brand
+```
 
-**10s beat map (as implemented):**
-
-| t | Beat |
-|------|------|
-| 0.15–1.9 | A document slides from the seated figure to the `SHARED` system rect |
-| 0.3–3.7 | Five threads are born, staggered; thread 4 is amber |
-| 2.7–3.9 | The amber thread frays into two strands |
-| 4.0–5.5 | A teal sweep combs the field into three lanes; amber crossfades to its teal twin (4.4–5.3) |
-| **5.5** | **Freeze/poster frame: ordered lanes, everything flowing** |
-| 5.5–6.5 | Rest beat — pure ordered flow |
-| 6.5–7.2 | Parchment card in ("Nile Digital Services" / "Automated finding requiring human review.") |
-| 8.5–9.15 | Card out |
-| 8.55–9.9 | Threads release from lanes and fade — the loop seam |
-
-**Seamless-loop design:** dash "2 14" (period 16) with flow −32 px/s ⇒ exactly 320px per loop, an integer multiple of the period, so the dash phase at t=10 equals t=0; the lane morph and all opacities return to their initial values through the release window. **Reduced motion / hidden tab:** render the t=5.5 ordered-lanes frame statically. The clock pauses entirely offscreen (IntersectionObserver) and while the document is hidden.
+The long holds (S1 5–7, S3 entirely, S5 37.5–38.7) are the film. Do not
+shorten them to make room for content.
 
 ---
 
-## 13. Poster frame
+## 6. Cut maps
 
-**Concept:** the S3 dark space — three safe teal threads flowing right, one amber thread fraying into two strands upper-right — over the #131518→#1c1f24 gradient with the faint dawn wedge. Title treatment centered: mono eyebrow "AN ILTIZAM FILM · 60 SECONDS" (#8d867a) above the display-serif title *What You Don't See* (#e8e2d6), play affordance in a hairline stone circle. No gold. The poster is the film's question, not its answer.
+Cuts re-time the same scenes through **window tables** in `BrandFilm.tsx` —
+each window maps playback `[start, end]` to a scene `p` range. Beat logic
+keys off `t = p × scene duration`, so compressed windows play faster without
+re-authoring.
 
-**Where it appears:** (1) the landing film section placeholder (`FilmSection.tsx` `PosterArt` + play overlay) before the engine loads; (2) the /film page as the pre-mount frame; (3) social share imagery (OG image rendered from the same composition, title baked in).
+**30s** — drops S3 (the stillness needs 48s to be affordable):
 
----
+| Window | Scene | p range   |
+| ------ | ----- | --------- |
+| 0–5    | S1    | 0.25–1    |
+| 5–11   | S2    | 0–1       |
+| 11–17  | S4    | 0–1       |
+| 17–25  | S5    | 0–1       |
+| 25–30  | S6    | 0.05–1    |
 
-## 14. Mobile adaptation
+Captions: the three VO lines at 25.2 / 26.7 / 28.0.
 
-- **16:9 preserved** at all widths — the SVG viewBox letterboxes inside `aspect-video`; no vertical recomposition, no cropping.
-- **Captions:** serif size floors at 15px rendered (scale caption font-size inversely with stage scale below 480px CSS width); max-width 44ch keeps two-line wraps; lower-third padding grows to clear home indicators.
-- **Tap-for-controls:** the stage is one tap target — first tap reveals a minimal chrome row (play/pause, sound toggle, cut label) that auto-hides after 3s; CSS transitions permitted here (UI chrome only).
-- **Thread legibility at 360px:** strokeWidth stays in the 1.2–2 SVG-unit band but the risk behaviors are choreographed with ≥24px separation at fray/ghost offsets so they survive 4.4× downscale; ghost-copy offset uses the top of its 3–6px range on the master so it never collapses to sub-pixel.
-- **Hero loop cost budget:** one rAF, attribute writes only (transform/opacity/dashoffset — no layout), ~20 nodes touched per frame; paused offscreen and when hidden; zero cost until scrolled into view; no timers, no per-frame allocation.
+**15s** — the submit moment, the request, the decision, the brand:
 
----
+| Window  | Scene | p range   | Content                    |
+| ------- | ----- | --------- | -------------------------- |
+| 0–4     | S1    | 0.28–0.66 | the click + the motif      |
+| 4–7.5   | S4    | 0–0.5     | the message                |
+| 7.5–12  | S5    | 0–1       | card + decision            |
+| 12–15   | S6    | 0.55–1    | match cut + brand          |
 
-## 15. Reduced-motion version
-
-When `prefers-reduced-motion: reduce`:
-
-- **Film:** no animation mounts. The component renders the static poster frame (§13) plus the full caption transcript as readable text beneath the stage (the same 12 lines, in order — matching the /film page transcript). Play controls become a "view transcript" affordance; sound remains available on gesture without motion.
-- **Hero loop:** the frozen t=5.5 ordered-lanes frame (already implemented).
-- **Site-wide corollary:** no parallax anywhere — in the film, on the landing page, or in any future section. This is an accessibility commitment, not a per-component setting.
-
----
-
-## 16. Website integration and performance plan
-
-- **Where it lives:** the landing page film section (`src/app/(public)/FilmSection.tsx`) inside the ink band under the hero; the dedicated `/film` page (`src/app/(public)/film/page.tsx`) with `?cut=30` / `?cut=15` selection and the full transcript; the silent hero loop in the landing hero.
-- **No film JS in the initial bundle:** `BrandFilm` is `next/dynamic` with `ssr: false` in both `FilmSection` (mounts only on the play click) and `FilmPlayer` (mounts on /film navigation). The landing page ships only the poster SVG and the ~1-line wrapper. The hero loop is small, standalone, and independent of the engine.
-- **Lazy mount on click:** the poster button is the gate; the engine chunk downloads only after intent.
-- **Sound rules:** audio requires an explicit user gesture (the AudioContext does not exist before it); captions default on; **never autoplay with audio** — anywhere, on any surface, including social embeds. Muted visual autoplay is permitted only for the silent hero loop.
-- **Cut switching:** `?cut=` re-keys the player (`<BrandFilm key={cut} />`) for a clean timeline remount.
-- **Performance contract:** one rAF master clock while playing; transform/opacity/dashoffset mutations only; the clock stops on pause, on end, offscreen, and on hidden tabs. Target: zero long tasks > 50ms on a mid-range Android phone.
+Caption: only "What happens next is your responsibility." at 12.5.
 
 ---
 
-## 17. Production plan A — as shipped (in-repo SVG/WebAudio)
+## 7. Sound map (`audio.ts`, synthesized)
 
-**Files:**
+Warm pad throughout (detuned triangles through a 950Hz low-pass), F-rooted.
 
-- `src/components/film/BrandFilm.tsx` — the film engine ("use client"): stage, world, figures, threads, cards, captions, brand frame, WebAudio score. Type contract locked in `src/components/film/BrandFilm.d.ts` (`cut?: "60" | "30" | "15"`, `className?`).
-- `src/components/film/HeroLoop.tsx` — the silent 10s hero vignette (shipped).
-- `src/app/(public)/FilmSection.tsx` — landing poster + lazy mount (shipped).
-- `src/app/(public)/film/page.tsx` + `FilmPlayer.tsx` — the cinema page with `?cut=` and transcript (shipped).
-- `docs/brand-film.md` — this bible.
+| Time      | Event                                                  |
+| --------- | ------------------------------------------------------ |
+| 0–19      | pad, **brighter voicing** (add9 air)                   |
+| 2.5–3.2   | keyboard ticks (typing)                                |
+| 3.2       | the submit click — a single soft tick                  |
+| 10.5      | camera-flash soft noise burst                          |
+| 19        | pad eases to neutral voicing                           |
+| 26–33     | **uncertainty**: minor voicing + sparse low D1 drone   |
+| 26.2      | notification tick                                      |
+| 38.6/39.8 | two deliberate decision clicks                         |
+| 41.8      | notification tick (Mariam's phone)                     |
+| 42        | resolve chord (maj7)                                   |
+| 45.5      | final warm chord, pad swells under the brand frame     |
 
-**Engine rules:** every visual property is a pure function of master time `t` (seconds) from a single `requestAnimationFrame` clock — no CSS keyframes for choreography (CSS transitions for UI chrome only). Helpers: `clamp01`, `segment(t, start, end) → p`, `linear` / `easeInOut` / `easeOut` (cubic), `lerp`. Because the film is a function of t, it is scrubbable and deterministic: the same t always yields the same frame. Audio events are scheduled off the same clock (§8). Reduced motion renders §15. No external assets, no network fetches, no images — everything drawn in SVG/CSS. `npx tsc --noEmit` and `npx eslint` clean.
-
-**The `filmt=` test hook:** appending `?filmt=<seconds>` (e.g. `/film?filmt=47`) mounts the engine paused at exactly that master-clock time and renders that single frame — no rAF loop, no audio. This makes every storyboard timecode in §2 a testable assertion (screenshot `filmt=18`, `filmt=33`, `filmt=47`, `filmt=55.5` against this document) and is the QA method of record for the choreography.
+The old data-pulse event is gone. The 30s/15s timelines re-time these beats
+through their window maps (see `AUDIO_TIMELINES`). All events are scheduled
+from an arbitrary start offset so seek/pause/cut-switch stay in sync.
 
 ---
 
-## 18. Production plan B — live-action upgrade path
+## 8. Hero loop (`HeroLoop.tsx`)
 
-- **Shoot:** 2 days, one practical Egyptian office location (Cairo; real tenant floor, not a set). Day 1: S1/S2/S7 morning coverage chasing real dawn through east glass; Day 2: S6 decision scene + figure beats and plates for VFX.
-- **Light:** natural window light + practicals only (desk lamps, monitor glow). No HMI "cyber" looks; grade to the locked palette — charcoal shadows, #e8dcc4 dawn, #d9d5cb close.
-- **Threads as VFX:** the data-thread system is a compositing pass, 2D-tracked to plates, using the exact SVG grammar of this bible (stroke weights scaled to 4K, same hexes, same five risk behaviors, same comb). The animated film is the previz and the motion bible; the VFX vendor receives `BrandFilm.tsx` timings as ground truth via the `filmt=` frame exports.
-- **Cast:** six roles per §6. Local casting; no model casting, no stock smiles. The DPO is the only featured performance.
-- **VO:** record English master (script §3, verbatim); produce an Arabic-language version with a native Egyptian Arabic VO artist — re-timed captions, same choreography; legal review of the Arabic script against EG-PDPL terminology before record.
-- **Deliverables:** 4K (3840×2160) 60s master; 1080p 60/30/15 cuts; ProRes 422 HQ masters + H.264 web encodes (target ≤ 12 Mbps 1080p); captions as SRT (EN + AR) matching §4.1 cue times; poster still per §13 in 4K and OG sizes; audio stems (VO / score / effects) for future cutdowns.
-- **Truth line for all future versions:** deterministic rules plus human review, never AI magic — and every cut must still work with the sound off.
+10 seconds, silent, seamless — story moments, not dashboards:
 
-— End of bible —
+| Beat     | Content                                                        |
+| -------- | -------------------------------------------------------------- |
+| 0–2.5    | laptop + Submit click + "Application submitted" + motif line   |
+| 2.5–4.5  | the paper rect duplicates into two trays                       |
+| 4.5–6.5  | the message bubble: "Could you delete the ID copy…?"           |
+| 6.5–8.5  | small card "4 locations identified" + rects fold closed        |
+| 8.5–10   | crossfade back to the opening frame (the seam)                 |
+
+Reduced motion: freeze at the **7.5s** state (card + folding copies).
+
+---
+
+## 9. Poster
+
+Mariam at the warm window — the S1 composition at ~2.7s: silhouette, light
+pool, the tiny submit panel still open. Title **"After Submit"**, small line
+*"An Iltizam film · 48 seconds"*. Used by `BrandFilm`'s poster state and the
+landing `FilmSection`. Never the dashboard, never a dark network.
+
+---
+
+## 10. Engine, review hook, reduced motion
+
+- `engine.ts` owns the rAF clock and easing helpers. **Every frame is a pure
+  function of time** — scenes hold no state. Do not add scene knowledge to
+  the engine.
+- `/film?filmt=<seconds>` renders the master cut paused at that second — the
+  review tool used for frame checks (`?cut=30|15` selects a cut).
+- Reduced motion: the player shows the poster still with the closing lines
+  as text; the hero loop freezes at 7.5s.
+
+---
+
+## 11. Live-action production note
+
+If this film is ever shot for real: **one actress, one office, one day**,
+plus a macro insert day. Every setup is already in this document — window
+desk (S1/S6, shoot morning and evening), conference corner (S2a), wide floor
+(S3), HR desk (S4/S5). The macro day covers paper, folded corners, trays,
+drawers, the pen line and the reflection pass (a light bar dragged over the
+desk). The interface stays a post insert on real screens — two glimpses, same
+budget. The silhouette language survives the transfer: expose for the
+windows, let the people fall to warm black.

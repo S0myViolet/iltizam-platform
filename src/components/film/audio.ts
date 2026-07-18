@@ -1,318 +1,305 @@
-"use client";
+// ─────────────────────────────────────────────────────────────────────────────
+// audio.ts — "After Submit" sound, synthesized in the browser.
+//
+// No files, no samples: a warm pad (detuned triangles through a low-pass),
+// a shared noise buffer for ticks, and an event timeline per cut. The pad
+// carries the emotional line — brighter voicing while life moves forward
+// (0–19), a minor voicing with a sparse low drone under the request (26–33),
+// a resolve at the decision, a final warm chord under the brand frame.
+// Diegetic sounds are tiny: keyboard ticks, one soft submit click, a camera
+// flash, two notification ticks, two deliberate decision clicks.
+//
+// Everything is scheduled against AudioContext time from an arbitrary start
+// offset, so play/seek/cut-switching all work: events before the offset are
+// skipped, the pad voicing is fast-forwarded to whatever the offset implies.
+// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * FilmAudio — a fully synthesized, generative WebAudio score for the film.
- *
- * OFF by default; start() must be called from a user gesture. The score is
- * scheduled from the film clock: BrandFilm calls update(t) every frame and
- * one-shot events fire when t crosses their timestamp. Seeking clears/rebuilds
- * the pending-event set so nothing double-fires or machine-guns after a scrub.
- *
- * Everything is quiet and restrained: a warm ambient pad, sparse piano-like
- * plucks, a low tension drone under the risk act, and tiny diegetic details.
- */
-
-const dB = (v: number): number => Math.pow(10, v / 20);
-
-type ScoreEvent = { time: number; fire: (a: FilmAudio, when: number) => void };
-
-/* Note frequencies used by the motif. */
-const N = {
-  A3: 220.0,
-  C4: 261.63,
-  D4: 293.66,
-  F4: 349.23,
-  A4: 440.0,
-  D5: 587.33,
-  E5: 659.26,
-  F5: 698.46,
-} as const;
-
-/* Pad chords as [root, colour-tone] dyads — one change per ~8s.
-   Dm9 → B♭maj7 → F → C(add9)-ish. */
-const CHORDS: ReadonlyArray<readonly [number, number]> = [
-  [73.42, 164.81], // D2 + E3  (Dm9 flavour)
-  [116.54, 220.0], // Bb2 + A3 (Bbmaj7)
-  [87.31, 130.81], // F2 + C3
-  [65.41, 196.0], // C2 + G3
-];
-
-function buildEvents(): ScoreEvent[] {
-  const ev: ScoreEvent[] = [];
-
-  // (b) sparse piano-like plucks — gentle motif, scenes 1–2 and 6–7.
-  const motif: Array<[number, number]> = [
-    [1.2, N.D5],
-    [3.4, N.F5],
-    [5.8, N.A4],
-    [8.6, N.E5],
-    [11.4, N.D5],
-    [14.2, N.A4],
-    [45.0, N.D5],
-    [49.4, N.F5],
-    [52.6, N.A4],
-    [55.2, N.E5],
-    [57.6, N.D5],
-    [59.0, N.A4],
-  ];
-  for (const [time, freq] of motif) {
-    ev.push({ time, fire: (a, when) => a.pluck(when, freq, dB(-24)) });
-  }
-
-  // (d) soft keyboard ticks around 8–14s.
-  for (const time of [8.2, 8.9, 9.3, 10.5, 11.1, 11.6, 12.4, 13.2, 13.7]) {
-    ev.push({ time, fire: (a, when) => a.tick(when) });
-  }
-
-  // (d) one soft data pulse at ~18s.
-  ev.push({ time: 18, fire: (a, when) => a.dataPulse(when) });
-
-  // (d) confirmation chime — two triangle notes a perfect fifth apart, ~47s.
-  ev.push({
-    time: 47,
-    fire: (a, when) => {
-      a.pluck(when, N.A4, dB(-26), "triangle");
-      a.pluck(when + 0.14, N.E5, dB(-27), "triangle");
-    },
-  });
-
-  // (d) warm resolve chord at ~54s.
-  ev.push({
-    time: 54,
-    fire: (a, when) => {
-      a.pluck(when, N.F4 / 2, dB(-26), "triangle", 2.4);
-      a.pluck(when + 0.05, N.C4, dB(-28), "triangle", 2.4);
-      a.pluck(when + 0.1, N.A4, dB(-29), "triangle", 2.4);
-    },
-  });
-
-  return ev.sort((x, y) => x.time - y.time);
+export interface AudioTimeline {
+  /** Pad voicing is bright until this second, then eases to neutral. */
+  brightUntil: number;
+  /** The uncertainty window: minor voicing + sparse low drone. */
+  minor: [number, number] | null;
+  /** Keyboard typing ticks between these seconds. */
+  keys: [number, number] | null;
+  /** Soft single UI ticks: the submit click and the two decision clicks. */
+  clicks: number[];
+  /** Camera-flash soft noise burst. */
+  flash: number | null;
+  /** Notification two-tone ticks. */
+  notifs: number[];
+  /** The resolve chord (the decision lands). */
+  resolve: number | null;
+  /** The final warm chord under the brand frame. */
+  final: number | null;
 }
+
+/** Master cut (48s) — the authored sound map. */
+const TL_48: AudioTimeline = {
+  brightUntil: 19,
+  minor: [26, 33],
+  keys: [2.5, 3.2],
+  clicks: [3.2, 38.6, 39.8],
+  flash: 10.5,
+  notifs: [26.2, 41.8],
+  resolve: 42,
+  final: 45.5,
+};
+
+/** 30s cut — beats re-timed through its window table. */
+const TL_30: AudioTimeline = {
+  brightUntil: 11,
+  minor: [11, 17],
+  keys: [0.45, 1.0],
+  clicks: [1.0, 22.3, 23.4],
+  flash: 6.35,
+  notifs: [11.2, 25.0],
+  resolve: 25.2,
+  final: 28.0,
+};
+
+/** 15s cut — the essentials only. */
+const TL_15: AudioTimeline = {
+  brightUntil: 4,
+  minor: [4, 7.5],
+  keys: [0.4, 1.26],
+  clicks: [1.26, 10.5, 11.1],
+  flash: null,
+  notifs: [4.2],
+  resolve: 12.4,
+  final: 13.5,
+};
+
+export const AUDIO_TIMELINES: Record<"48" | "30" | "15", AudioTimeline> = {
+  "48": TL_48,
+  "30": TL_30,
+  "15": TL_15,
+};
+
+/* Pad voicings (Hz). F-rooted, warm. */
+const VOICE_BRIGHT = [87.31, 130.81, 220.0, 261.63, 392.0]; // F2 C3 A3 C4 G4 — add9 air
+const VOICE_NEUTRAL = [87.31, 130.81, 174.61, 220.0, 261.63]; // F2 C3 F3 A3 C4
+const VOICE_MINOR = [73.42, 110.0, 174.61, 220.0, 293.66]; // D2 A2 F3 A3 D4
+const VOICE_RESOLVE = [87.31, 130.81, 220.0, 329.63, 392.0]; // F2 C3 A3 E4 G4 — maj7
+const VOICE_FINAL = [87.31, 174.61, 220.0, 349.23, 523.25]; // F2 F3 A3 F4 C5
+
+const PAD_LEVEL = 0.05;
+const GLIDE = 1.6; // seconds for a voicing change to settle
 
 export class FilmAudio {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  private muteGain: GainNode | null = null;
-  private padOsc1: OscillatorNode | null = null;
-  private padOsc2: OscillatorNode | null = null;
-  private droneGain: GainNode | null = null;
-  private noiseBuffer: AudioBuffer | null = null;
-  private events: ScoreEvent[] = buildEvents();
-  private fired: Set<number> = new Set();
-  private lastT = 0;
-  private chordIndex = -1;
-  private droneOn = false;
+  private padOscs: OscillatorNode[] = [];
+  private live: { stop: (when: number) => void }[] = [];
+  private noise: AudioBuffer | null = null;
   private muted = false;
-  private active = false;
-
-  /** Start (or resume) the score, synced to film time t. User gesture only. */
-  start(t: number): void {
-    if (typeof window === "undefined") return;
-    if (!this.ctx) {
-      const AC =
-        window.AudioContext ??
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AC) return;
-      this.ctx = new AC();
-      this.buildGraph();
-    }
-    void this.ctx.resume();
-    this.active = true;
-    this.resync(t);
-  }
-
-  stop(): void {
-    this.active = false;
-    if (this.ctx && this.ctx.state === "running") void this.ctx.suspend();
-  }
 
   setMuted(m: boolean): void {
     this.muted = m;
-    if (this.ctx && this.muteGain) {
-      this.muteGain.gain.setTargetAtTime(m ? 0 : 1, this.ctx.currentTime, 0.05);
+    if (this.master && this.ctx) {
+      this.master.gain.setTargetAtTime(m ? 0 : 1, this.ctx.currentTime, 0.05);
     }
   }
 
-  get isMuted(): boolean {
-    return this.muted;
-  }
+  /** Start the timeline from `offset` seconds. Must be called from a gesture. */
+  start(tl: AudioTimeline, offset: number): void {
+    this.stop();
+    const AC: typeof AudioContext | undefined =
+      typeof window !== "undefined"
+        ? (window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext)
+        : undefined;
+    if (!AC) return;
+    const ctx = (this.ctx ??= new AC());
+    void ctx.resume();
 
-  /** Call every frame with film time t; fires events crossed since last call. */
-  update(t: number): void {
-    if (!this.ctx || !this.active) return;
-    // A scrub/seek (backwards, or a big forward jump) clears pending events.
-    if (t < this.lastT - 0.05 || t > this.lastT + 0.6) {
-      this.resync(t);
-      return;
-    }
-    const now = this.ctx.currentTime;
-    for (let i = 0; i < this.events.length; i++) {
-      const e = this.events[i];
-      if (e.time > t) break;
-      if (e.time > this.lastT && !this.fired.has(i)) {
-        this.fired.add(i);
-        e.fire(this, now + 0.01);
-      }
-    }
-    this.updateContinuous(t);
-    this.lastT = t;
-  }
+    const master = ctx.createGain();
+    master.gain.value = this.muted ? 0 : 1;
+    master.connect(ctx.destination);
+    this.master = master;
 
-  /* ── internals ─────────────────────────────────────────────────────── */
+    const now = ctx.currentTime + 0.05;
+    const at = (evT: number) => now + (evT - offset);
 
-  private resync(t: number): void {
-    this.lastT = t;
-    this.fired = new Set(this.events.map((e, i) => (e.time <= t ? i : -1)).filter((i) => i >= 0));
-    this.updateContinuous(t, true);
-  }
-
-  private updateContinuous(t: number, hard = false): void {
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-
-    // (a) pad chord changes, one per ~8s.
-    const idx = Math.floor(t / 8) % CHORDS.length;
-    if (idx !== this.chordIndex) {
-      this.chordIndex = idx;
-      const [root, colour] = CHORDS[idx];
-      const glide = hard ? 0.05 : 1.6;
-      this.padOsc1?.frequency.setTargetAtTime(root, now, glide);
-      this.padOsc2?.frequency.setTargetAtTime(colour, now, glide);
-    }
-
-    // (c) low tension drone, ONLY 16s–34s.
-    const wantDrone = t >= 16 && t < 34;
-    if (wantDrone !== this.droneOn) {
-      this.droneOn = wantDrone;
-      this.droneGain?.gain.setTargetAtTime(wantDrone ? dB(-32) : 0, now, hard ? 0.05 : 1.2);
-    }
-  }
-
-  private buildGraph(): void {
-    const ctx = this.ctx;
-    if (!ctx) return;
-
-    this.master = ctx.createGain();
-    this.master.gain.value = 0.5;
-    this.muteGain = ctx.createGain();
-    this.muteGain.gain.value = this.muted ? 0 : 1;
-    this.master.connect(this.muteGain);
-    this.muteGain.connect(ctx.destination);
-
-    // (a) warm ambient pad — two detuned oscillators through a ~600Hz lowpass.
-    const padFilter = ctx.createBiquadFilter();
-    padFilter.type = "lowpass";
-    padFilter.frequency.value = 600;
-    padFilter.Q.value = 0.4;
-    const padGain = ctx.createGain();
-    padGain.gain.value = dB(-28);
-    padFilter.connect(padGain);
-    padGain.connect(this.master);
-
-    this.padOsc1 = ctx.createOscillator();
-    this.padOsc1.type = "sine";
-    this.padOsc1.frequency.value = CHORDS[0][0];
-    this.padOsc2 = ctx.createOscillator();
-    this.padOsc2.type = "triangle";
-    this.padOsc2.frequency.value = CHORDS[0][1];
-    this.padOsc2.detune.value = 7; // gentle beating against osc1
-    this.padOsc1.connect(padFilter);
-    this.padOsc2.connect(padFilter);
-    this.padOsc1.start();
-    this.padOsc2.start();
-
-    // (c) tension drone: 55Hz sine + filtered noise, gated by droneGain.
-    this.droneGain = ctx.createGain();
-    this.droneGain.gain.value = 0;
-    this.droneGain.connect(this.master);
-
-    const droneOsc = ctx.createOscillator();
-    droneOsc.type = "sine";
-    droneOsc.frequency.value = 55;
-    droneOsc.connect(this.droneGain);
-    droneOsc.start();
-
-    const noiseSrc = ctx.createBufferSource();
-    noiseSrc.buffer = this.getNoiseBuffer();
-    noiseSrc.loop = true;
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = "lowpass";
-    noiseFilter.frequency.value = 180;
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.value = 0.35;
-    noiseSrc.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(this.droneGain);
-    noiseSrc.start();
-  }
-
-  private getNoiseBuffer(): AudioBuffer {
-    const ctx = this.ctx as AudioContext;
-    if (this.noiseBuffer) return this.noiseBuffer;
-    const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
-    this.noiseBuffer = buf;
-    return buf;
-  }
-
-  /** Piano-like pluck: fast attack, exponential decay. */
-  pluck(when: number, freq: number, peak: number, type: OscillatorType = "triangle", decay = 1.2): void {
-    const ctx = this.ctx;
-    if (!ctx || !this.master) return;
-    const osc = ctx.createOscillator();
-    osc.type = type;
-    osc.frequency.value = freq;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.exponentialRampToValueAtTime(peak, when + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + decay);
+    /* ── the pad ─────────────────────────────────────────────────────── */
+    const padBus = ctx.createGain();
+    padBus.gain.setValueAtTime(0, now);
+    padBus.gain.linearRampToValueAtTime(PAD_LEVEL, now + 1.4);
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.value = 2400;
-    osc.connect(lp);
-    lp.connect(g);
-    g.connect(this.master);
-    osc.start(when);
-    osc.stop(when + decay + 0.1);
+    lp.frequency.value = 950;
+    lp.Q.value = 0.4;
+    padBus.connect(lp);
+    lp.connect(master);
+
+    /* the voicing in force at a given master second */
+    const voicingAt = (s: number): number[] => {
+      if (tl.final !== null && s >= tl.final) return VOICE_FINAL;
+      if (tl.resolve !== null && s >= tl.resolve) return VOICE_RESOLVE;
+      if (tl.minor && s >= tl.minor[0] && s < tl.minor[1]) return VOICE_MINOR;
+      if (s < tl.brightUntil) return VOICE_BRIGHT;
+      return VOICE_NEUTRAL;
+    };
+
+    const initial = voicingAt(offset);
+    this.padOscs = initial.map((f, i) => {
+      const osc = ctx.createOscillator();
+      osc.type = i === 0 ? "sine" : "triangle";
+      osc.frequency.setValueAtTime(f, now);
+      osc.detune.value = (i % 2 === 0 ? 1 : -1) * 3;
+      const g = ctx.createGain();
+      g.gain.value = i === 0 ? 0.9 : 0.55;
+      osc.connect(g);
+      g.connect(padBus);
+      osc.start(now);
+      return osc;
+    });
+    const retune = (evT: number, voice: number[]) => {
+      if (evT < offset) return;
+      this.padOscs.forEach((o, i) => {
+        o.frequency.setTargetAtTime(voice[i], at(evT), GLIDE / 3);
+      });
+    };
+    retune(tl.brightUntil, VOICE_NEUTRAL);
+    if (tl.minor) {
+      retune(tl.minor[0], VOICE_MINOR);
+      retune(tl.minor[1], VOICE_NEUTRAL);
+    }
+    if (tl.resolve !== null) retune(tl.resolve, VOICE_RESOLVE);
+    if (tl.final !== null) {
+      retune(tl.final, VOICE_FINAL);
+      if (tl.final >= offset) {
+        padBus.gain.setTargetAtTime(PAD_LEVEL * 1.5, at(tl.final), 0.8);
+      }
+    }
+    this.live.push({
+      stop: (when) => {
+        padBus.gain.setTargetAtTime(0, when, 0.15);
+        this.padOscs.forEach((o) => o.stop(when + 0.8));
+      },
+    });
+
+    /* ── sparse low drone inside the minor window ────────────────────── */
+    if (tl.minor && tl.minor[1] > offset) {
+      const drone = ctx.createOscillator();
+      drone.type = "sine";
+      drone.frequency.value = 36.71; // D1
+      const dg = ctx.createGain();
+      dg.gain.setValueAtTime(0, now);
+      const [m0, m1] = tl.minor;
+      const span = m1 - m0;
+      for (let k = 0; k < 3; k += 1) {
+        const swell = m0 + 0.4 + (k * span) / 3;
+        if (swell + 1.2 < offset) continue;
+        dg.gain.setTargetAtTime(0.05, at(Math.max(swell, offset)), 0.5);
+        dg.gain.setTargetAtTime(0.004, at(Math.max(swell + 1.4, offset)), 0.6);
+      }
+      dg.gain.setTargetAtTime(0, at(Math.max(m1, offset)), 0.4);
+      drone.connect(dg);
+      dg.connect(master);
+      drone.start(now);
+      this.live.push({ stop: (when) => drone.stop(when + 0.6) });
+    }
+
+    /* ── noise-based one-shots ───────────────────────────────────────── */
+    const noise = (this.noise ??= (() => {
+      const buf = ctx.createBuffer(1, ctx.sampleRate / 2, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i += 1) d[i] = Math.random() * 2 - 1;
+      return buf;
+    })());
+
+    const tick = (evT: number, freq: number, gain: number, dur: number) => {
+      if (evT < offset) return;
+      const src = ctx.createBufferSource();
+      src.buffer = noise;
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = freq;
+      bp.Q.value = 5;
+      const g = ctx.createGain();
+      const t0 = at(evT);
+      g.gain.setValueAtTime(gain, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(bp);
+      bp.connect(g);
+      g.connect(master);
+      src.start(t0);
+      src.stop(t0 + dur + 0.02);
+      this.live.push({ stop: (when) => src.stop(Math.max(when, t0)) });
+    };
+
+    /* keyboard typing */
+    if (tl.keys) {
+      const [k0, k1] = tl.keys;
+      for (let s = k0, i = 0; s < k1; s += 0.09, i += 1) {
+        tick(s, 2400 + (i % 3) * 260, 0.035, 0.03);
+      }
+    }
+    /* the submit click and the two deliberate decision clicks */
+    tl.clicks.forEach((c) => tick(c, 1500, 0.08, 0.05));
+
+    /* camera flash — a soft, wider noise burst */
+    if (tl.flash !== null && tl.flash >= offset) {
+      const src = ctx.createBufferSource();
+      src.buffer = noise;
+      const lpf = ctx.createBiquadFilter();
+      lpf.type = "lowpass";
+      const t0 = at(tl.flash);
+      lpf.frequency.setValueAtTime(4200, t0);
+      lpf.frequency.exponentialRampToValueAtTime(380, t0 + 0.18);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.07, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      src.connect(lpf);
+      lpf.connect(g);
+      g.connect(master);
+      src.start(t0);
+      src.stop(t0 + 0.25);
+      this.live.push({ stop: (when) => src.stop(Math.max(when, t0)) });
+    }
+
+    /* notification ticks — two rising tones */
+    tl.notifs.forEach((n) => {
+      if (n < offset) return;
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      const t0 = at(n);
+      osc.frequency.setValueAtTime(880, t0);
+      osc.frequency.setValueAtTime(1174.7, t0 + 0.09);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.045, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.24);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(t0);
+      osc.stop(t0 + 0.26);
+      this.live.push({ stop: (when) => osc.stop(Math.max(when, t0)) });
+    });
   }
 
-  /** Soft keyboard tick — a 30ms filtered noise burst. */
-  tick(when: number): void {
+  stop(): void {
     const ctx = this.ctx;
-    if (!ctx || !this.master) return;
-    const src = ctx.createBufferSource();
-    src.buffer = this.getNoiseBuffer();
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = 2600 + Math.random() * 800;
-    bp.Q.value = 1.2;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.exponentialRampToValueAtTime(dB(-34), when + 0.004);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.03);
-    src.connect(bp);
-    bp.connect(g);
-    g.connect(this.master);
-    src.start(when);
-    src.stop(when + 0.06);
+    if (!ctx) return;
+    const when = ctx.currentTime;
+    if (this.master) {
+      this.master.gain.setTargetAtTime(0, when, 0.08);
+    }
+    this.live.forEach((n) => {
+      try {
+        n.stop(when + 0.3);
+      } catch {
+        /* already stopped */
+      }
+    });
+    this.live = [];
+    this.padOscs = [];
+    this.master = null;
   }
 
-  /** One soft data pulse — sine blip 880→440Hz. */
-  dataPulse(when: number): void {
-    const ctx = this.ctx;
-    if (!ctx || !this.master) return;
-    const osc = ctx.createOscillator();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(880, when);
-    osc.frequency.exponentialRampToValueAtTime(440, when + 0.35);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, when);
-    g.gain.exponentialRampToValueAtTime(dB(-30), when + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.5);
-    osc.connect(g);
-    g.connect(this.master);
-    osc.start(when);
-    osc.stop(when + 0.6);
+  dispose(): void {
+    this.stop();
+    void this.ctx?.close();
+    this.ctx = null;
   }
 }
